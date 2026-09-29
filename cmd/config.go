@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -25,8 +27,6 @@ var configCmd = &cobra.Command{
 	Short: "Device configuration snapshot: export, import, diff",
 }
 
-// FieldDiff is one section field whose value differs between the device and
-// a saved snapshot, or is present on only one side.
 type FieldDiff struct {
 	Section string `json:"section"`
 	Field   string `json:"field"`
@@ -34,8 +34,6 @@ type FieldDiff struct {
 	Saved   any    `json:"saved"`
 }
 
-// loadSnapshot reads and decodes a snapshot JSON file previously written by
-// config export.
 func loadSnapshot(path string) (*section.Snapshot, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -48,9 +46,6 @@ func loadSnapshot(path string) (*section.Snapshot, error) {
 	return &s, nil
 }
 
-// snapshotMapField returns the map-valued section named name and whether it
-// was present (non-nil) in s. It does not handle SectionTickers, which is a
-// slice rather than a map.
 func snapshotMapField(s *section.Snapshot, name string) (map[string]any, bool) {
 	var m map[string]any
 	switch name {
@@ -68,8 +63,6 @@ func snapshotMapField(s *section.Snapshot, name string) (map[string]any, bool) {
 	return m, m != nil
 }
 
-// configSectionPresent reports whether s carries content for the named
-// section.
 func configSectionPresent(s *section.Snapshot, name string) bool {
 	if name == section.SectionTickers {
 		return s.Tickers != nil
@@ -78,8 +71,6 @@ func configSectionPresent(s *section.Snapshot, name string) bool {
 	return ok
 }
 
-// configPresentSections returns the section names s carries content for, in
-// canonical order.
 func configPresentSections(s *section.Snapshot) []string {
 	var names []string
 	for _, name := range section.Sections {
@@ -90,15 +81,11 @@ func configPresentSections(s *section.Snapshot) []string {
 	return names
 }
 
-// configIsSecretField reports whether field looks like a password or secret
-// key, the same rule section.Capture applies when withSecrets is false.
 func configIsSecretField(field string) bool {
 	lower := strings.ToLower(field)
 	return strings.Contains(lower, "password") || strings.Contains(lower, "secret")
 }
 
-// redactSnapshotSecrets returns a copy of s with password/secret fields
-// removed from its wifi and ap sections. s itself is not mutated.
 func redactSnapshotSecrets(s *section.Snapshot) *section.Snapshot {
 	out := *s
 	out.Wifi = redactMap(s.Wifi)
@@ -120,9 +107,6 @@ func redactMap(m map[string]any) map[string]any {
 	return out
 }
 
-// configDiffSnapshots compares every section device and saved carry, in
-// canonical section order, and returns one FieldDiff per field that differs
-// or is present on only one side.
 func configDiffSnapshots(device, saved *section.Snapshot) []FieldDiff {
 	var diffs []FieldDiff
 	for _, name := range section.Sections {
@@ -170,10 +154,6 @@ func fieldValue(v any, present bool) any {
 	return v
 }
 
-// configDiffTickers compares two ticker lists positionally, reporting one
-// FieldDiff per Entry field that differs, named tickers[i].<field>. An
-// index present on only one side reports every field on that index as
-// absent on the other.
 func configDiffTickers(device, saved []tickers.Entry) []FieldDiff {
 	n := len(device)
 	if len(saved) > n {

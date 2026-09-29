@@ -1,0 +1,11 @@
+LicenseRef-IANA-TZDATA
+
+Applies to internal/tz/timezones.json, derived from the IANA Time Zone
+Database (tzdata).
+
+IANA distributes tzdata as public domain data. The authoritative license
+text ships as LICENSE in each tzdata release and is published at
+https://data.iana.org/time-zones/releases/. That upstream text governs;
+this file exists only to satisfy REUSE's requirement that a
+SPDX-License-Identifier used in this repository resolve to a file under
+LICENSES/.

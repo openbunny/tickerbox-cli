@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -155,7 +157,6 @@ func doctorTestServer(t *testing.T, handlers map[string]any) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
 	for path, payload := range handlers {
-		payload := payload
 		mux.HandleFunc("/rest/"+path, func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(payload)

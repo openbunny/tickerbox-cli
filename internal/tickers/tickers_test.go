@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package tickers
 
 import (
@@ -306,7 +308,6 @@ func FuzzDecode(f *testing.F) {
 		if len(entries) != size {
 			t.Fatalf("Decode returned %d entries; want size %d", len(entries), size)
 		}
-		// Encode must not panic on any entries Decode produced.
 		Encode(entries)
 	})
 }

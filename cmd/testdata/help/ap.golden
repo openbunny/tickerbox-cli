@@ -1,0 +1,21 @@
+Access point
+
+Usage:
+  tickerbox ap [command]
+
+Available Commands:
+  set         Change access point settings
+  settings    Show access point settings
+  status      Show access point status
+
+Flags:
+  -h, --help   help for ap
+
+Global Flags:
+  -d, --device string      named device from the config file
+      --host string        TickerBox base URL (default http://tickerbox.local, or $TICKERBOX_HOST)
+  -j, --json               emit raw device JSON instead of a decoded table
+      --retry int          retry an idempotent request this many times on a transient failure (default 2)
+      --timeout duration   per-request timeout (default 10s)
+
+Use "tickerbox ap [command] --help" for more information about a command.

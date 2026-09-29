@@ -1,14 +1,13 @@
-// Package tickers implements the TickerBox device's ticker/asset list
-// domain: the coinSetupState wire format and the rules for converting it
-// to and from a list of Entry values.
+// SPDX-License-Identifier: MIT
+
 package tickers
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
-// Entry is one configured ticker.
 type Entry struct {
 	Type     string `json:"type"`
 	Ticker   string `json:"ticker"`
@@ -16,27 +15,22 @@ type Entry struct {
 	Currency string `json:"currency"`
 }
 
-// Ticker types the device accepts.
 const (
 	TypeCrypto = "crypto"
 	TypeStocks = "stocks"
 	TypeForex  = "forex"
 )
 
-// Types lists the ticker types the device accepts.
 var Types = []string{TypeCrypto, TypeStocks, TypeForex}
 
-// Update intervals the device accepts.
 const (
 	Time1Min  = "1min"
 	Time5Min  = "5min"
 	Time15Min = "15min"
 )
 
-// Times lists the update intervals the device accepts.
 var Times = []string{Time1Min, Time5Min, Time15Min}
 
-// Currencies the device accepts.
 const (
 	CurrencyUSD = "USD"
 	CurrencyEUR = "EUR"
@@ -46,11 +40,8 @@ const (
 	CurrencyJPY = "JPY"
 )
 
-// Currencies lists the currencies the device accepts.
 var Currencies = []string{CurrencyUSD, CurrencyEUR, CurrencyGBP, CurrencyCAD, CurrencyAUD, CurrencyJPY}
 
-// State is the device's coinSetupState wire format: a count plus four
-// comma-joined fields, zipped positionally up to Size.
 type State struct {
 	Size     int    `json:"size"`
 	Types    string `json:"types"`
@@ -66,11 +57,6 @@ func splitCSV(s string) []string {
 	return strings.Split(s, ",")
 }
 
-// Decode parses a coinSetupState response into Entry values, zipping
-// Types, Tickers, Times and Currency positionally up to Size. Types,
-// Tickers and Times must each carry at least Size comma-separated
-// elements; Currency may carry fewer, and positions past its end decode
-// to an empty currency.
 func Decode(state State) ([]Entry, error) {
 	if state.Size < 0 {
 		return nil, fmt.Errorf("coinSetupState: negative size %d", state.Size)
@@ -103,10 +89,6 @@ func Decode(state State) ([]Entry, error) {
 	return entries, nil
 }
 
-// Encode builds a coinSetupState request body from entries: each ticker
-// is upper-cased and trimmed of whitespace, entries left with an empty
-// ticker are dropped, non-crypto entries have their currency forced to
-// USD, and size reflects the resulting entry count.
 func Encode(entries []Entry) map[string]any {
 	types := make([]string, 0, len(entries))
 	tickers := make([]string, 0, len(entries))
@@ -137,32 +119,18 @@ func Encode(entries []Entry) map[string]any {
 	}
 }
 
-// NormalizeTicker upper-cases ticker and strips its whitespace, the form
-// the device expects and the form entries are matched against.
 func NormalizeTicker(ticker string) string {
 	return strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(ticker), " ", ""))
 }
 
-func contains(values []string, v string) bool {
-	for _, x := range values {
-		if x == v {
-			return true
-		}
-	}
-	return false
-}
-
-// ValidType reports whether t is one of the ticker types the device accepts.
 func ValidType(t string) bool {
-	return contains(Types, t)
+	return slices.Contains(Types, t)
 }
 
-// ValidTime reports whether t is one of the update intervals the device accepts.
 func ValidTime(t string) bool {
-	return contains(Times, t)
+	return slices.Contains(Times, t)
 }
 
-// ValidCurrency reports whether c is one of the currencies the device accepts.
 func ValidCurrency(c string) bool {
-	return contains(Currencies, c)
+	return slices.Contains(Currencies, c)
 }

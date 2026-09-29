@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -174,9 +176,6 @@ func confirmSystemAction(prompt string) (bool, error) {
 	return line == "y" || line == "yes", nil
 }
 
-// fetchStatusReport gathers every dashboard endpoint through c, recording
-// each as unavailable in report.Errors rather than failing the whole report
-// on one endpoint's error.
 func fetchStatusReport(c *client.Client) statusReport {
 	var features featuresPayload
 	featuresErr := c.Get("features", &features)
@@ -336,17 +335,12 @@ func printStatusReport(report statusReport) {
 	}
 }
 
-// deviceStatusReport pairs one configured device with its fetched status
-// report, for the --all fan-out.
 type deviceStatusReport struct {
 	Device string       `json:"device"`
 	Host   string       `json:"host"`
 	Report statusReport `json:"report"`
 }
 
-// collectDeviceStatuses fetches a status report from every device in
-// devices, in order, using the same per-request timeout and retry count as
-// newClient.
 func collectDeviceStatuses(devices []config.Device) []deviceStatusReport {
 	reports := make([]deviceStatusReport, len(devices))
 	for i, d := range devices {
@@ -491,17 +485,12 @@ const (
 	backupFilePerm   = 0o600
 )
 
-// systemClock is time.Now, overridden in tests so a backup file name is
-// deterministic.
 var systemClock = time.Now
 
 func backupFileName(t time.Time) string {
 	return backupFilePrefix + t.UTC().Format(backupTimeLayout) + backupFileExt
 }
 
-// writeBackup captures every device config section, excluding wifi/ap
-// secrets, and writes it to a timestamped JSON file in the current
-// directory, returning the file name written.
 func writeBackup(c *client.Client) (string, error) {
 	snap, err := section.Capture(c, section.Sections, false)
 	if err != nil {

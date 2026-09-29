@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -5,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -133,13 +136,9 @@ var tickersRemoveCmd = &cobra.Command{
 			entries = append(entries[:idx], entries[idx+1:]...)
 		} else {
 			target := tickers.NormalizeTicker(selector)
-			found := -1
-			for i, e := range entries {
-				if tickers.NormalizeTicker(e.Ticker) == target {
-					found = i
-					break
-				}
-			}
+			found := slices.IndexFunc(entries, func(e tickers.Entry) bool {
+				return tickers.NormalizeTicker(e.Ticker) == target
+			})
 			if found == -1 {
 				return fmt.Errorf("no entry with ticker %s", target)
 			}

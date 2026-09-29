@@ -1,9 +1,18 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"os/exec"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -15,6 +24,8 @@ const (
 	wifiScanAttempts = 10
 	wifiScanInterval = time.Second
 )
+
+var secretStdin io.Reader = os.Stdin
 
 var wifiCmd = &cobra.Command{
 	Use:   "wifi",
@@ -53,6 +64,8 @@ func init() {
 
 	wifiSetCmd.Flags().String("ssid", "", "Wi-Fi network name (max 32 characters)")
 	wifiSetCmd.Flags().String("password", "", "Wi-Fi network password")
+	wifiSetCmd.Flags().Bool("password-stdin", false, "read the Wi-Fi network password from stdin")
+	wifiSetCmd.Flags().BoolP("yes", "y", false, "skip the plaintext-HTTP password warning")
 	wifiSetCmd.Flags().String("hostname", "", "device hostname")
 	wifiSetCmd.Flags().Bool("static-ip", false, "use a static IP instead of DHCP")
 	wifiSetCmd.Flags().Bool("no-static-ip", false, "use DHCP instead of a static IP")
@@ -210,8 +223,11 @@ func runWifiSet(cmd *cobra.Command, args []string) error {
 		}
 		settings["ssid"] = ssid
 	}
-	if flags.Changed("password") {
-		password, _ := flags.GetString("password")
+	password, passwordChanged, err := resolveSecretValue(cmd, "Wi-Fi password")
+	if err != nil {
+		return err
+	}
+	if passwordChanged {
 		settings["password"] = password
 	}
 	if flags.Changed("hostname") {
@@ -245,6 +261,11 @@ func runWifiSet(cmd *cobra.Command, args []string) error {
 		settings["dns_ip_2"] = dns2
 	}
 
+	if passwordChanged {
+		yes, _ := flags.GetBool("yes")
+		warnPlaintextPassword(os.Stderr, resolvedHost, yes)
+	}
+
 	if err := c.Post("wifiSettings", settings); err != nil {
 		return fmt.Errorf("update wifi settings: %w", err)
 	}
@@ -254,6 +275,82 @@ func runWifiSet(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println("wifi settings updated")
 	return nil
+}
+
+func resolveSecretValue(cmd *cobra.Command, label string) (string, bool, error) {
+	flags := cmd.Flags()
+	stdinRequested, _ := flags.GetBool("password-stdin")
+	value, _ := flags.GetString("password")
+
+	switch {
+	case stdinRequested && value != "":
+		return "", false, fmt.Errorf("--password and --password-stdin are mutually exclusive")
+	case stdinRequested:
+		secret, err := readSecretStdin()
+		return secret, true, err
+	case value != "":
+		return value, true, nil
+	case terminalStdin():
+		secret, err := promptSecret(label)
+		if err != nil || secret == "" {
+			return "", false, err
+		}
+		return secret, true, nil
+	default:
+		return "", false, nil
+	}
+}
+
+func readSecretStdin() (string, error) {
+	data, err := io.ReadAll(secretStdin)
+	if err != nil {
+		return "", fmt.Errorf("read password from stdin: %w", err)
+	}
+	return strings.TrimRight(string(data), "\r\n"), nil
+}
+
+func promptSecret(label string) (string, error) {
+	fmt.Fprintf(os.Stderr, "%s (leave blank to keep unchanged): ", label)
+	restore := disableStdinEcho()
+	line, err := bufio.NewReader(secretStdin).ReadString('\n')
+	restore()
+	fmt.Fprintln(os.Stderr)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", fmt.Errorf("read %s: %w", label, err)
+	}
+	return strings.TrimRight(line, "\r\n"), nil
+}
+
+func disableStdinEcho() func() {
+	off := exec.Command("stty", "-echo")
+	off.Stdin = os.Stdin
+	if off.Run() != nil {
+		return func() {}
+	}
+	return func() {
+		on := exec.Command("stty", "echo")
+		on.Stdin = os.Stdin
+		_ = on.Run()
+	}
+}
+
+func terminalStdin() bool {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
+}
+
+func warnPlaintextPassword(w io.Writer, host string, yes bool) {
+	if yes {
+		return
+	}
+	u, err := url.Parse(host)
+	if err != nil || u.Scheme != "http" {
+		return
+	}
+	_, _ = fmt.Fprintf(w, "warning: sending the password to %s over plaintext HTTP exposes it to anyone on the network path\n", host)
 }
 
 func runWifiScan(cmd *cobra.Command, args []string) error {

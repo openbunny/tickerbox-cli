@@ -1,6 +1,5 @@
-// Package config manages the multi-device TOML config file that maps a
-// device name to a host, so commands can target a device by name instead of
-// a raw address.
+// SPDX-License-Identifier: MIT
+
 package config
 
 import (
@@ -21,28 +20,21 @@ const (
 	configDirPerm  = 0o700
 	configFilePerm = 0o600
 
-	// envHost overrides the host when no --host or --device flag is given.
 	envHost = "TICKERBOX_HOST"
+
+	insecureReadBits = 0o044
 )
 
-// Device is one named target the CLI can send requests to.
 type Device struct {
 	Name string
 	Host string
 }
 
-// Config is the on-disk, multi-device configuration: a set of named devices
-// and which one is used when no device is specified explicitly.
 type Config struct {
 	Default string
 	Devices map[string]Device
 }
 
-// Path returns the config file's location. It cannot report an error
-// because os.UserConfigDir failing means the environment has no usable home
-// directory; in that case Path falls back to a path relative to the current
-// directory, and Load or Save will fail with the underlying cause when they
-// actually try to use it.
 func Path() string {
 	dir, err := configDir()
 	if err != nil {
@@ -59,8 +51,6 @@ func configDir() (string, error) {
 	return filepath.Join(base, appDirName), nil
 }
 
-// Load reads the config file. A missing file is not an error: it returns an
-// empty Config, since a device set up for the first time has none yet.
 func Load() (*Config, error) {
 	dir, err := configDir()
 	if err != nil {
@@ -76,6 +66,8 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("read config %s: %w", path, err)
 	}
 
+	warnIfGroupOrWorldReadable(path)
+
 	var cfg Config
 	if err := toml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parse config %s: %w", path, err)
@@ -86,9 +78,16 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-// Save writes the config file, creating its parent directory if needed. The
-// file is written with 0600 permissions since it may hold device hosts on a
-// private network.
+func warnIfGroupOrWorldReadable(path string) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return
+	}
+	if perm := info.Mode().Perm(); perm&insecureReadBits != 0 {
+		fmt.Fprintf(os.Stderr, "warning: config file %s is group- or world-readable (mode %o)\n", path, perm)
+	}
+}
+
 func (c *Config) Save() error {
 	dir, err := configDir()
 	if err != nil {
@@ -110,7 +109,6 @@ func (c *Config) Save() error {
 	return nil
 }
 
-// List returns the configured devices sorted by name.
 func (c *Config) List() []Device {
 	devices := make([]Device, 0, len(c.Devices))
 	for _, d := range c.Devices {
@@ -128,7 +126,6 @@ func (c *Config) List() []Device {
 	return devices
 }
 
-// Add sets or replaces the device named name with the given host.
 func (c *Config) Add(name, host string) error {
 	if name == "" {
 		return errors.New("device name must not be empty")
@@ -143,8 +140,6 @@ func (c *Config) Add(name, host string) error {
 	return nil
 }
 
-// Remove deletes the device named name. It errors if no such device exists.
-// If name was the default device, the default is cleared.
 func (c *Config) Remove(name string) error {
 	if _, ok := c.Devices[name]; !ok {
 		return fmt.Errorf("unknown device %q", name)
@@ -156,8 +151,6 @@ func (c *Config) Remove(name string) error {
 	return nil
 }
 
-// SetDefault marks name as the default device. It errors if no such device
-// exists.
 func (c *Config) SetDefault(name string) error {
 	if _, ok := c.Devices[name]; !ok {
 		return fmt.Errorf("unknown device %q", name)
@@ -166,10 +159,6 @@ func (c *Config) SetDefault(name string) error {
 	return nil
 }
 
-// ResolveHost picks the device host a command should use, in order:
-// hostFlag if set, then devices[deviceFlag].Host if deviceFlag is set (an
-// unknown device is an error), then the TICKERBOX_HOST environment
-// variable, then the configured default device, then client.DefaultHost.
 func ResolveHost(hostFlag, deviceFlag string) (string, error) {
 	if hostFlag != "" {
 		return hostFlag, nil

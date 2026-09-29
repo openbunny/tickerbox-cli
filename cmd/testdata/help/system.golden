@@ -1,0 +1,23 @@
+System, status, maintenance
+
+Usage:
+  tickerbox system [command]
+
+Available Commands:
+  factory-reset   Erase all device settings and restore factory defaults
+  features        Show enabled device features
+  firmware-upload Upload and flash new firmware
+  info            Show device system status
+  restart         Restart the device
+
+Flags:
+  -h, --help   help for system
+
+Global Flags:
+  -d, --device string      named device from the config file
+      --host string        TickerBox base URL (default http://tickerbox.local, or $TICKERBOX_HOST)
+  -j, --json               emit raw device JSON instead of a decoded table
+      --retry int          retry an idempotent request this many times on a transient failure (default 2)
+      --timeout duration   per-request timeout (default 10s)
+
+Use "tickerbox system [command] --help" for more information about a command.

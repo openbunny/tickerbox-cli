@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -18,13 +20,8 @@ import (
 )
 
 const (
-	// discoverMDNSHost is the hostname every TickerBox advertises on its
-	// local segment; macOS resolves it through the OS mDNS resolver.
 	discoverMDNSHost = "tickerbox.local"
 
-	// httpScheme prefixes a bare discovered host before it is probed or
-	// persisted, matching the scheme-qualified form every other Host value
-	// in the config file uses (see client.DefaultHost).
 	httpScheme = "http://"
 
 	discoverProbeTimeout = 800 * time.Millisecond
@@ -182,20 +179,12 @@ func runDeviceUse(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// probeTickerbox reports whether host serves /rest/features with
-// tickerbox==true, within timeout. A transport failure, a non-2xx status,
-// or a malformed body are all treated as "not a TickerBox" rather than
-// propagated, since discover and ping probe many hosts where most are
-// expected not to answer.
 func probeTickerbox(host string, timeout time.Duration) bool {
 	c := client.New(restBase(httpScheme+host), timeout)
 	var f featuresPayload
 	return c.Get("features", &f) == nil && f.Tickerbox
 }
 
-// primaryIPv4 returns the local IPv4 address the OS would use to reach the
-// wider network. Dialing UDP performs no handshake and sends no packet; it
-// only asks the OS to resolve the outbound route and its local address.
 func primaryIPv4() (net.IP, error) {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
@@ -234,8 +223,6 @@ func subnetHosts(ip net.IP) []string {
 	return hosts
 }
 
-// scanSubnet probes each of hosts concurrently, bounded to workers
-// goroutines at a time, and returns those that answered as a TickerBox.
 func scanSubnet(hosts []string, timeout time.Duration, workers int) []discoveredDevice {
 	jobs := make(chan string)
 	results := make(chan discoveredDevice)

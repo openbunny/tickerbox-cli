@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -119,9 +121,6 @@ func TestFormatUptime(t *testing.T) {
 	}
 }
 
-// brightnessServer serves settingsState with the given initial brightness,
-// preserving the other fields as fixed values, and captures the posted body
-// so a test can assert those other fields were not clobbered.
 func brightnessServer(t *testing.T, initial int, posted *displaySettings) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

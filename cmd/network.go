@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -84,8 +87,6 @@ func ntpStatusLabel(status int) string {
 
 const timeLayout = "2006-01-02T15:04:05"
 
-// now returns the current instant in UTC. Tests replace it with a fixed
-// clock so the device time-set command is deterministic.
 var now = func() time.Time { return time.Now().UTC() }
 
 func parseTimeValue(v string) (time.Time, error) {
@@ -172,6 +173,8 @@ func init() {
 	apSetCmd.Flags().StringVar(&mode, "mode", "", "AP mode: always, disconnected, or never")
 	apSetCmd.Flags().StringVar(&ssid, "ssid", "", "AP SSID (max 32 chars)")
 	apSetCmd.Flags().StringVar(&password, "password", "", "AP password (8-64 chars)")
+	apSetCmd.Flags().Bool("password-stdin", false, "read the AP password from stdin")
+	apSetCmd.Flags().BoolP("yes", "y", false, "skip the plaintext-HTTP password warning")
 	apSetCmd.Flags().IntVar(&channel, "channel", 0, "AP channel (1-14)")
 	apSetCmd.Flags().BoolVar(&hidden, "hidden", false, "hide the AP SSID")
 	apSetCmd.Flags().BoolVar(&noHidden, "no-hidden", false, "broadcast the AP SSID")
@@ -208,11 +211,15 @@ func init() {
 			}
 			cur.SSID = ssid
 		}
-		if flags.Changed("password") {
-			if len(password) < 8 || len(password) > 64 {
-				return fmt.Errorf("invalid --password: must be 8-64 characters, got %d", len(password))
+		secret, secretChanged, err := resolveSecretValue(cmd, "AP password")
+		if err != nil {
+			return err
+		}
+		if secretChanged {
+			if len(secret) < 8 || len(secret) > 64 {
+				return fmt.Errorf("invalid --password: must be 8-64 characters, got %d", len(secret))
 			}
-			cur.Password = password
+			cur.Password = secret
 		}
 		if flags.Changed("channel") {
 			if channel < 1 || channel > 14 {
@@ -243,6 +250,11 @@ func init() {
 		}
 		if flags.Changed("subnet-mask") {
 			cur.SubnetMask = subnetMask
+		}
+
+		if secretChanged {
+			yes, _ := flags.GetBool("yes")
+			warnPlaintextPassword(os.Stderr, resolvedHost, yes)
 		}
 
 		if err := c.Post("apSettings", cur); err != nil {

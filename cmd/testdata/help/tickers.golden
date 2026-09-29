@@ -1,0 +1,28 @@
+Ticker / asset list
+
+Usage:
+  tickerbox tickers [command]
+
+Available Commands:
+  add         Add one or more tickers, sharing --type/--time/--currency
+  clear       Remove all tickers
+  edit        Change fields of one ticker entry in place
+  export      Export tickers as JSON
+  import      Replace tickers from a JSON file
+  list        List configured tickers
+  move        Reorder the ticker list; the display cycles in this order
+  remove      Remove a ticker
+  template    Built-in ticker list presets
+  validate    Report illegal fields and duplicate symbols in the ticker list
+
+Flags:
+  -h, --help   help for tickers
+
+Global Flags:
+  -d, --device string      named device from the config file
+      --host string        TickerBox base URL (default http://tickerbox.local, or $TICKERBOX_HOST)
+  -j, --json               emit raw device JSON instead of a decoded table
+      --retry int          retry an idempotent request this many times on a transient failure (default 2)
+      --timeout duration   per-request timeout (default 10s)
+
+Use "tickerbox tickers [command] --help" for more information about a command.

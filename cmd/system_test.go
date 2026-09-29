@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -155,8 +157,6 @@ func TestFetchStatusReportAllAvailableHasNoErrors(t *testing.T) {
 }
 
 func TestCollectDeviceStatuses(t *testing.T) {
-	// collectDeviceStatuses builds its client from restBase(d.Host), which
-	// appends /rest/, so the served paths must carry that prefix too.
 	srvA := newStatusDeviceServer(t, map[string]string{"rest/features": `{"project":true}`})
 	defer srvA.Close()
 	srvB := newStatusDeviceServer(t, map[string]string{"rest/features": `{"project":false}`})

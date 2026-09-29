@@ -1,0 +1,16 @@
+version = 1
+SPDX-PackageName = "tickerbox-cli"
+SPDX-PackageSupplier = "OpenBunny"
+SPDX-PackageDownloadLocation = "https://github.com/openbunny/tickerbox-cli"
+
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 OpenBunny"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "internal/tz/timezones.json"
+precedence = "closest"
+SPDX-FileCopyrightText = "IANA"
+SPDX-License-Identifier = "LicenseRef-IANA-TZDATA"

@@ -1,0 +1,24 @@
+Named, device-agnostic device configurations
+
+Usage:
+  tickerbox profile [command]
+
+Available Commands:
+  apply       Apply a saved profile to the device
+  diff        Compare a saved profile against the device's current config
+  list        List saved profiles
+  rm          Delete a saved profile
+  save        Capture the device's current config as a named profile
+  show        Show a saved profile
+
+Flags:
+  -h, --help   help for profile
+
+Global Flags:
+  -d, --device string      named device from the config file
+      --host string        TickerBox base URL (default http://tickerbox.local, or $TICKERBOX_HOST)
+  -j, --json               emit raw device JSON instead of a decoded table
+      --retry int          retry an idempotent request this many times on a transient failure (default 2)
+      --timeout duration   per-request timeout (default 10s)
+
+Use "tickerbox profile [command] --help" for more information about a command.

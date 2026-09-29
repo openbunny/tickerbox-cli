@@ -1,0 +1,35 @@
+version: '2'
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck # v2 merges gosimple's checks into staticcheck; no separate gosimple linter exists
+    - ineffassign
+    - unused
+    - gocritic
+    - misspell
+    - revive
+    - exhaustive
+    - copyloopvar
+  settings:
+    revive:
+      rules:
+        - name: exported # go.md: no doc comments on exported names, so this check is disabled rather than satisfied
+          disabled: true
+        - name: package-comments # go.md: no doc comments, so package comments are not required
+          disabled: true
+    staticcheck:
+      checks:
+        - all
+        - -ST1000 # go.md: no package doc comment required
+        - -ST1020 # go.md: no doc comment required on exported functions
+        - -ST1021 # go.md: no doc comment required on exported types
+        - -ST1022 # go.md: no doc comment required on exported vars/consts
+    exhaustive:
+      default-signifies-exhaustive: false
+
+formatters:
+  enable:
+    - gofumpt

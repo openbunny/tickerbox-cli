@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -11,8 +14,6 @@ import (
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
 
-// resolveEntryIndex resolves selector, an index or a ticker symbol, to its
-// position in entries.
 func resolveEntryIndex(entries []tickers.Entry, selector string) (int, error) {
 	if isIndex(selector) {
 		idx, err := strconv.Atoi(selector)
@@ -22,16 +23,14 @@ func resolveEntryIndex(entries []tickers.Entry, selector string) (int, error) {
 		return idx, nil
 	}
 	target := tickers.NormalizeTicker(selector)
-	for i, e := range entries {
-		if tickers.NormalizeTicker(e.Ticker) == target {
-			return i, nil
-		}
+	if idx := slices.IndexFunc(entries, func(e tickers.Entry) bool {
+		return tickers.NormalizeTicker(e.Ticker) == target
+	}); idx != -1 {
+		return idx, nil
 	}
 	return -1, fmt.Errorf("no entry with ticker %s", target)
 }
 
-// buildBulkEntries builds one Entry per symbol, all sharing typ, tm and
-// currency.
 func buildBulkEntries(symbols []string, typ, tm, currency string) []tickers.Entry {
 	entries := make([]tickers.Entry, len(symbols))
 	for i, sym := range symbols {
@@ -40,9 +39,6 @@ func buildBulkEntries(symbols []string, typ, tm, currency string) []tickers.Entr
 	return entries
 }
 
-// editFields holds the fields an edit command may change and whether each
-// was actually set on the command line, so applyEdit only touches fields the
-// caller named.
 type editFields struct {
 	ticker      string
 	tickerSet   bool
@@ -54,7 +50,6 @@ type editFields struct {
 	currencySet bool
 }
 
-// applyEdit returns e with every field named by f overwritten.
 func applyEdit(e tickers.Entry, f editFields) tickers.Entry {
 	if f.tickerSet {
 		e.Ticker = tickers.NormalizeTicker(f.ticker)
@@ -71,9 +66,6 @@ func applyEdit(e tickers.Entry, f editFields) tickers.Entry {
 	return e
 }
 
-// reorder returns entries with the one at from moved to position to, other
-// entries shifting to keep the list contiguous. from and to are positions in
-// entries, the order the device's display cycles through.
 func reorder(entries []tickers.Entry, from, to int) ([]tickers.Entry, error) {
 	n := len(entries)
 	if from < 0 || from >= n {
@@ -98,8 +90,6 @@ func reorder(entries []tickers.Entry, from, to int) ([]tickers.Entry, error) {
 	return out, nil
 }
 
-// validateEntries reports every illegal type, time or currency value and
-// every duplicate ticker symbol in entries, one message per problem.
 func validateEntries(entries []tickers.Entry) []string {
 	var problems []string
 	seen := make(map[string]int, len(entries))
@@ -123,9 +113,6 @@ func validateEntries(entries []tickers.Entry) []string {
 	return problems
 }
 
-// applyTemplatePreset returns the entries a template apply should post:
-// preset alone when replace is true, otherwise existing with every preset
-// entry appended whose normalized ticker is not already present.
 func applyTemplatePreset(existing, preset []tickers.Entry, replace bool) []tickers.Entry {
 	if replace {
 		out := make([]tickers.Entry, len(preset))

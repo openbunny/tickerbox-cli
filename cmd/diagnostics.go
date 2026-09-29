@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -8,6 +10,7 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,7 +21,6 @@ import (
 	"github.com/openbunny/tickerbox-cli/internal/output"
 )
 
-// severity ranks a doctorCheck from healthy to failing.
 type severity int
 
 const (
@@ -40,14 +42,12 @@ func (s severity) String() string {
 	}
 }
 
-// doctorCheck is one health check's outcome.
 type doctorCheck struct {
 	Name     string `json:"name"`
 	Severity string `json:"severity"`
 	Detail   string `json:"detail"`
 }
 
-// doctorReport is doctor's full result for one device.
 type doctorReport struct {
 	Device  string        `json:"device"`
 	Verdict string        `json:"verdict"`
@@ -68,8 +68,6 @@ const (
 
 const doctorSecretExposureDetail = "GET /rest/wifiSettings and GET /rest/apSettings return the WiFi and AP passwords in plaintext; the device REST API has no authentication, so any client on the LAN can read them"
 
-// secretExposureCheck is unconditional: the device exposes credentials over
-// plaintext, unauthenticated HTTP regardless of anything doctor observes.
 func secretExposureCheck() doctorCheck {
 	return doctorCheck{Name: "plaintext credentials", Severity: severityWarn.String(), Detail: doctorSecretExposureDetail}
 }
@@ -139,8 +137,6 @@ func fetchFailureCheck(name string, err error) doctorCheck {
 	return doctorCheck{Name: name, Severity: severityCritical.String(), Detail: err.Error()}
 }
 
-// aggregateSeverity is the worst severity among checks: any critical wins
-// outright, otherwise any warn, otherwise ok.
 func aggregateSeverity(checks []doctorCheck) severity {
 	worst := severityOK
 	for _, c := range checks {
@@ -154,9 +150,6 @@ func aggregateSeverity(checks []doctorCheck) severity {
 	return worst
 }
 
-// runDoctor performs every doctor GET against c and evaluates the results.
-// A failed GET becomes a critical check rather than aborting the report, so
-// one unreachable endpoint does not hide the state of the others.
 func runDoctor(c *client.Client) doctorReport {
 	checks := []doctorCheck{secretExposureCheck()}
 
@@ -262,9 +255,6 @@ const defaultWatchInterval = 2 * time.Second
 
 const ansiClearScreen = "\x1b[H\x1b[2J"
 
-// watchAllowed is the fixed set of read-only cmd views watch may re-run. A
-// side-effecting command (restart, factory-reset, any *set*/*add*/*remove*)
-// is deliberately absent.
 var watchAllowed = map[*cobra.Command]bool{
 	statusCmd:          true,
 	systemInfoCmd:      true,
@@ -281,8 +271,6 @@ var watchAllowed = map[*cobra.Command]bool{
 	tickersListCmd:     true,
 }
 
-// resolveWatchTarget turns watch's positional args into the read-only
-// command it re-runs. No args means the status dashboard.
 func resolveWatchTarget(args []string) (*cobra.Command, error) {
 	if len(args) == 0 {
 		return statusCmd, nil
@@ -340,8 +328,6 @@ const (
 	unsetDate    = "unknown"
 )
 
-// version, commit and date are overridden at build time with
-// -ldflags "-X tickerbox/cmd.version=... -X tickerbox/cmd.commit=... -X tickerbox/cmd.date=...".
 var (
 	version = unsetVersion
 	commit  = unsetCommit
@@ -352,18 +338,15 @@ func buildSetting(info *debug.BuildInfo, key string) (string, bool) {
 	if info == nil {
 		return "", false
 	}
-	for _, s := range info.Settings {
-		if s.Key == key {
-			return s.Value, true
-		}
+	idx := slices.IndexFunc(info.Settings, func(s debug.BuildSetting) bool {
+		return s.Key == key
+	})
+	if idx == -1 {
+		return "", false
 	}
-	return "", false
+	return info.Settings[idx].Value, true
 }
 
-// assembleVersion prefers the ldflags-injected version, commit and date; if
-// a value was left at its unset sentinel, it falls back to runtime/debug's
-// build info (the module version, and the vcs.revision/vcs.time settings a
-// `go build` from a checkout records).
 func assembleVersion(v, c, d string, info *debug.BuildInfo, ok bool) string {
 	if v == unsetVersion && ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		v = info.Main.Version
@@ -405,9 +388,6 @@ const (
 	goosWindows = "windows"
 )
 
-// browserOpenCommand reports the platform opener for goos: its executable
-// name and the arguments that precede the URL. ok is false when goos has no
-// known opener, so the caller falls back to printing the URL.
 func browserOpenCommand(goos string) (name string, args []string, ok bool) {
 	switch goos {
 	case goosDarwin:

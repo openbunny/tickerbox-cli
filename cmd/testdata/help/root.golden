@@ -1,0 +1,38 @@
+Control a TickerBox device over its REST API
+
+Usage:
+  tickerbox [command]
+
+Available Commands:
+  ap          Access point
+  brightness  Set display brightness
+  clock       Clock screen settings
+  completion  Generate the autocompletion script for the specified shell
+  config      Device configuration snapshot: export, import, diff
+  device      Manage configured devices
+  display     Display brightness / rotation / sleep
+  doctor      Read-only health check
+  help        Help about any command
+  ntp         NTP / time sync
+  open        Open the device's web UI in the default browser
+  profile     Named, device-agnostic device configurations
+  reboot      Restart the device (alias for system restart)
+  status      Aggregate dashboard
+  system      System, status, maintenance
+  tickers     Ticker / asset list
+  time        Device wall-clock time
+  tz          Time zones
+  uptime      Show device uptime since last boot
+  version     Print the CLI version
+  watch       Re-run a read-only view on an interval until interrupted
+  wifi        Wi-Fi station configuration
+
+Flags:
+  -d, --device string      named device from the config file
+  -h, --help               help for tickerbox
+      --host string        TickerBox base URL (default http://tickerbox.local, or $TICKERBOX_HOST)
+  -j, --json               emit raw device JSON instead of a decoded table
+      --retry int          retry an idempotent request this many times on a transient failure (default 2)
+      --timeout duration   per-request timeout (default 10s)
+
+Use "tickerbox [command] --help" for more information about a command.

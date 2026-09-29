@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -55,9 +57,6 @@ func parseBrightnessStep(args []string) (int, error) {
 	return step, nil
 }
 
-// mutateBrightness fetches settingsState, applies mutate to its Brightness
-// field, and posts the result back, preserving every other field so a
-// brightness change never clobbers change interval or sleep settings.
 func mutateBrightness(c *client.Client, mutate func(int) int) (int, error) {
 	var state displaySettings
 	if err := c.Get("settingsState", &state); err != nil {
@@ -90,8 +89,6 @@ func renderBrightness(val int) error {
 	return nil
 }
 
-// formatUptime renders a device-reported uptime in seconds as a human
-// duration, e.g. "1d 2h 3m 4s". Zero-valued leading units are omitted.
 func formatUptime(seconds int) string {
 	d := time.Duration(seconds) * time.Second
 	days := d / (24 * time.Hour)
@@ -156,8 +153,6 @@ func setClockTimezone(c *client.Client, label string) error {
 	return nil
 }
 
-// setDeviceTimezone validates label and writes it to both ntpSettings and
-// clockSetupState, so the two never drift apart.
 func setDeviceTimezone(c *client.Client, label string) (string, error) {
 	posix, ok := tz.PosixFor(label)
 	if !ok {

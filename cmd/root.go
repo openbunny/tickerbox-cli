@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -47,13 +49,14 @@ func init() {
 	rootCmd.PersistentFlags().DurationVar(&timeoutFlag, "timeout", defaultTimeout, "per-request timeout")
 }
 
-// Execute runs the root command, resolving the target device host in its
-// PersistentPreRunE before any subcommand runs.
 func Execute() error {
 	return rootCmd.Execute()
 }
 
-// restBase turns a resolved device host into the client's base URL.
+func Root() *cobra.Command {
+	return rootCmd
+}
+
 func restBase(host string) string {
 	return strings.TrimRight(host, "/") + "/rest/"
 }

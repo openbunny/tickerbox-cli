@@ -1,0 +1,22 @@
+Wi-Fi station configuration
+
+Usage:
+  tickerbox wifi [command]
+
+Available Commands:
+  scan        Scan for nearby Wi-Fi networks
+  set         Update Wi-Fi station settings
+  settings    Show Wi-Fi station settings
+  status      Show current Wi-Fi station status
+
+Flags:
+  -h, --help   help for wifi
+
+Global Flags:
+  -d, --device string      named device from the config file
+      --host string        TickerBox base URL (default http://tickerbox.local, or $TICKERBOX_HOST)
+  -j, --json               emit raw device JSON instead of a decoded table
+      --retry int          retry an idempotent request this many times on a transient failure (default 2)
+      --timeout duration   per-request timeout (default 10s)
+
+Use "tickerbox wifi [command] --help" for more information about a command.

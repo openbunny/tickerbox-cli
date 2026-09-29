@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -240,10 +242,6 @@ func TestLoadSnapshotMissingFile(t *testing.T) {
 	}
 }
 
-// TestExportImportRoundTrip captures a snapshot from an httptest device,
-// writes it as config export does, reads it back as config import does, and
-// applies it to a second httptest device, asserting the posted payloads
-// match what was captured.
 func TestExportImportRoundTrip(t *testing.T) {
 	bodies := map[string]string{
 		"coinSetupState":  `{"size":1,"types":"crypto","tickers":"BTC","times":"5min","currency":"USD"}`,
@@ -337,8 +335,6 @@ func TestExportRedactsSecretsByDefault(t *testing.T) {
 
 	c := client.New(srv.URL+"/", 0)
 
-	// configExportShowSecrets defaults to false: this mirrors the value
-	// section.Capture receives from a bare `config export` invocation.
 	snap, err := section.Capture(c, []string{section.SectionWifi, section.SectionAP}, configExportShowSecrets)
 	if err != nil {
 		t.Fatalf("section.Capture: %v", err)

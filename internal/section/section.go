@@ -1,5 +1,5 @@
-// Package section captures and applies the device's writable /rest config
-// blocks as one unit.
+// SPDX-License-Identifier: MIT
+
 package section
 
 import (
@@ -10,7 +10,6 @@ import (
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
 
-// Section names, in canonical order.
 const (
 	SectionTickers = "tickers"
 	SectionDisplay = "display"
@@ -20,11 +19,8 @@ const (
 	SectionAP      = "ap"
 )
 
-// Sections lists every known section name in canonical order.
 var Sections = []string{SectionTickers, SectionDisplay, SectionClock, SectionNTP, SectionWifi, SectionAP}
 
-// DefaultInclude is the section set a caller uses unless it asks for wifi
-// and ap explicitly; those two carry credentials, so they are opt-in.
 var DefaultInclude = []string{SectionTickers, SectionDisplay, SectionClock, SectionNTP}
 
 const (
@@ -36,9 +32,6 @@ const (
 	pathAPSettings      = "apSettings"
 )
 
-// mapSectionPath holds the sections whose Snapshot field is a raw
-// map[string]any; tickers is handled separately because it decodes into
-// []tickers.Entry.
 var mapSectionPath = map[string]string{
 	SectionDisplay: pathSettingsState,
 	SectionClock:   pathClockSetupState,
@@ -49,7 +42,6 @@ var mapSectionPath = map[string]string{
 
 var secretSections = map[string]bool{SectionWifi: true, SectionAP: true}
 
-// Snapshot is a point-in-time capture of the device's writable config sections.
 type Snapshot struct {
 	Wifi    map[string]any  `json:"wifi,omitempty"`
 	AP      map[string]any  `json:"ap,omitempty"`
@@ -59,9 +51,6 @@ type Snapshot struct {
 	Tickers []tickers.Entry `json:"tickers,omitempty"`
 }
 
-// Capture reads each section named in include from the device. When
-// withSecrets is false, password and secret fields are stripped from wifi
-// and ap before they reach the Snapshot.
 func Capture(c *client.Client, include []string, withSecrets bool) (*Snapshot, error) {
 	s := &Snapshot{}
 	for _, name := range include {
@@ -89,7 +78,6 @@ func Capture(c *client.Client, include []string, withSecrets bool) (*Snapshot, e
 	return s, nil
 }
 
-// Apply writes each section named in include from s back to the device.
 func Apply(c *client.Client, s *Snapshot, include []string) error {
 	for _, name := range include {
 		if name == SectionTickers {
@@ -156,8 +144,6 @@ func postMap(c *client.Client, path string, m map[string]any) error {
 	return nil
 }
 
-// stripSecrets returns a copy of m with any key naming a password or secret
-// removed; it never mutates m.
 func stripSecrets(m map[string]any) map[string]any {
 	out := make(map[string]any, len(m))
 	for k, v := range m {
@@ -170,9 +156,6 @@ func stripSecrets(m map[string]any) map[string]any {
 	return out
 }
 
-// getTickers reads and decodes the device's coinSetupState. Decoding is
-// tickers.Decode's job: it owns the coinSetupState wire format and its own
-// fuzz coverage.
 func getTickers(c *client.Client) ([]tickers.Entry, error) {
 	var state tickers.State
 	if err := c.Get(pathCoinSetupState, &state); err != nil {

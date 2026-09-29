@@ -1,5 +1,5 @@
-// Package output renders command results to stdout, as indented JSON or as
-// a tab-aligned key/value list or table.
+// SPDX-License-Identifier: MIT
+
 package output
 
 import (
@@ -9,8 +9,6 @@ import (
 	"text/tabwriter"
 )
 
-// EmitJSON prints v to stdout as indented JSON followed by a newline. It
-// returns an error if v cannot be marshaled.
 func EmitJSON(v any) error {
 	encoded, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -20,7 +18,6 @@ func EmitJSON(v any) error {
 	return nil
 }
 
-// KV prints pairs to stdout as tab-aligned "key: value" lines, in order.
 func KV(pairs [][2]string) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	for _, p := range pairs {
@@ -29,9 +26,6 @@ func KV(pairs [][2]string) {
 	_ = w.Flush()
 }
 
-// Table prints headers and rows to stdout as a tab-aligned table. Each row
-// is truncated or padded implicitly by the tabwriter; callers are
-// responsible for giving every row the same number of columns as headers.
 func Table(headers []string, rows [][]string) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	for i, h := range headers {

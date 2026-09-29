@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+
+//go:generate go run ./docs/gen
+
 package main
 
 import (

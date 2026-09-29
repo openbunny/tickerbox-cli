@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -5,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -123,9 +126,6 @@ func withCmdTarget(t *testing.T, host string) {
 	resolvedHost, timeoutFlag, retryFlag, jsonFlag = host, time.Second, 0, true
 }
 
-// TestTimeCmdUsesInjectedClockInUTC feeds a fixed, non-UTC-located clock
-// into timeCmd and checks the device receives a UTC-normalized instant,
-// never the wall-clock time of the machine running the test.
 func TestTimeCmdUsesInjectedClockInUTC(t *testing.T) {
 	srv, captured := timeCaptureServer(t)
 	withCmdTarget(t, srv.URL)
@@ -150,9 +150,6 @@ func TestTimeCmdUsesInjectedClockInUTC(t *testing.T) {
 	}
 }
 
-// TestTimeCmdExplicitValueNormalizedToUTC checks that an explicit VALUE
-// argument carrying a UTC offset is normalized to UTC before it is sent,
-// regardless of the injected clock.
 func TestTimeCmdExplicitValueNormalizedToUTC(t *testing.T) {
 	srv, captured := timeCaptureServer(t)
 	withCmdTarget(t, srv.URL)
@@ -243,5 +240,139 @@ func TestApStatusCmdPropagatesTransportError(t *testing.T) {
 
 	if err := apStatusCmd.RunE(apStatusCmd, nil); err == nil {
 		t.Fatal("apStatusCmd.RunE() = nil error; want error when the device is unreachable")
+	}
+}
+
+func apSetServer(t *testing.T, posted *map[string]any) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/rest/apSettings" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(apSettingsPayload{})
+			return
+		}
+		_ = json.NewDecoder(r.Body).Decode(posted)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{})
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func resetApSetFlags(t *testing.T) {
+	t.Helper()
+	fs := apSetCmd.Flags()
+	for _, name := range []string{"password", "password-stdin", "yes"} {
+		if err := fs.Set(name, fs.Lookup(name).DefValue); err != nil {
+			t.Fatalf("reset %s: %v", name, err)
+		}
+	}
+}
+
+func TestApSetCmdPasswordValueWarnsOverHTTP(t *testing.T) {
+	tests := []struct {
+		name     string
+		yes      bool
+		wantWarn bool
+	}{
+		{"warns by default", false, true},
+		{"yes skips the warning", true, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetApSetFlags(t)
+			var posted map[string]any
+			srv := apSetServer(t, &posted)
+			withCmdTarget(t, srv.URL)
+
+			if err := apSetCmd.Flags().Set("password", "hunterhunter2"); err != nil {
+				t.Fatalf("set password: %v", err)
+			}
+			if tt.yes {
+				if err := apSetCmd.Flags().Set("yes", "true"); err != nil {
+					t.Fatalf("set yes: %v", err)
+				}
+			}
+
+			var runErr error
+			stderr := captureStderr(t, func() {
+				runErr = apSetCmd.RunE(apSetCmd, nil)
+			})
+			if runErr != nil {
+				t.Fatalf("apSetCmd.RunE() = %v", runErr)
+			}
+			gotWarn := stderr != ""
+			if gotWarn != tt.wantWarn {
+				t.Errorf("apSetCmd.RunE() stderr = %q; want warning=%v", stderr, tt.wantWarn)
+			}
+			if posted["password"] != "hunterhunter2" {
+				t.Errorf("posted password = %v; want %q", posted["password"], "hunterhunter2")
+			}
+		})
+	}
+}
+
+func TestApSetCmdPasswordStdin(t *testing.T) {
+	resetApSetFlags(t)
+	var posted map[string]any
+	srv := apSetServer(t, &posted)
+	withCmdTarget(t, srv.URL)
+
+	origStdin := secretStdin
+	t.Cleanup(func() { secretStdin = origStdin })
+	secretStdin = strings.NewReader("apsecret1\n")
+
+	if err := apSetCmd.Flags().Set("password-stdin", "true"); err != nil {
+		t.Fatalf("set password-stdin: %v", err)
+	}
+	if err := apSetCmd.Flags().Set("yes", "true"); err != nil {
+		t.Fatalf("set yes: %v", err)
+	}
+
+	if err := apSetCmd.RunE(apSetCmd, nil); err != nil {
+		t.Fatalf("apSetCmd.RunE() = %v", err)
+	}
+	if posted["password"] != "apsecret1" {
+		t.Errorf("posted password = %v; want %q", posted["password"], "apsecret1")
+	}
+}
+
+func TestApSetCmdPasswordAndStdinMutuallyExclusive(t *testing.T) {
+	resetApSetFlags(t)
+	var posted map[string]any
+	srv := apSetServer(t, &posted)
+	withCmdTarget(t, srv.URL)
+
+	if err := apSetCmd.Flags().Set("password", "hunterhunter2"); err != nil {
+		t.Fatalf("set password: %v", err)
+	}
+	if err := apSetCmd.Flags().Set("password-stdin", "true"); err != nil {
+		t.Fatalf("set password-stdin: %v", err)
+	}
+
+	if err := apSetCmd.RunE(apSetCmd, nil); err == nil {
+		t.Fatal("apSetCmd.RunE() = nil error; want error for --password and --password-stdin together")
+	}
+}
+
+func TestApSetCmdPasswordRejectsInvalidLength(t *testing.T) {
+	resetApSetFlags(t)
+	var posted map[string]any
+	srv := apSetServer(t, &posted)
+	withCmdTarget(t, srv.URL)
+
+	if err := apSetCmd.Flags().Set("password", "short"); err != nil {
+		t.Fatalf("set password: %v", err)
+	}
+	if err := apSetCmd.Flags().Set("yes", "true"); err != nil {
+		t.Fatalf("set yes: %v", err)
+	}
+
+	if err := apSetCmd.RunE(apSetCmd, nil); err == nil {
+		t.Fatal("apSetCmd.RunE() = nil error; want error for a too-short --password")
 	}
 }

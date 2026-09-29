@@ -1,21 +1,43 @@
+// SPDX-License-Identifier: MIT
+
 package profile
 
 import (
+	"io"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/openbunny/tickerbox-cli/internal/section"
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
 
-// withTempHome redirects os.UserConfigDir, and so Dir, into a temp
-// directory for the life of the test.
 func withTempHome(t *testing.T) {
 	t.Helper()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", "")
+}
+
+func captureStderr(t *testing.T, f func()) string {
+	t.Helper()
+	old := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() error = %v", err)
+	}
+	os.Stderr = w
+	f()
+	if err := w.Close(); err != nil {
+		t.Fatalf("close pipe writer: %v", err)
+	}
+	os.Stderr = old
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("read captured stderr: %v", err)
+	}
+	return string(out)
 }
 
 func testSnapshot() *section.Snapshot {
@@ -60,6 +82,48 @@ func TestSaveWritesOwnerOnlyPermissions(t *testing.T) {
 	}
 	if got := info.Mode().Perm(); got != filePerm {
 		t.Errorf("got file mode %o; want %o", got, filePerm)
+	}
+}
+
+func TestLoadWarnsOnGroupOrWorldReadablePermissions(t *testing.T) {
+	tests := []struct {
+		name     string
+		perm     os.FileMode
+		wantWarn bool
+	}{
+		{name: "owner only stays silent", perm: 0o600, wantWarn: false},
+		{name: "group and world readable warns", perm: 0o644, wantWarn: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			withTempHome(t)
+
+			if err := Save("office", testSnapshot()); err != nil {
+				t.Fatalf("Save: %v", err)
+			}
+			p, err := path("office")
+			if err != nil {
+				t.Fatalf("path: %v", err)
+			}
+			if err := os.Chmod(p, tt.perm); err != nil {
+				t.Fatalf("Chmod() error = %v", err)
+			}
+
+			stderr := captureStderr(t, func() {
+				if _, err := Load("office"); err != nil {
+					t.Fatalf("Load() error = %v", err)
+				}
+			})
+
+			gotWarn := strings.Contains(stderr, "group- or world-readable")
+			if gotWarn != tt.wantWarn {
+				t.Errorf("stderr = %q, want warning = %v", stderr, tt.wantWarn)
+			}
+			if tt.wantWarn && !strings.Contains(stderr, p) {
+				t.Errorf("stderr = %q, want it to name %q", stderr, p)
+			}
+		})
 	}
 }
 

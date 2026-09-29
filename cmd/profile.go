@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
@@ -158,11 +161,6 @@ func init() {
 	rootCmd.AddCommand(profileCmd)
 }
 
-// resolveInclude turns --include and --all into the section list
-// section.Capture should read and whether it should keep wifi/ap secrets.
-// --all adds wifi and ap to whatever --include already named and requests
-// their secrets; without --all, wifi/ap may still be named explicitly but
-// their secrets are stripped, per profile capture's default redaction.
 func resolveInclude(includeFlag string, all bool) ([]string, bool) {
 	include := section.DefaultInclude
 	if includeFlag != "" {
@@ -189,26 +187,13 @@ func splitInclude(raw string) []string {
 func appendMissing(base []string, extra ...string) []string {
 	out := append([]string{}, base...)
 	for _, e := range extra {
-		if !slicesContains(out, e) {
+		if !slices.Contains(out, e) {
 			out = append(out, e)
 		}
 	}
 	return out
 }
 
-func slicesContains(s []string, v string) bool {
-	for _, e := range s {
-		if e == v {
-			return true
-		}
-	}
-	return false
-}
-
-// presentSections reports which of section.Sections s carries data for, in
-// canonical order. Snapshot's omitempty tags mean a section that was
-// captured but came back empty round-trips through Save/Load the same as a
-// section never captured at all; apply and diff both treat the two as one.
 func presentSections(s *section.Snapshot) []string {
 	var out []string
 	for _, name := range section.Sections {
@@ -238,8 +223,6 @@ func sectionPresent(s *section.Snapshot, name string) bool {
 	}
 }
 
-// fieldDiff is one section field that differs between the device's current
-// config and a saved profile.
 type fieldDiff struct {
 	Section string `json:"section"`
 	Field   string `json:"field"`
@@ -247,8 +230,6 @@ type fieldDiff struct {
 	Profile any    `json:"profile"`
 }
 
-// diffSnapshots compares device against prof across sections, masking any
-// wifi/ap password or secret field unless showSecrets is set.
 func diffSnapshots(device, prof *section.Snapshot, sections []string, showSecrets bool) []fieldDiff {
 	var diffs []fieldDiff
 	for _, name := range sections {

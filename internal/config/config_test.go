@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: MIT
+
 package config
 
 import (
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -15,6 +18,26 @@ func useTempConfigDir(t *testing.T) string {
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("AppData", dir)
 	return dir
+}
+
+func captureStderr(t *testing.T, f func()) string {
+	t.Helper()
+	old := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() error = %v", err)
+	}
+	os.Stderr = w
+	f()
+	if err := w.Close(); err != nil {
+		t.Fatalf("close pipe writer: %v", err)
+	}
+	os.Stderr = old
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("read captured stderr: %v", err)
+	}
+	return string(out)
 }
 
 func TestLoadMissingFileReturnsEmptyConfig(t *testing.T) {
@@ -68,6 +91,49 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	want := Device{Name: "kitchen", Host: "192.168.1.10"}
 	if got.Devices["kitchen"] != want {
 		t.Errorf("Devices[kitchen] = %+v, want %+v", got.Devices["kitchen"], want)
+	}
+}
+
+func TestLoadWarnsOnGroupOrWorldReadablePermissions(t *testing.T) {
+	tests := []struct {
+		name     string
+		perm     os.FileMode
+		wantWarn bool
+	}{
+		{name: "owner only stays silent", perm: 0o600, wantWarn: false},
+		{name: "group and world readable warns", perm: 0o644, wantWarn: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			useTempConfigDir(t)
+
+			cfg := &Config{Devices: map[string]Device{}}
+			if err := cfg.Add("kitchen", "10.0.0.1"); err != nil {
+				t.Fatalf("Add() error = %v", err)
+			}
+			if err := cfg.Save(); err != nil {
+				t.Fatalf("Save() error = %v", err)
+			}
+			path := Path()
+			if err := os.Chmod(path, tt.perm); err != nil {
+				t.Fatalf("Chmod() error = %v", err)
+			}
+
+			stderr := captureStderr(t, func() {
+				if _, err := Load(); err != nil {
+					t.Fatalf("Load() error = %v", err)
+				}
+			})
+
+			gotWarn := strings.Contains(stderr, "group- or world-readable")
+			if gotWarn != tt.wantWarn {
+				t.Errorf("stderr = %q, want warning = %v", stderr, tt.wantWarn)
+			}
+			if tt.wantWarn && !strings.Contains(stderr, path) {
+				t.Errorf("stderr = %q, want it to name %q", stderr, path)
+			}
+		})
 	}
 }
 

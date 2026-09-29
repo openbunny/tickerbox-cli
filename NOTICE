@@ -1,0 +1,29 @@
+tickerbox-cli
+Copyright (c) 2026 OpenBunny
+
+This distribution includes the following third-party Go modules,
+statically linked into the tickerbox binary.
+
+github.com/spf13/cobra
+Copyright 2013-2023 The Cobra Authors
+Licensed under the Apache License, Version 2.0.
+https://github.com/spf13/cobra/blob/main/LICENSE.txt
+Apache License 2.0 section 4(d) requires forwarding any NOTICE file cobra
+itself distributes. The vendored cobra release at v1.10.2 ships no NOTICE
+file, so none is reproduced here.
+
+github.com/spf13/pflag
+Copyright (c) 2012 Alex Ogier. All rights reserved.
+Copyright (c) 2012 The Go Authors. All rights reserved.
+Licensed under a 3-clause BSD license.
+https://github.com/spf13/pflag/blob/master/LICENSE
+
+github.com/inconshreveable/mousetrap
+Copyright 2022 Alan Shreve (@inconshreveable)
+Licensed under the Apache License, Version 2.0.
+https://github.com/inconshreveable/mousetrap/blob/main/LICENSE
+
+github.com/pelletier/go-toml/v2
+Copyright (c) 2021 - 2023 Thomas Pelletier
+Licensed under the MIT License.
+https://github.com/pelletier/go-toml/blob/v2/LICENSE

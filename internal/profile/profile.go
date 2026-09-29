@@ -1,6 +1,5 @@
-// Package profile stores named device config snapshots as JSON files under
-// the user's config directory, so a full section.Snapshot can be saved and
-// re-applied later by name.
+// SPDX-License-Identifier: MIT
+
 package profile
 
 import (
@@ -20,11 +19,10 @@ const (
 	fileSuffix  = ".json"
 	dirPerm     = 0o700
 	filePerm    = 0o600
+
+	insecureReadBits = 0o044
 )
 
-// Dir returns the directory profiles are stored in. If the OS cannot report
-// a per-user config directory, it falls back to the OS temp directory rather
-// than failing, since Dir itself cannot report an error.
 func Dir() string {
 	base, err := os.UserConfigDir()
 	if err != nil {
@@ -40,9 +38,6 @@ func path(name string) (string, error) {
 	return filepath.Join(Dir(), name+fileSuffix), nil
 }
 
-// List returns the names of all saved profiles, sorted. A missing profiles
-// directory is not an error: it returns an empty list, since no profile has
-// been saved yet.
 func List() ([]string, error) {
 	entries, err := os.ReadDir(Dir())
 	if os.IsNotExist(err) {
@@ -63,7 +58,6 @@ func List() ([]string, error) {
 	return names, nil
 }
 
-// Load reads the named profile.
 func Load(name string) (*section.Snapshot, error) {
 	p, err := path(name)
 	if err != nil {
@@ -73,6 +67,8 @@ func Load(name string) (*section.Snapshot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read profile %s: %w", name, err)
 	}
+	warnIfGroupOrWorldReadable(p)
+
 	var s section.Snapshot
 	if err := json.Unmarshal(raw, &s); err != nil {
 		return nil, fmt.Errorf("decode profile %s: %w", name, err)
@@ -80,9 +76,6 @@ func Load(name string) (*section.Snapshot, error) {
 	return &s, nil
 }
 
-// Save writes s as the named profile, creating the profiles directory if
-// needed. The file is written with 0600 permissions since a captured
-// Snapshot may include wifi or ap credentials.
 func Save(name string, s *section.Snapshot) error {
 	p, err := path(name)
 	if err != nil {
@@ -101,7 +94,16 @@ func Save(name string, s *section.Snapshot) error {
 	return nil
 }
 
-// Remove deletes the named profile.
+func warnIfGroupOrWorldReadable(path string) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return
+	}
+	if perm := info.Mode().Perm(); perm&insecureReadBits != 0 {
+		fmt.Fprintf(os.Stderr, "warning: profile file %s is group- or world-readable (mode %o)\n", path, perm)
+	}
+}
+
 func Remove(name string) error {
 	p, err := path(name)
 	if err != nil {

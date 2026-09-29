@@ -1,0 +1,16 @@
+Capture every device config section as a JSON snapshot
+
+Usage:
+  tickerbox config export [flags]
+
+Flags:
+      --file string    file to write the snapshot to; defaults to stdout
+  -h, --help           help for export
+      --show-secrets   include wifi/ap passwords and keys in the export
+
+Global Flags:
+  -d, --device string      named device from the config file
+      --host string        TickerBox base URL (default http://tickerbox.local, or $TICKERBOX_HOST)
+  -j, --json               emit raw device JSON instead of a decoded table
+      --retry int          retry an idempotent request this many times on a transient failure (default 2)
+      --timeout duration   per-request timeout (default 10s)

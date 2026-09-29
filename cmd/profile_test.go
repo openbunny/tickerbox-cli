@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package cmd
 
 import (
@@ -245,9 +247,6 @@ func newDeviceServer(t *testing.T, bodies map[string]string) *httptest.Server {
 	return srv
 }
 
-// TestSaveThenDiffDetectsDeviceDrift exercises save, load, and diff together
-// against a fake device (httptest) and a redirected profile directory (a
-// temp $HOME), with no real device involved.
 func TestSaveThenDiffDetectsDeviceDrift(t *testing.T) {
 	withCmdTempHome(t)
 
