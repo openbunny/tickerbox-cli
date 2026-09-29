@@ -16,15 +16,75 @@ builds:
       - -X github.com/openbunny/tickerbox-cli/cmd.date={{.Date}}
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
+    # Pins the binary's embedded mtime to the source commit instead of build
+    # wall-clock time, so two builds of the same commit produce identical
+    # bytes. CI must also export SOURCE_DATE_EPOCH (commit timestamp) so
+    # syft and nfpm below apply the same mtime to the files they emit.
+    mod_timestamp: '{{ .CommitTimestamp }}'
 archives:
   - formats: [tar.gz]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     format_overrides:
       - goos: windows
         formats: [zip]
 checksum:
   name_template: checksums.txt
+sboms:
+  - id: archive
+    artifacts: archive
+    cmd: syft
+    args:
+      - '$artifact'
+      - --output
+      - 'cyclonedx-json=$document'
+# Signs checksums.txt with cosign key-based signing (not keyless: this repo
+# is private, and Fulcio/Rekor keyless signing needs public OIDC/transparency
+# log access). Required Actions secret: COSIGN_PRIVATE_KEY, a PEM-encoded
+# cosign private key generated with `cosign generate-key-pair` and stored
+# only as a secret, never committed. Optional Actions secret:
+# COSIGN_PASSWORD, if that key was generated with a password.
+signs:
+  - id: checksums
+    cmd: cosign
+    signature: '${artifact}.sig'
+    args:
+      - sign-blob
+      - --key=env://COSIGN_PRIVATE_KEY
+      - --output-signature=${signature}
+      - --yes
+      - ${artifact}
+    artifacts: checksum
+nfpms:
+  - id: tickerbox
+    package_name: tickerbox-cli
+    file_name_template: '{{ .ConventionalFileName }}'
+    vendor: OpenBunny
+    homepage: https://github.com/openbunny/tickerbox-cli
+    maintainer: 'OpenBunny <https://github.com/openbunny>'
+    description: Command-line client for a TickerBox device's REST API.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    section: utils
 release:
   draft: true
   prerelease: auto
 # Homebrew tap is added at public release.
+# brews:
+#   - repository:
+#       owner: openbunny
+#       name: homebrew-tap
+#     homepage: https://github.com/openbunny/tickerbox-cli
+#     description: Command-line client for a TickerBox device's REST API.
+#     license: MIT
+
+# Scoop bucket is added at public release.
+# scoops:
+#   - repository:
+#       owner: openbunny
+#       name: scoop-bucket
+#     homepage: https://github.com/openbunny/tickerbox-cli
+#     description: Command-line client for a TickerBox device's REST API.
+#     license: MIT

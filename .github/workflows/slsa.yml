@@ -1,0 +1,49 @@
+# slsa-framework/slsa-github-generator's reusable workflows must be referenced
+# by semantic version tag, never a commit SHA: the generator verifies its own
+# checksum at run time and hash-pinning it is unsupported upstream (tracked as
+# slsa-framework/slsa-verifier#12).
+name: SLSA provenance
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: true
+      - name: build
+        run: |
+          mkdir -p dist
+          go build -trimpath -ldflags="-s -w" -o dist/tickerbox .
+      - id: hash
+        run: |
+          cd dist
+          echo "hashes=$(sha256sum tickerbox | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tickerbox-build
+          path: dist/tickerbox
+
+  provenance:
+    needs: [build]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.build.outputs.hashes }}
+      upload-assets: true

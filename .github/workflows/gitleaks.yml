@@ -1,0 +1,36 @@
+# Runs the gitleaks scanner directly via `go install`, not gitleaks/gitleaks-action:
+# the action requires a paid GITLEAKS_LICENSE on a private repository, the open
+# source scanner binary does not.
+name: gitleaks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  gitleaks:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: v8.30.1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-gobin-gitleaks-${{ env.GITLEAKS_VERSION }}
+      - name: gitleaks
+        run: |
+          go install "github.com/gitleaks/gitleaks/v8@${GITLEAKS_VERSION}"
+          gitleaks detect --source . --redact -v

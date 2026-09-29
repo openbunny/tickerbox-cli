@@ -5,16 +5,21 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: stable
           cache: true
@@ -23,23 +28,51 @@ jobs:
       - run: go test -race -coverprofile=coverage.out ./...
 
   lint:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    env:
+      GOFUMPT_VERSION: v0.12.0
+      STATICCHECK_VERSION: v0.8.1
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: stable
           cache: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-gobin-gofumpt-${{ env.GOFUMPT_VERSION }}-staticcheck-${{ env.STATICCHECK_VERSION }}
       - name: gofumpt
         run: |
-          go install mvdan.cc/gofumpt@latest
+          go install "mvdan.cc/gofumpt@${GOFUMPT_VERSION}"
           unformatted=$(gofumpt -l .)
           test -z "$unformatted" || { echo "gofumpt needs to run on:"; echo "$unformatted"; exit 1; }
       - name: staticcheck
         run: |
-          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go install "honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION}"
           staticcheck ./...
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6.5.2
         with:
           version: latest
+
+  coverage:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: true
+      - run: go test -coverprofile=coverage.out ./...
+      - name: go-test-coverage
+        uses: vladopajic/go-test-coverage@f94bcf0d6b9fa5fb8b783830b22648f6c17475e2 # v2.19.0
+        with:
+          profile: coverage.out
+          # Modest per-package floor: catches untested packages without blocking
+          # incremental coverage growth on existing ones.
+          threshold-package: 50

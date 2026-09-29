@@ -1,6 +1,6 @@
-# gosec runs directly and fails on findings. SARIF upload / CodeQL are omitted:
-# code scanning needs GitHub Advanced Security on a private repo. Add CodeQL when
-# the repository is made public, where code scanning is free.
+# Security tools fail the job on findings. SARIF upload / CodeQL are omitted:
+# code scanning needs GitHub Advanced Security, unavailable on a private repo.
+# Add CodeQL when the repository is made public, where code scanning is free.
 name: Security
 on:
   push:
@@ -8,16 +8,75 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   gosec:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    env:
+      GOSEC_VERSION: v2.29.0
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: stable
           cache: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-gobin-gosec-${{ env.GOSEC_VERSION }}
       - name: gosec
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install "github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}"
           gosec ./...
+
+  govulncheck:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      GOVULNCHECK_VERSION: v1.8.0
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-gobin-govulncheck-${{ env.GOVULNCHECK_VERSION }}
+      - name: go mod verify
+        run: go mod verify
+      - name: go mod tidy -diff
+        run: go mod tidy -diff
+      - name: govulncheck
+        run: |
+          go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+          govulncheck ./...
+
+  go-licenses:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      GO_LICENSES_VERSION: v2.0.1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-gobin-go-licenses-${{ env.GO_LICENSES_VERSION }}
+      - name: install go-licenses
+        run: go install "github.com/google/go-licenses/v2@${GO_LICENSES_VERSION}"
+      - name: report dependency licenses
+        run: go-licenses report ./...
+      - name: check dependency licenses
+        run: go-licenses check ./...
