@@ -58,9 +58,9 @@ jobs:
           go install "honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION}"
           staticcheck ./...
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6.5.2
+        uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7.0.1
         with:
-          version: latest
+          version: v2.14.0
 
   coverage:
     permissions:
@@ -78,7 +78,4 @@ jobs:
       - name: go-test-coverage
         uses: vladopajic/go-test-coverage@f94bcf0d6b9fa5fb8b783830b22648f6c17475e2 # v2.19.0
         with:
-          profile: coverage.out
-          # Modest per-package floor: catches untested packages without blocking
-          # incremental coverage growth on existing ones.
-          threshold-package: 50
+          config: ./.testcoverage.yml

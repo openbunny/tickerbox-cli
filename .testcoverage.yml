@@ -1,0 +1,9 @@
+profile: coverage.out
+threshold:
+  file: 0
+  package: 50
+  total: 0
+exclude:
+  paths:
+    - 'tickerbox-cli/main\.go$'
+    - 'tickerbox-cli/docs/gen/'
