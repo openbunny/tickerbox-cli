@@ -1,0 +1,38 @@
+{
+  "mag7": [
+    {"type": "stocks", "ticker": "AAPL", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "MSFT", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "GOOGL", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "AMZN", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "NVDA", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "META", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "TSLA", "time": "15min", "currency": "USD"}
+  ],
+  "indices": [
+    {"type": "stocks", "ticker": "SPY", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "QQQ", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "DIA", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "IWM", "time": "15min", "currency": "USD"}
+  ],
+  "crypto-majors": [
+    {"type": "crypto", "ticker": "BTC", "time": "15min", "currency": "USD"},
+    {"type": "crypto", "ticker": "ETH", "time": "15min", "currency": "USD"},
+    {"type": "crypto", "ticker": "XRP", "time": "15min", "currency": "USD"},
+    {"type": "crypto", "ticker": "SOL", "time": "15min", "currency": "USD"},
+    {"type": "crypto", "ticker": "ADA", "time": "15min", "currency": "USD"}
+  ],
+  "fx-majors": [
+    {"type": "forex", "ticker": "EURUSD", "time": "15min", "currency": "USD"},
+    {"type": "forex", "ticker": "GBPUSD", "time": "15min", "currency": "USD"},
+    {"type": "forex", "ticker": "USDJPY", "time": "15min", "currency": "USD"},
+    {"type": "forex", "ticker": "USDCHF", "time": "15min", "currency": "USD"},
+    {"type": "forex", "ticker": "AUDUSD", "time": "15min", "currency": "USD"},
+    {"type": "forex", "ticker": "USDCAD", "time": "15min", "currency": "USD"}
+  ],
+  "treasuries": [
+    {"type": "stocks", "ticker": "SHY", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "IEF", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "TLT", "time": "15min", "currency": "USD"},
+    {"type": "stocks", "ticker": "SGOV", "time": "15min", "currency": "USD"}
+  ]
+}

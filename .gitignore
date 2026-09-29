@@ -1,0 +1,10 @@
+/tickerbox
+
+# internal/config and internal/profile write here only via os.UserConfigDir,
+# never relative to the repo; these guard a local override during testing.
+/tickerbox/config.toml
+/tickerbox/profiles/
+
+*.cover
+*.out
+coverage.*

@@ -1,0 +1,30 @@
+# Release build. Runs only at tag time, deferred until public release is authorized.
+version: 2
+project_name: tickerbox-cli
+builds:
+  - id: tickerbox
+    main: .
+    binary: tickerbox
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/openbunny/tickerbox-cli/cmd.version={{.Version}}
+      - -X github.com/openbunny/tickerbox-cli/cmd.commit={{.Commit}}
+      - -X github.com/openbunny/tickerbox-cli/cmd.date={{.Date}}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+checksum:
+  name_template: checksums.txt
+release:
+  draft: true
+  prerelease: auto
+# Homebrew tap is added at public release.

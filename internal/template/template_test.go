@@ -1,0 +1,112 @@
+package template
+
+import (
+	"reflect"
+	"testing"
+
+	"github.com/openbunny/tickerbox-cli/internal/tickers"
+)
+
+var wantPresetNames = []string{"crypto-majors", "fx-majors", "indices", "mag7", "treasuries"}
+
+func TestList(t *testing.T) {
+	if got := List(); !reflect.DeepEqual(got, wantPresetNames) {
+		t.Errorf("List() = %v; want %v", got, wantPresetNames)
+	}
+}
+
+func TestGet(t *testing.T) {
+	for _, name := range wantPresetNames {
+		t.Run(name, func(t *testing.T) {
+			entries, ok := Get(name)
+			if !ok {
+				t.Fatalf("Get(%q): ok = false", name)
+			}
+			if len(entries) == 0 {
+				t.Fatalf("Get(%q): got no entries", name)
+			}
+		})
+	}
+
+	t.Run("unknown preset", func(t *testing.T) {
+		entries, ok := Get("does-not-exist")
+		if ok || entries != nil {
+			t.Errorf("Get(%q) = %v, %v; want nil, false", "does-not-exist", entries, ok)
+		}
+	})
+}
+
+func TestGetReturnsIndependentCopy(t *testing.T) {
+	first, ok := Get("mag7")
+	if !ok {
+		t.Fatal("Get(mag7): ok = false")
+	}
+	first[0].Ticker = "MUTATED"
+
+	second, ok := Get("mag7")
+	if !ok {
+		t.Fatal("Get(mag7): ok = false")
+	}
+	if second[0].Ticker == "MUTATED" {
+		t.Error("Get returned a slice sharing storage with the built-in preset")
+	}
+}
+
+func TestEveryPresetEntryIsValid(t *testing.T) {
+	for _, name := range List() {
+		entries, ok := Get(name)
+		if !ok {
+			t.Fatalf("Get(%q): ok = false", name)
+		}
+		for _, e := range entries {
+			if !tickers.ValidType(e.Type) {
+				t.Errorf("preset %s: ticker %s: invalid type %q", name, e.Ticker, e.Type)
+			}
+			if !tickers.ValidTime(e.Time) {
+				t.Errorf("preset %s: ticker %s: invalid time %q", name, e.Ticker, e.Time)
+			}
+			if !tickers.ValidCurrency(e.Currency) {
+				t.Errorf("preset %s: ticker %s: invalid currency %q", name, e.Ticker, e.Currency)
+			}
+		}
+	}
+}
+
+func TestPresetContents(t *testing.T) {
+	tests := []struct {
+		name        string
+		wantTickers []string
+		wantType    string
+	}{
+		{"mag7", []string{"AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"}, tickers.TypeStocks},
+		{"indices", []string{"SPY", "QQQ", "DIA", "IWM"}, tickers.TypeStocks},
+		{"crypto-majors", []string{"BTC", "ETH", "XRP", "SOL", "ADA"}, tickers.TypeCrypto},
+		{"fx-majors", []string{"EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD"}, tickers.TypeForex},
+		{"treasuries", []string{"SHY", "IEF", "TLT", "SGOV"}, tickers.TypeStocks},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entries, ok := Get(tt.name)
+			if !ok {
+				t.Fatalf("Get(%q): ok = false", tt.name)
+			}
+			gotTickers := make([]string, len(entries))
+			for i, e := range entries {
+				gotTickers[i] = e.Ticker
+				if e.Type != tt.wantType {
+					t.Errorf("entry %s: type = %q; want %q", e.Ticker, e.Type, tt.wantType)
+				}
+				if e.Time != tickers.Time15Min {
+					t.Errorf("entry %s: time = %q; want %q", e.Ticker, e.Time, tickers.Time15Min)
+				}
+				if e.Currency != tickers.CurrencyUSD {
+					t.Errorf("entry %s: currency = %q; want %q", e.Ticker, e.Currency, tickers.CurrencyUSD)
+				}
+			}
+			if !reflect.DeepEqual(gotTickers, tt.wantTickers) {
+				t.Errorf("%s tickers = %v; want %v", tt.name, gotTickers, tt.wantTickers)
+			}
+		})
+	}
+}
