@@ -195,7 +195,7 @@ var tickersExportCmd = &cobra.Command{
 			fmt.Println(string(encoded))
 			return nil
 		}
-		if err := os.WriteFile(tickersExportOutput, encoded, 0o644); err != nil {
+		if err := os.WriteFile(tickersExportOutput, encoded, 0o600); err != nil {
 			return fmt.Errorf("write %s: %w", tickersExportOutput, err)
 		}
 		return nil
