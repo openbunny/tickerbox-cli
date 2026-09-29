@@ -32,5 +32,5 @@ jobs:
           key: ${{ runner.os }}-gobin-gitleaks-${{ env.GITLEAKS_VERSION }}
       - name: gitleaks
         run: |
-          go install "github.com/gitleaks/gitleaks/v8@${GITLEAKS_VERSION}"
+          go install "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}"
           gitleaks detect --source . --redact -v

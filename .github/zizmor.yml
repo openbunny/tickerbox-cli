@@ -1,0 +1,13 @@
+# cache-poisoning is ignored for this private repo's CI: the Go module and
+# tool-binary caches are keyed by tool version and only restored, and no cached
+# input reaches a distributed artifact while the repo is private. Revisit when
+# the repository goes public and release.yml builds artifacts for consumers.
+rules:
+  cache-poisoning:
+    ignore:
+      - ci.yml
+      - security.yml
+      - gitleaks.yml
+      - release.yml
+      - slsa.yml
+      - zizmor.yml

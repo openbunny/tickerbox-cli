@@ -3,11 +3,10 @@
 # upload — GitHub Advanced Security / code scanning is unavailable on a private
 # repo.
 name: scorecard
+# Manual only until the repository is public: the Scorecard action's GraphQL
+# queries return "Resource not accessible by integration" on a private repo.
+# Restore the push and schedule triggers when the repository goes public.
 on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '0 6 * * 1'
   workflow_dispatch:
 permissions:
   contents: read
