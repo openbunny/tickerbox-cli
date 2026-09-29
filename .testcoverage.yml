@@ -5,5 +5,4 @@ threshold:
   total: 0
 exclude:
   paths:
-    - 'tickerbox-cli/main\.go$'
-    - 'tickerbox-cli/docs/gen/'
+    - 'main\.go$'
