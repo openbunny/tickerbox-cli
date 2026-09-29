@@ -1,0 +1,71 @@
+name: Feature request
+description: Suggest a command, flag, or behaviour
+title: '[feature]: '
+labels: ['type/feature', 'status/needs-triage']
+body:
+  - type: dropdown
+    id: command-group
+    attributes:
+      label: Command group
+      description: The `tickerbox` command group this affects, or "new command group" if none of the existing ones fit.
+      options:
+        - status
+        - wifi
+        - ap
+        - ntp
+        - time
+        - tz
+        - display
+        - clock
+        - brightness
+        - uptime
+        - reboot
+        - tickers
+        - system
+        - config
+        - profile
+        - device
+        - doctor
+        - watch
+        - version
+        - open
+        - new command group
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: The task that is hard or impossible today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The command, flag, or behaviour you want, and how you would invoke it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other approaches you considered.
+    validations:
+      required: false
+  - type: input
+    id: cli-version
+    attributes:
+      label: tickerbox version output
+      description: Output of `tickerbox version`.
+      placeholder: 'tickerbox 0.3.2 (commit ab12cd3, built 2026-01-15)'
+    validations:
+      required: true
+  - type: input
+    id: firmware-version
+    attributes:
+      label: Device firmware version
+      description: The `sdk_version` field from `tickerbox system info --json`.
+      placeholder: 'v4.4.1'
+    validations:
+      required: true

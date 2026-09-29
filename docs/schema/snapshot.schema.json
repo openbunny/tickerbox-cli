@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/openbunny/tickerbox-cli/docs/schema/snapshot.schema.json",
+  "title": "TickerBox snapshot",
+  "description": "internal/section.Snapshot, as written by `tickerbox config export` and `tickerbox profile save`, and read back by `tickerbox config import`, `tickerbox config diff`, `tickerbox profile apply` and `tickerbox profile diff`.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "wifi": { "$ref": "#/$defs/deviceSection" },
+    "ap": { "$ref": "#/$defs/deviceSection" },
+    "ntp": { "$ref": "#/$defs/deviceSection" },
+    "display": { "$ref": "#/$defs/deviceSection" },
+    "clock": { "$ref": "#/$defs/deviceSection" },
+    "tickers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tickerEntry" }
+    }
+  },
+  "$defs": {
+    "deviceSection": {
+      "type": "object",
+      "description": "Passed through from the device's REST response as-is; the CLI does not constrain its fields beyond stripping secrets. Present only when the snapshot includes this section.",
+      "additionalProperties": true
+    },
+    "tickerEntry": {
+      "type": "object",
+      "description": "internal/tickers.Entry.",
+      "additionalProperties": false,
+      "required": ["type", "ticker", "time", "currency"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["crypto", "stocks", "forex"]
+        },
+        "ticker": {
+          "type": "string",
+          "description": "Device-recognized symbol, e.g. BTC or AAPL. Not validated by the CLI."
+        },
+        "time": {
+          "type": "string",
+          "enum": ["1min", "5min", "15min"]
+        },
+        "currency": {
+          "type": "string",
+          "enum": ["USD", "EUR", "GBP", "CAD", "AUD", "JPY"]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    gofumpt:
+      glob: '*.go'
+      run: gofumpt -l -w {staged_files}
+      stage_fixed: true
+    go-vet:
+      run: go vet ./...
+
+pre-push:
+  parallel: true
+  commands:
+    staticcheck:
+      run: staticcheck ./...
+    golangci-lint:
+      run: golangci-lint run

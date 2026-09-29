@@ -1,5 +1,15 @@
 # Contributing
 
+How to build, test, and submit a change to `tickerbox-cli`.
+
+## Contents
+
+- [Development](#development)
+- [Commits and pull requests](#commits-and-pull-requests)
+- [Developer Certificate of Origin](#developer-certificate-of-origin)
+- [Security-sensitive changes](#security-sensitive-changes)
+- [Reporting bugs](#reporting-bugs)
+
 ## Development
 
 - Use the Go toolchain declared in `go.mod`.
@@ -17,6 +27,21 @@
 - The pull request states what changed and why, and links related issues.
 - Do not weaken a lint rule, delete a failing test, or widen a suppression to
   make CI pass. Fix the cause, or say why the gate is wrong.
+
+## Developer Certificate of Origin
+
+Every commit must carry a `Signed-off-by` trailer, certifying you wrote it or
+otherwise have the right to submit it under the
+[Developer Certificate of Origin](https://developercertificate.org/). Add it
+with `git commit --signoff` (or `-s`). This project does not use a Contributor
+License Agreement; the DCO is the only requirement.
+
+## Security-sensitive changes
+
+Any `--verbose` or `--debug` flag added in the future must redact password
+fields (Wi-Fi and access-point credentials) before they reach a log or the
+console; see [SECURITY.md](SECURITY.md) for the reporting process if you find
+a case that does not.
 
 ## Reporting bugs
 

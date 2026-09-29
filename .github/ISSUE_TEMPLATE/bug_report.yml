@@ -1,0 +1,79 @@
+name: Bug report
+description: A command behaves differently from what it documents
+title: '[bug]: '
+labels: ['type/bug', 'status/needs-triage']
+body:
+  - type: dropdown
+    id: command-group
+    attributes:
+      label: Command group
+      description: The `tickerbox` command group the bug is in.
+      options:
+        - status
+        - wifi
+        - ap
+        - ntp
+        - time
+        - tz
+        - display
+        - clock
+        - brightness
+        - uptime
+        - reboot
+        - tickers
+        - system
+        - config
+        - profile
+        - device
+        - doctor
+        - watch
+        - version
+        - open
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Exact command
+      description: The full `tickerbox` command you ran, including flags.
+      placeholder: tickerbox wifi status --json
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed
+      description: What happened, including any error text.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: cli-version
+    attributes:
+      label: tickerbox version output
+      description: Output of `tickerbox version`, run in the same environment as the failing command.
+      placeholder: 'tickerbox 0.3.2 (commit ab12cd3, built 2026-01-15)'
+    validations:
+      required: true
+  - type: input
+    id: firmware-version
+    attributes:
+      label: Device firmware version
+      description: The `sdk_version` field from `tickerbox system info --json`.
+      placeholder: 'v4.4.1'
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: The OS and architecture the CLI ran on.
+      placeholder: 'macOS 15.1 arm64, linux/amd64, Windows 11'
+    validations:
+      required: false

@@ -19,3 +19,10 @@ The device's REST API serves the Wi-Fi and access-point passwords in cleartext
 to any unauthenticated client on its network (`GET /rest/wifiSettings`,
 `GET /rest/apSettings`). That is a device-firmware exposure, not a defect in
 this CLI; `tickerbox doctor` reports it.
+
+## Network behaviour
+
+`tickerbox` makes network calls only to the device host resolved from
+`--host`, `--device`, `$TICKERBOX_HOST`, or the default device set with
+`device use`. It never contacts any host outside that resolution, sends no
+telemetry, and does not check for updates on its own.
