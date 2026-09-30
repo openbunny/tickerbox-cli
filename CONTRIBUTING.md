@@ -27,8 +27,8 @@ How to build, test, and submit a change to `tickerbox-cli`.
   - `gitleaks.yml` — scans the diff for committed secrets.
   - `security.yml` — `gosec`, `govulncheck`, and `go-licenses`.
   - `reuse.yml` — every source file carries a valid SPDX license header.
-- A new `.go` file opens with `// SPDX-License-Identifier: MIT`, as
-  `REUSE.toml` and `reuse.yml` require.
+- A new `.go` file opens with the MIT SPDX license header the existing files
+  carry, as `REUSE.toml` and `reuse.yml` require.
 - Every change ships tests for the behaviour it adds or fixes. A decoder that
   parses a device payload also ships a fuzz target.
 - No command reaches the real device in a test; use `httptest`.
