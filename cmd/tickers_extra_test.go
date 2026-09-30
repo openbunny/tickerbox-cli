@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -292,6 +293,30 @@ func TestTickersAddBulkRejectsInvalidType(t *testing.T) {
 	}
 	if len(*posted) != 0 {
 		t.Error("device was posted despite invalid type")
+	}
+}
+
+// Targets port 9 (discard): unreachable on a real network and denied fast under the
+// sandbox either way, so a passing test proves validation ran before any request.
+func TestTickersAddBulkRejectsInvalidTypeWithoutContactingDevice(t *testing.T) {
+	origHost, origTimeout, origRetry, origJSON := resolvedHost, timeoutFlag, retryFlag, jsonFlag
+	t.Cleanup(func() {
+		resolvedHost, timeoutFlag, retryFlag, jsonFlag = origHost, origTimeout, origRetry, origJSON
+	})
+	resolvedHost, timeoutFlag, retryFlag, jsonFlag = "http://127.0.0.1:9", 50*time.Millisecond, 0, false
+
+	origType, origTime, origCurrency := tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency
+	t.Cleanup(func() {
+		tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = origType, origTime, origCurrency
+	})
+	tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = "crytpo", "5min", "USD"
+
+	err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"BTC"})
+	if err == nil {
+		t.Fatal("tickersAddBulkCmd.RunE() = nil error; want error for invalid --type")
+	}
+	if !strings.Contains(err.Error(), `invalid type "crytpo"`) {
+		t.Errorf("error = %q; want it to name the invalid type, not a network failure", err.Error())
 	}
 }
 

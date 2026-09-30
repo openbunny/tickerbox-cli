@@ -103,17 +103,21 @@ var tickersAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a ticker",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		newEntry := tickers.Entry{
+			Type:     tickersAddType,
+			Ticker:   tickersAddTicker,
+			Time:     tickersAddTime,
+			Currency: tickersAddCurrency,
+		}
+		if err := rejectInvalidEntries([]tickers.Entry{newEntry}); err != nil {
+			return err
+		}
 		c := newClient()
 		entries, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
 			return err
 		}
-		entries = append(entries, tickers.Entry{
-			Type:     tickersAddType,
-			Ticker:   tickersAddTicker,
-			Time:     tickersAddTime,
-			Currency: tickersAddCurrency,
-		})
+		entries = append(entries, newEntry)
 		if err := rejectInvalidEntries(entries); err != nil {
 			return err
 		}

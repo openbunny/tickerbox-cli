@@ -103,6 +103,20 @@ func rejectInvalidEntries(entries []tickers.Entry) error {
 	return fmt.Errorf("invalid ticker entries:\n%s", strings.Join(problems, "\n"))
 }
 
+func rejectInvalidEditFlags(cmd *cobra.Command, typ, tm, currency string) error {
+	flags := cmd.Flags()
+	if flags.Changed("type") && !tickers.ValidType(typ) {
+		return fmt.Errorf("invalid --type %q", typ)
+	}
+	if flags.Changed("time") && !tickers.ValidTime(tm) {
+		return fmt.Errorf("invalid --time %q", tm)
+	}
+	if flags.Changed("currency") && !tickers.ValidCurrency(currency) {
+		return fmt.Errorf("invalid --currency %q", currency)
+	}
+	return nil
+}
+
 func applyTemplatePreset(existing, preset []tickers.Entry, replace bool) []tickers.Entry {
 	if replace {
 		out := make([]tickers.Entry, len(preset))
@@ -142,12 +156,16 @@ var tickersAddBulkCmd = &cobra.Command{
 	Example: "  tickerbox tickers add BTC ETH --type crypto --time 5min --currency USD",
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		newEntries := buildBulkEntries(args, tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency)
+		if err := rejectInvalidEntries(newEntries); err != nil {
+			return err
+		}
 		c := newClient()
 		entries, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
 			return err
 		}
-		entries = append(entries, buildBulkEntries(args, tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency)...)
+		entries = append(entries, newEntries...)
 		if err := rejectInvalidEntries(entries); err != nil {
 			return err
 		}
@@ -175,6 +193,9 @@ var tickersEditCmd = &cobra.Command{
 	Example: "  tickerbox tickers edit BTC --time 1min",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := rejectInvalidEditFlags(cmd, tickersEditType, tickersEditTime, tickersEditCurrency); err != nil {
+			return err
+		}
 		c := newClient()
 		entries, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
@@ -342,6 +363,9 @@ var tickersTemplateApplyCmd = &cobra.Command{
 		preset, ok := template.Get(args[0])
 		if !ok {
 			return fmt.Errorf("no such template %q", args[0])
+		}
+		if err := rejectInvalidEntries(preset); err != nil {
+			return err
 		}
 		c := newClient()
 		existing, err := fetchTickerEntries(cmdContext(cmd), c)
