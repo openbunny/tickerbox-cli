@@ -107,6 +107,7 @@ func init() {
 	rootCmd.PersistentFlags().DurationVar(&timeoutFlag, "timeout", defaultTimeout, "per-request timeout")
 
 	rootCmd.SilenceErrors = true
+	rootCmd.SilenceUsage = true
 
 	deviceIndependentCommands[deviceCmd] = true
 	deviceIndependentCommands[tzListCmd] = true
