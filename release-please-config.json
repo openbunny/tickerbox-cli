@@ -9,7 +9,8 @@
       "draft": true,
       "prerelease": false,
       "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": false
+      "bump-patch-for-minor-pre-major": false,
+      "release-as": "0.1.1"
     }
   }
 }
