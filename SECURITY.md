@@ -42,6 +42,6 @@ sSsTp/18FWNMfZQTVlYqQkNrurSX4J95mFYf40x7ht4hjs96wOWjt/7Erg==
 Save the key as `cosign.pub`, then verify a downloaded release:
 
 ```console
-cosign verify-blob --key cosign.pub --signature checksums.txt.sig checksums.txt
+cosign verify-blob --key cosign.pub --bundle checksums.txt.bundle --insecure-ignore-tlog checksums.txt
 sha256sum --check checksums.txt
 ```
