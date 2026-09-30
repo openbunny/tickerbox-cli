@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
 
@@ -141,7 +142,6 @@ func TestApply(t *testing.T) {
 		Display: map[string]any{"brightness": 150},
 		Tickers: []tickers.Entry{
 			{Type: tickers.TypeStocks, Ticker: "aapl", Time: tickers.Time15Min, Currency: tickers.CurrencyEUR},
-			{Type: "", Ticker: "  ", Time: "", Currency: ""},
 		},
 	}
 
@@ -163,7 +163,89 @@ func TestApply(t *testing.T) {
 	}
 	want := tickers.State{Size: 1, Types: tickers.TypeStocks, Tickers: "AAPL", Times: tickers.Time15Min, Currency: tickers.CurrencyUSD}
 	if gotTickers != want {
-		t.Errorf("posted coinSetupState = %+v; want %+v (blank entry dropped, non-crypto forced to USD)", gotTickers, want)
+		t.Errorf("posted coinSetupState = %+v; want %+v (non-crypto forced to USD)", gotTickers, want)
+	}
+}
+
+func TestApplyRejectsBlankTicker(t *testing.T) {
+	srv, _ := newTestServer(t, nil)
+	defer srv.Close()
+
+	c := client.New(srv.URL+"/", 0)
+	s := &Snapshot{Tickers: []tickers.Entry{{Type: "", Ticker: "  ", Time: "", Currency: ""}}}
+
+	if err := Apply(context.Background(), c, s, []string{SectionTickers}); err == nil {
+		t.Fatal("Apply() with a blank ticker = nil error; want error")
+	}
+}
+
+func TestApplyRejectsInvalidDisplayField(t *testing.T) {
+	srv, _ := newTestServer(t, nil)
+	defer srv.Close()
+
+	c := client.New(srv.URL+"/", 0)
+	s := &Snapshot{Display: map[string]any{"brightness": float64(9999)}}
+
+	if err := Apply(context.Background(), c, s, []string{SectionDisplay}); err == nil {
+		t.Fatal("Apply() with brightness 9999 = nil error; want error")
+	}
+}
+
+func TestApplyRejectsInvalidAPField(t *testing.T) {
+	tests := []struct {
+		name string
+		ap   map[string]any
+	}{
+		{name: "channel out of range", ap: map[string]any{"channel": float64(99)}},
+		{name: "malformed local_ip", ap: map[string]any{"local_ip": "not-an-ip"}},
+		{name: "malformed subnet_mask", ap: map[string]any{"subnet_mask": "255.0.255.0"}},
+		{name: "oversized ssid", ap: map[string]any{"ssid": strings.Repeat("a", 33)}},
+		{name: "short password", ap: map[string]any{"password": "short"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, _ := newTestServer(t, nil)
+			defer srv.Close()
+			c := client.New(srv.URL+"/", 0)
+			s := &Snapshot{AP: tt.ap}
+			if err := Apply(context.Background(), c, s, []string{SectionAP}); err == nil {
+				t.Fatalf("Apply() with AP %v = nil error; want error", tt.ap)
+			}
+		})
+	}
+}
+
+func TestApplyAcceptsValidAPField(t *testing.T) {
+	posted := map[string][]byte{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		posted[r.URL.Path[1:]] = body
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := client.New(srv.URL+"/", 0)
+	s := &Snapshot{AP: map[string]any{
+		"ssid": "box-ap", "channel": float64(6), "max_clients": float64(4),
+		"local_ip": "192.168.4.1", "gateway_ip": "192.168.4.1", "subnet_mask": "255.255.255.0",
+	}}
+	if err := Apply(context.Background(), c, s, []string{SectionAP}); err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if _, ok := posted[pathAPSettings]; !ok {
+		t.Fatal("Apply() never posted apSettings")
+	}
+}
+
+func TestApplyRejectsInvalidTickerEnum(t *testing.T) {
+	srv, _ := newTestServer(t, nil)
+	defer srv.Close()
+
+	c := client.New(srv.URL+"/", 0)
+	s := &Snapshot{Tickers: []tickers.Entry{{Type: "crytpo", Ticker: "BTC", Time: "5min", Currency: "USD"}}}
+
+	if err := Apply(context.Background(), c, s, []string{SectionTickers}); err == nil {
+		t.Fatal("Apply() with an invalid type = nil error; want error")
 	}
 }
 

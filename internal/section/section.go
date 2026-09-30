@@ -113,7 +113,11 @@ func Apply(ctx context.Context, c *client.Client, s *Snapshot, include []string)
 		if !ok {
 			return fmt.Errorf("unknown section %q", name)
 		}
-		if err := postMap(ctx, c, path, getSection(s, name)); err != nil {
+		m := getSection(s, name)
+		if err := validateSectionMap(name, m); err != nil {
+			return err
+		}
+		if err := postMap(ctx, c, path, m); err != nil {
 			return err
 		}
 	}
@@ -196,7 +200,14 @@ func getTickers(ctx context.Context, c *client.Client) ([]tickers.Entry, error) 
 }
 
 func postTickers(ctx context.Context, c *client.Client, entries []tickers.Entry) error {
-	if err := c.Post(ctx, pathCoinSetupState, tickers.Encode(entries)); err != nil {
+	if problems := tickers.Validate(entries); len(problems) > 0 {
+		return fmt.Errorf("invalid ticker entries:\n%s", strings.Join(problems, "\n"))
+	}
+	encoded, err := tickers.Encode(entries)
+	if err != nil {
+		return fmt.Errorf("encode ticker entries: %w", err)
+	}
+	if err := c.Post(ctx, pathCoinSetupState, encoded); err != nil {
 		return fmt.Errorf("post %s: %w", pathCoinSetupState, err)
 	}
 	return nil
