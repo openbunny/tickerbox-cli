@@ -6,7 +6,9 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -37,11 +39,16 @@ func postTickerEntries(ctx context.Context, c *client.Client, entries []tickers.
 	return nil
 }
 
-func confirm(prompt string) bool {
+var confirmStdin io.Reader = os.Stdin
+
+func confirm(prompt string) (bool, error) {
 	fmt.Printf("%s [y/N]: ", prompt)
-	line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-	line = strings.ToLower(strings.TrimSpace(line))
-	return line == "y" || line == "yes"
+	line, err := bufio.NewReader(confirmStdin).ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false, fmt.Errorf("read confirmation: %w", err)
+	}
+	line = strings.TrimSpace(strings.ToLower(line))
+	return line == "y" || line == "yes", nil
 }
 
 func isIndex(selector string) bool {
@@ -155,8 +162,15 @@ var tickersClearCmd = &cobra.Command{
 	Long:    "Removes every ticker. Prompts for confirmation unless --yes.",
 	Example: "  tickerbox tickers clear --yes",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if !tickersClearYes && !confirm("Remove all tickers?") {
-			return fmt.Errorf("clear aborted")
+		if !tickersClearYes {
+			ok, err := confirm("Remove all tickers?")
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Println("aborted")
+				return nil
+			}
 		}
 		if err := postTickerEntries(cmdContext(cmd), newClient(), nil); err != nil {
 			return err
@@ -217,8 +231,15 @@ var tickersImportCmd = &cobra.Command{
 			return fmt.Errorf("%s is not a valid JSON array of ticker entries: %w", tickersImportInput, err)
 		}
 
-		if !tickersImportYes && !confirm(fmt.Sprintf("Replace the current list with %d entries from %s?", len(entries), tickersImportInput)) {
-			return fmt.Errorf("import aborted")
+		if !tickersImportYes {
+			ok, err := confirm(fmt.Sprintf("Replace the current list with %d entries from %s?", len(entries), tickersImportInput))
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Println("aborted")
+				return nil
+			}
 		}
 
 		if err := postTickerEntries(cmdContext(cmd), newClient(), entries); err != nil {

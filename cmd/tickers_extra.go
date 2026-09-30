@@ -145,9 +145,9 @@ var (
 )
 
 var tickersAddBulkCmd = &cobra.Command{
-	Use:   "add SYM...",
+	Use:   "add <sym>...",
 	Short: "Add one or more tickers, sharing --type/--time/--currency",
-	Long: "Adds one entry per SYM, all sharing the same --type, --time, and --currency. --type and --time " +
+	Long: "Adds one entry per sym, all sharing the same --type, --time, and --currency. --type and --time " +
 		"are required; --currency defaults to USD.",
 	Example: "  tickerbox tickers add BTC ETH --type crypto --time 5min --currency USD",
 	Args:    cobra.MinimumNArgs(1),

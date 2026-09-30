@@ -3,12 +3,9 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -188,16 +185,6 @@ func ntpStatusText(status int) string {
 	default:
 		return fmt.Sprintf("UNKNOWN(%d)", status)
 	}
-}
-
-func confirmSystemAction(prompt string) (bool, error) {
-	fmt.Printf("%s [y/N]: ", prompt)
-	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
-		return false, fmt.Errorf("read confirmation: %w", err)
-	}
-	line = strings.TrimSpace(strings.ToLower(line))
-	return line == "y" || line == "yes", nil
 }
 
 func fetchStatusReport(ctx context.Context, c *client.Client) statusReport {
@@ -524,7 +511,7 @@ var systemRestartCmd = &cobra.Command{
 	Example: "  tickerbox system restart --yes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !systemRestartYes {
-			ok, err := confirmSystemAction("Restart the device?")
+			ok, err := confirm("Restart the device?")
 			if err != nil {
 				return err
 			}
@@ -586,7 +573,7 @@ var systemFactoryResetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("WARNING: factory reset erases all device settings and cannot be undone.")
 		if !systemFactoryResetYes {
-			ok, err := confirmSystemAction("Proceed with factory reset?")
+			ok, err := confirm("Proceed with factory reset?")
 			if err != nil {
 				return err
 			}
@@ -616,7 +603,7 @@ var systemFactoryResetCmd = &cobra.Command{
 var systemFirmwareUploadYes bool
 
 var systemFirmwareUploadCmd = &cobra.Command{
-	Use:   "firmware-upload FILE",
+	Use:   "firmware-upload <file>",
 	Short: "Upload and flash new firmware",
 	Long: "Flashes FILE, which must end in .bin, replacing the running firmware. Cannot be undone. " +
 		"Prompts for confirmation unless --yes.",
@@ -636,7 +623,7 @@ var systemFirmwareUploadCmd = &cobra.Command{
 		}
 		fmt.Println("WARNING: uploading firmware replaces the running firmware and cannot be undone.")
 		if !systemFirmwareUploadYes {
-			ok, err := confirmSystemAction("Proceed with firmware upload?")
+			ok, err := confirm("Proceed with firmware upload?")
 			if err != nil {
 				return err
 			}

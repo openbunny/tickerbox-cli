@@ -177,7 +177,7 @@ var rebootCmd = &cobra.Command{
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !rebootYes {
-			ok, err := confirmSystemAction("Restart the device?")
+			ok, err := confirm("Restart the device?")
 			if err != nil {
 				return err
 			}
