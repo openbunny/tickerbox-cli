@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -62,8 +61,9 @@ var tickersCmd = &cobra.Command{
 }
 
 var tickersListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List configured tickers",
+	Use:     "list",
+	Short:   "List configured tickers",
+	Example: "  tickerbox tickers list",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		entries, err := fetchTickerEntries(newClient())
 		if err != nil {
@@ -117,7 +117,10 @@ var tickersAddCmd = &cobra.Command{
 var tickersRemoveCmd = &cobra.Command{
 	Use:   "remove <index|ticker>",
 	Short: "Remove a ticker",
-	Args:  cobra.ExactArgs(1),
+	Long:  "Accepts either the 0-based index shown by `tickers list`, or a ticker symbol.",
+	Example: "  tickerbox tickers remove BTC\n" +
+		"  tickerbox tickers remove 0",
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		selector := args[0]
 		c := newClient()
@@ -126,25 +129,12 @@ var tickersRemoveCmd = &cobra.Command{
 			return err
 		}
 
-		var removed tickers.Entry
-		if isIndex(selector) {
-			idx, err := strconv.Atoi(selector)
-			if err != nil || idx < 0 || idx >= len(entries) {
-				return fmt.Errorf("index %s out of range: list has %d entries", selector, len(entries))
-			}
-			removed = entries[idx]
-			entries = append(entries[:idx], entries[idx+1:]...)
-		} else {
-			target := tickers.NormalizeTicker(selector)
-			found := slices.IndexFunc(entries, func(e tickers.Entry) bool {
-				return tickers.NormalizeTicker(e.Ticker) == target
-			})
-			if found == -1 {
-				return fmt.Errorf("no entry with ticker %s", target)
-			}
-			removed = entries[found]
-			entries = append(entries[:found], entries[found+1:]...)
+		idx, err := resolveEntryIndex(entries, selector)
+		if err != nil {
+			return err
 		}
+		removed := entries[idx]
+		entries = append(entries[:idx], entries[idx+1:]...)
 
 		if err := postTickerEntries(c, entries); err != nil {
 			return err
@@ -160,8 +150,10 @@ var tickersRemoveCmd = &cobra.Command{
 var tickersClearYes bool
 
 var tickersClearCmd = &cobra.Command{
-	Use:   "clear",
-	Short: "Remove all tickers",
+	Use:     "clear",
+	Short:   "Remove all tickers",
+	Long:    "Removes every ticker. Prompts for confirmation unless --yes.",
+	Example: "  tickerbox tickers clear --yes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !tickersClearYes && !confirm("Remove all tickers?") {
 			return fmt.Errorf("clear aborted")
@@ -180,8 +172,9 @@ var tickersClearCmd = &cobra.Command{
 var tickersExportOutput string
 
 var tickersExportCmd = &cobra.Command{
-	Use:   "export",
-	Short: "Export tickers as JSON",
+	Use:     "export",
+	Short:   "Export tickers as JSON",
+	Example: "  tickerbox tickers export --output tickers.json",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		entries, err := fetchTickerEntries(newClient())
 		if err != nil {
@@ -195,7 +188,7 @@ var tickersExportCmd = &cobra.Command{
 			fmt.Println(string(encoded))
 			return nil
 		}
-		if err := os.WriteFile(tickersExportOutput, encoded, 0o600); err != nil {
+		if err := os.WriteFile(tickersExportOutput, encoded, configSnapshotFilePerm); err != nil {
 			return fmt.Errorf("write %s: %w", tickersExportOutput, err)
 		}
 		return nil
@@ -210,6 +203,9 @@ var (
 var tickersImportCmd = &cobra.Command{
 	Use:   "import",
 	Short: "Replace tickers from a JSON file",
+	Long: "Replaces the entire ticker list with the contents of the file; existing entries not present in " +
+		"the file are dropped. Prompts for confirmation unless --yes.",
+	Example: "  tickerbox tickers import --input tickers.json --yes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		raw, err := os.ReadFile(tickersImportInput)
 		if err != nil {

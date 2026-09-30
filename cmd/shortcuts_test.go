@@ -336,7 +336,7 @@ func TestSetDeviceTimezoneWritesBothSections(t *testing.T) {
 				t.Fatalf("decode posted ntpSettings: %v", err)
 			}
 		case r.URL.Path == "/clockSetupState" && r.Method == http.MethodGet:
-			_ = json.NewEncoder(w).Encode(clockSettings{Enabled: true, TwelweHourFormat: true, AnimationSpeed: 50, TZLabel: "Old/Label"})
+			_ = json.NewEncoder(w).Encode(clockSettings{Enabled: true, TwelveHourFormat: true, AnimationSpeed: 50, TZLabel: "Old/Label"})
 		case r.URL.Path == "/clockSetupState" && r.Method == http.MethodPost:
 			if err := json.NewDecoder(r.Body).Decode(&postedClock); err != nil {
 				t.Fatalf("decode posted clockSetupState: %v", err)
@@ -366,7 +366,7 @@ func TestSetDeviceTimezoneWritesBothSections(t *testing.T) {
 	if postedClock.TZLabel != label {
 		t.Errorf("clockSetupState not updated: %+v", postedClock)
 	}
-	if !postedClock.Enabled || !postedClock.TwelweHourFormat || postedClock.AnimationSpeed != 50 {
+	if !postedClock.Enabled || !postedClock.TwelveHourFormat || postedClock.AnimationSpeed != 50 {
 		t.Errorf("clockSetupState unrelated fields clobbered: %+v", postedClock)
 	}
 

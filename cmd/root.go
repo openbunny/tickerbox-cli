@@ -16,6 +16,8 @@ import (
 const (
 	defaultRetries = 2
 	defaultTimeout = 10 * time.Second
+
+	maxSSIDLength = 32
 )
 
 var (
@@ -31,6 +33,12 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "tickerbox",
 	Short: "Control a TickerBox device over its REST API",
+	Long: "tickerbox talks to a TickerBox ESP32 device's REST API over HTTP. Target a device with --host, " +
+		"or register named devices with `tickerbox device add` and select one with --device or `tickerbox device use`. " +
+		"The device's REST API has no authentication; anything on its network can reach it.",
+	Example: "  tickerbox device add desk http://tickerbox.local\n" +
+		"  tickerbox status --device desk\n" +
+		"  tickerbox --host http://192.168.1.42 wifi status",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		host, err := config.ResolveHost(hostFlag, deviceFlag)
 		if err != nil {

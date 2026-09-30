@@ -226,19 +226,26 @@ func TestConfigPresentSectionsEmptySnapshot(t *testing.T) {
 	}
 }
 
-func TestLoadSnapshotInvalidJSON(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "bad.json")
-	if err := os.WriteFile(path, []byte("not json"), 0o600); err != nil {
-		t.Fatalf("write test file: %v", err)
+func TestLoadSnapshotRejectsBadInput(t *testing.T) {
+	tests := []struct {
+		name     string
+		writeBad bool
+	}{
+		{"invalid JSON", true},
+		{"missing file", false},
 	}
-	if _, err := loadSnapshot(path); err == nil {
-		t.Fatal("loadSnapshot() with invalid JSON: want error, got nil")
-	}
-}
-
-func TestLoadSnapshotMissingFile(t *testing.T) {
-	if _, err := loadSnapshot(filepath.Join(t.TempDir(), "missing.json")); err == nil {
-		t.Fatal("loadSnapshot() with missing file: want error, got nil")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "snapshot.json")
+			if tt.writeBad {
+				if err := os.WriteFile(path, []byte("not json"), 0o600); err != nil {
+					t.Fatalf("write test file: %v", err)
+				}
+			}
+			if _, err := loadSnapshot(path); err == nil {
+				t.Fatalf("loadSnapshot() with %s: want error, got nil", tt.name)
+			}
+		})
 	}
 }
 

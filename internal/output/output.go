@@ -9,6 +9,14 @@ import (
 	"text/tabwriter"
 )
 
+const (
+	tabMinWidth = 0
+	tabWidth    = 4
+	tabPadding  = 2
+	tabPadChar  = ' '
+	tabFlags    = 0
+)
+
 func EmitJSON(v any) error {
 	encoded, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -19,7 +27,7 @@ func EmitJSON(v any) error {
 }
 
 func KV(pairs [][2]string) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, tabMinWidth, tabWidth, tabPadding, tabPadChar, tabFlags)
 	for _, p := range pairs {
 		_, _ = fmt.Fprintf(w, "%s:\t%s\n", p[0], p[1])
 	}
@@ -27,7 +35,7 @@ func KV(pairs [][2]string) {
 }
 
 func Table(headers []string, rows [][]string) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, tabMinWidth, tabWidth, tabPadding, tabPadChar, tabFlags)
 	for i, h := range headers {
 		if i > 0 {
 			_, _ = fmt.Fprint(w, "\t")

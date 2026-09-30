@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 func TestApStatusLabel(t *testing.T) {
@@ -198,39 +200,27 @@ func apJSONServer(t *testing.T, path string, payload any) *httptest.Server {
 	return srv
 }
 
-func TestApStatusCmd(t *testing.T) {
-	srv := apJSONServer(t, "apStatus", apStatusPayload{Status: 0, IPAddress: "10.0.0.1", MACAddress: "aa:bb", StationNum: 3})
-	withCmdTarget(t, srv.URL)
-
-	if err := apStatusCmd.RunE(apStatusCmd, nil); err != nil {
-		t.Fatalf("apStatusCmd.RunE() = %v", err)
+func TestReadOnlyRestCmds(t *testing.T) {
+	tests := []struct {
+		name    string
+		path    string
+		payload any
+		cmd     *cobra.Command
+	}{
+		{"ap status", "apStatus", apStatusPayload{Status: 0, IPAddress: "10.0.0.1", MACAddress: "aa:bb", StationNum: 3}, apStatusCmd},
+		{"ap settings", "apSettings", apSettingsPayload{ProvisionMode: 1, SSID: "box"}, apSettingsCmd},
+		{"ntp status", "ntpStatus", ntpStatusPayload{Status: 1, Server: "pool.ntp.org"}, ntpStatusCmd},
+		{"ntp settings", "ntpSettings", ntpSettingsPayload{Enabled: true, Server: "pool.ntp.org"}, ntpSettingsCmd},
 	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := apJSONServer(t, tt.path, tt.payload)
+			withCmdTarget(t, srv.URL)
 
-func TestApSettingsCmd(t *testing.T) {
-	srv := apJSONServer(t, "apSettings", apSettingsPayload{ProvisionMode: 1, SSID: "box"})
-	withCmdTarget(t, srv.URL)
-
-	if err := apSettingsCmd.RunE(apSettingsCmd, nil); err != nil {
-		t.Fatalf("apSettingsCmd.RunE() = %v", err)
-	}
-}
-
-func TestNtpStatusCmd(t *testing.T) {
-	srv := apJSONServer(t, "ntpStatus", ntpStatusPayload{Status: 1, Server: "pool.ntp.org"})
-	withCmdTarget(t, srv.URL)
-
-	if err := ntpStatusCmd.RunE(ntpStatusCmd, nil); err != nil {
-		t.Fatalf("ntpStatusCmd.RunE() = %v", err)
-	}
-}
-
-func TestNtpSettingsCmd(t *testing.T) {
-	srv := apJSONServer(t, "ntpSettings", ntpSettingsPayload{Enabled: true, Server: "pool.ntp.org"})
-	withCmdTarget(t, srv.URL)
-
-	if err := ntpSettingsCmd.RunE(ntpSettingsCmd, nil); err != nil {
-		t.Fatalf("ntpSettingsCmd.RunE() = %v", err)
+			if err := tt.cmd.RunE(tt.cmd, nil); err != nil {
+				t.Fatalf("%s.RunE() = %v", tt.cmd.Name(), err)
+			}
+		})
 	}
 }
 

@@ -49,7 +49,7 @@ Host = "http://192.168.1.10"
 
 [Devices.office]
 Name = "office"
-Host = "tickerbox-office.local"
+Host = "http://tickerbox-office.local"
 ```
 
 | Field                 | TOML type | Go type             | Meaning                                                                                                                                          |
@@ -58,6 +58,13 @@ Host = "tickerbox-office.local"
 | `Devices`             | table     | `map[string]Device` | Keyed by device name; the key and `Devices.<key>.Name` are kept equal by every write path (`Config.Add`).                                        |
 | `Devices.<name>.Name` | string    | `string`            | Same value as the table key.                                                                                                                     |
 | `Devices.<name>.Host` | string    | `string`            | Base URL the CLI sends `/rest/...` requests against, e.g. `http://192.168.1.10` or a `.local` mDNS name. Not validated as a URL by `Config.Add`. |
+
+`device add` does not add a scheme for you: `Config.Add` and the request
+path (`cmd.newClient()` → `restBase(host)`) both use the host exactly as
+given. Only `device discover`'s auto-add flow prepends `http://`. A bare
+hostname such as `tickerbox-office.local`, added directly with `device add`,
+fails at request time with `unsupported protocol scheme ""` — give `Host` a
+scheme, as in the example above.
 
 Field casing is exact: `pelletier/go-toml/v2` marshals unadorned struct
 fields under their Go names, so the keys are `Default`/`Devices`/`Name`/`Host`,
@@ -82,12 +89,19 @@ command through `cmd.newClient()`, picks the first of:
 
 ## Secret handling
 
-`config.toml` never holds a device credential. Wifi/AP secrets live only
-in a profile or an exported snapshot, and only when captured with
-`--show-secrets`/`--all` (`tickerbox profile save --all`,
-`tickerbox config export --show-secrets`, `tickerbox wifi settings
---show-secrets`); by default, `internal/section.Capture` strips any wifi
-or ap field whose key contains `password` or `secret` (case-insensitive
-substring, not a fixed field list) before it reaches a Snapshot. See
+`config.toml` never holds a device credential. By default,
+`internal/section.Capture` strips any wifi or ap field whose key contains
+`password` or `secret` (case-insensitive substring, not a fixed field list)
+before it reaches a Snapshot, so no command writes a device secret to a
+local file unless told to.
+
+Two commands write a secret into a file: `tickerbox profile save --all`
+captures the wifi/ap sections, including their passwords, into the profile
+file, and `tickerbox config export --show-secrets` does the same into the
+exported snapshot file. See
 [`schema/snapshot.schema.json`](schema/snapshot.schema.json) for the
 Snapshot/profile file format this produces.
+
+`tickerbox wifi settings --show-secrets` is different: it only skips
+masking the password before printing the device's current, live response.
+It never writes a Snapshot or any other file.

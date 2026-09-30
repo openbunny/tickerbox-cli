@@ -30,7 +30,11 @@ var (
 var profileSaveCmd = &cobra.Command{
 	Use:   "save <name>",
 	Short: "Capture the device's current config as a named profile",
-	Args:  cobra.ExactArgs(1),
+	Long: "Captures tickers, display, clock, and ntp by default. --include selects specific sections by " +
+		"name. --all also captures wifi and ap, including their passwords.",
+	Example: "  tickerbox profile save home\n" +
+		"  tickerbox profile save full --all",
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		include, withSecrets := resolveInclude(profileSaveInclude, profileSaveAll)
 		s, err := section.Capture(newClient(), include, withSecrets)
@@ -49,8 +53,9 @@ var profileSaveCmd = &cobra.Command{
 }
 
 var profileListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List saved profiles",
+	Use:     "list",
+	Short:   "List saved profiles",
+	Example: "  tickerbox profile list",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		names, err := profile.List()
 		if err != nil {
@@ -67,9 +72,10 @@ var profileListCmd = &cobra.Command{
 }
 
 var profileShowCmd = &cobra.Command{
-	Use:   "show <name>",
-	Short: "Show a saved profile",
-	Args:  cobra.ExactArgs(1),
+	Use:     "show <name>",
+	Short:   "Show a saved profile",
+	Example: "  tickerbox profile show home",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		s, err := profile.Load(args[0])
 		if err != nil {
@@ -82,9 +88,11 @@ var profileShowCmd = &cobra.Command{
 var profileRmYes bool
 
 var profileRmCmd = &cobra.Command{
-	Use:   "rm <name>",
-	Short: "Delete a saved profile",
-	Args:  cobra.ExactArgs(1),
+	Use:     "rm <name>",
+	Short:   "Delete a saved profile",
+	Long:    "Prompts for confirmation unless --yes.",
+	Example: "  tickerbox profile rm home --yes",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !profileRmYes && !confirm(fmt.Sprintf("Remove profile %s?", args[0])) {
 			return fmt.Errorf("rm aborted")
@@ -100,7 +108,10 @@ var profileRmCmd = &cobra.Command{
 var profileApplyCmd = &cobra.Command{
 	Use:   "apply <name>",
 	Short: "Apply a saved profile to the device",
-	Args:  cobra.ExactArgs(1),
+	Long: "Applies only the sections present in the saved profile; sections it doesn't contain are left " +
+		"untouched on the device.",
+	Example: "  tickerbox profile apply home",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		s, err := profile.Load(args[0])
 		if err != nil {
@@ -120,7 +131,10 @@ var profileDiffShowSecrets bool
 var profileDiffCmd = &cobra.Command{
 	Use:   "diff <name>",
 	Short: "Compare a saved profile against the device's current config",
-	Args:  cobra.ExactArgs(1),
+	Long: "Compares only the sections the profile contains. --show-secrets reveals wifi/ap password fields " +
+		"instead of masking them.",
+	Example: "  tickerbox profile diff home",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		prof, err := profile.Load(args[0])
 		if err != nil {

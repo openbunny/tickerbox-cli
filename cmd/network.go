@@ -14,6 +14,17 @@ import (
 	"github.com/openbunny/tickerbox-cli/internal/tz"
 )
 
+const (
+	minAPPasswordLength = 8
+	maxAPPasswordLength = 64
+
+	minAPChannel = 1
+	maxAPChannel = 14
+
+	minAPClients = 1
+	maxAPClients = 9
+)
+
 type apStatusPayload struct {
 	Status     int    `json:"status"`
 	IPAddress  string `json:"ip_address"`
@@ -105,8 +116,9 @@ var apCmd = &cobra.Command{
 }
 
 var apStatusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show access point status",
+	Use:     "status",
+	Short:   "Show access point status",
+	Example: "  tickerbox ap status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var st apStatusPayload
 		if err := newClient().Get("apStatus", &st); err != nil {
@@ -126,8 +138,10 @@ var apStatusCmd = &cobra.Command{
 }
 
 var apSettingsCmd = &cobra.Command{
-	Use:   "settings",
-	Short: "Show access point settings",
+	Use:     "settings",
+	Short:   "Show access point settings",
+	Long:    "The AP password is always shown in the clear; there is no masking flag.",
+	Example: "  tickerbox ap settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var s apSettingsPayload
 		if err := newClient().Get("apSettings", &s); err != nil {
@@ -154,6 +168,12 @@ var apSettingsCmd = &cobra.Command{
 var apSetCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Change access point settings",
+	Long: "Updates only the fields given as flags, merging into the current AP settings. --mode is one of " +
+		"always, disconnected, or never. --ssid is at most 32 characters, --password 8-64, --channel 1-14, " +
+		"--max-clients 1-9. --hidden/--no-hidden are mutually exclusive, as are --password and --password-stdin. " +
+		"Setting a password over plain http:// warns unless --yes.",
+	Example: "  tickerbox ap set --mode disconnected --ssid TickerBox-Setup --password-stdin < ap.secret\n" +
+		"  tickerbox ap set --channel 6 --max-clients 4",
 }
 
 func init() {
@@ -206,8 +226,8 @@ func init() {
 			}
 		}
 		if flags.Changed("ssid") {
-			if len(ssid) > 32 {
-				return fmt.Errorf("invalid --ssid: max 32 characters, got %d", len(ssid))
+			if len(ssid) > maxSSIDLength {
+				return fmt.Errorf("invalid --ssid: max %d characters, got %d", maxSSIDLength, len(ssid))
 			}
 			cur.SSID = ssid
 		}
@@ -216,14 +236,14 @@ func init() {
 			return err
 		}
 		if secretChanged {
-			if len(secret) < 8 || len(secret) > 64 {
-				return fmt.Errorf("invalid --password: must be 8-64 characters, got %d", len(secret))
+			if len(secret) < minAPPasswordLength || len(secret) > maxAPPasswordLength {
+				return fmt.Errorf("invalid --password: must be %d-%d characters, got %d", minAPPasswordLength, maxAPPasswordLength, len(secret))
 			}
 			cur.Password = secret
 		}
 		if flags.Changed("channel") {
-			if channel < 1 || channel > 14 {
-				return fmt.Errorf("invalid --channel %d: must be 1-14", channel)
+			if channel < minAPChannel || channel > maxAPChannel {
+				return fmt.Errorf("invalid --channel %d: must be %d-%d", channel, minAPChannel, maxAPChannel)
 			}
 			cur.Channel = channel
 		}
@@ -237,8 +257,8 @@ func init() {
 			cur.SSIDHidden = false
 		}
 		if flags.Changed("max-clients") {
-			if maxClients < 1 || maxClients > 9 {
-				return fmt.Errorf("invalid --max-clients %d: must be 1-9", maxClients)
+			if maxClients < minAPClients || maxClients > maxAPClients {
+				return fmt.Errorf("invalid --max-clients %d: must be %d-%d", maxClients, minAPClients, maxAPClients)
 			}
 			cur.MaxClients = maxClients
 		}
@@ -284,8 +304,9 @@ var ntpCmd = &cobra.Command{
 }
 
 var ntpStatusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show NTP sync status",
+	Use:     "status",
+	Short:   "Show NTP sync status",
+	Example: "  tickerbox ntp status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var st ntpStatusPayload
 		if err := newClient().Get("ntpStatus", &st); err != nil {
@@ -306,8 +327,9 @@ var ntpStatusCmd = &cobra.Command{
 }
 
 var ntpSettingsCmd = &cobra.Command{
-	Use:   "settings",
-	Short: "Show NTP settings",
+	Use:     "settings",
+	Short:   "Show NTP settings",
+	Example: "  tickerbox ntp settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var s ntpSettingsPayload
 		if err := newClient().Get("ntpSettings", &s); err != nil {
@@ -329,6 +351,9 @@ var ntpSettingsCmd = &cobra.Command{
 var ntpSetCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Change NTP settings",
+	Long: "Updates only the fields given as flags. --enabled and --disabled are mutually exclusive. " +
+		"--tz must be a label from `tickerbox tz list`.",
+	Example: "  tickerbox ntp set --enabled --server pool.ntp.org --tz America/New_York",
 }
 
 func init() {
@@ -395,7 +420,11 @@ func init() {
 var timeCmd = &cobra.Command{
 	Use:   "time [VALUE]",
 	Short: "Device wall-clock time",
-	Args:  cobra.MaximumNArgs(1),
+	Long: "Sets the device wall clock. With no VALUE, or VALUE `now`, uses the current UTC time. " +
+		"Otherwise VALUE must be RFC3339 or 2006-01-02T15:04:05, and is sent to the device as UTC.",
+	Example: "  tickerbox time\n" +
+		"  tickerbox time 2026-01-15T09:00:00Z",
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		t := now()
 		if len(args) == 1 && args[0] != "" && args[0] != "now" {

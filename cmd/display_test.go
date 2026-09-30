@@ -67,69 +67,48 @@ func clockSetCmdFixture() *cobra.Command {
 	return c
 }
 
-func TestDisplaySetRejectsConflictingSleepFlags(t *testing.T) {
-	c := displaySetCmdFixture()
-	mustSet(t, c, "sleep", "true")
-	mustSet(t, c, "no-sleep", "true")
-
-	if err := c.RunE(c, nil); err == nil {
-		t.Fatal("expected error for mutually exclusive --sleep/--no-sleep")
+func TestDisplaySetRejectsInvalidInput(t *testing.T) {
+	tests := []struct {
+		name  string
+		flags map[string]string
+	}{
+		{"conflicting sleep flags", map[string]string{"sleep": "true", "no-sleep": "true"}},
+		{"brightness below 10", map[string]string{"brightness": "5"}},
+		{"invalid sleep-start", map[string]string{"sleep-start": "not-a-time"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := displaySetCmdFixture()
+			for name, value := range tt.flags {
+				mustSet(t, c, name, value)
+			}
+			if err := c.RunE(c, nil); err == nil {
+				t.Fatalf("expected error for %s", tt.name)
+			}
+		})
 	}
 }
 
-func TestDisplaySetRejectsBrightnessOutOfRange(t *testing.T) {
-	c := displaySetCmdFixture()
-	mustSet(t, c, "brightness", "5")
-
-	if err := c.RunE(c, nil); err == nil {
-		t.Fatal("expected error for brightness below 10")
+func TestClockSetRejectsInvalidInput(t *testing.T) {
+	tests := []struct {
+		name  string
+		flags map[string]string
+	}{
+		{"conflicting enabled flags", map[string]string{"enabled": "true", "disabled": "true"}},
+		{"conflicting hour format flags", map[string]string{"12h": "true", "24h": "true"}},
+		{"unknown timezone", map[string]string{"tz": "Not/A_Real_Zone"}},
+		{"animation-speed below 10", map[string]string{"animation-speed": "5"}},
 	}
-}
-
-func TestDisplaySetRejectsInvalidSleepStart(t *testing.T) {
-	c := displaySetCmdFixture()
-	mustSet(t, c, "sleep-start", "not-a-time")
-
-	if err := c.RunE(c, nil); err == nil {
-		t.Fatal("expected error for an invalid --sleep-start")
-	}
-}
-
-func TestClockSetRejectsConflictingEnabledFlags(t *testing.T) {
-	c := clockSetCmdFixture()
-	mustSet(t, c, "enabled", "true")
-	mustSet(t, c, "disabled", "true")
-
-	if err := c.RunE(c, nil); err == nil {
-		t.Fatal("expected error for mutually exclusive --enabled/--disabled")
-	}
-}
-
-func TestClockSetRejectsConflictingHourFormatFlags(t *testing.T) {
-	c := clockSetCmdFixture()
-	mustSet(t, c, "12h", "true")
-	mustSet(t, c, "24h", "true")
-
-	if err := c.RunE(c, nil); err == nil {
-		t.Fatal("expected error for mutually exclusive --12h/--24h")
-	}
-}
-
-func TestClockSetRejectsUnknownTimezone(t *testing.T) {
-	c := clockSetCmdFixture()
-	mustSet(t, c, "tz", "Not/A_Real_Zone")
-
-	if err := c.RunE(c, nil); err == nil {
-		t.Fatal("expected error for an unknown --tz label")
-	}
-}
-
-func TestClockSetRejectsAnimationSpeedOutOfRange(t *testing.T) {
-	c := clockSetCmdFixture()
-	mustSet(t, c, "animation-speed", "5")
-
-	if err := c.RunE(c, nil); err == nil {
-		t.Fatal("expected error for animation-speed below 10")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := clockSetCmdFixture()
+			for name, value := range tt.flags {
+				mustSet(t, c, name, value)
+			}
+			if err := c.RunE(c, nil); err == nil {
+				t.Fatalf("expected error for %s", tt.name)
+			}
+		})
 	}
 }
 
@@ -140,29 +119,28 @@ func mustSet(t *testing.T, c *cobra.Command, name, value string) {
 	}
 }
 
-func TestDisplaySettingsCmdRoundTrip(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(displaySettings{Brightness: 200, ChangeInterval: 20})
-	}))
-	t.Cleanup(srv.Close)
-	withCmdTarget(t, srv.URL)
-
-	if err := displaySettingsCmd.RunE(displaySettingsCmd, nil); err != nil {
-		t.Fatalf("displaySettingsCmd.RunE() = %v", err)
+func TestSettingsCmdRoundTrip(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload any
+		cmd     *cobra.Command
+	}{
+		{"display settings", displaySettings{Brightness: 200, ChangeInterval: 20}, displaySettingsCmd},
+		{"clock settings", clockSettings{Enabled: true, TZLabel: "UTC"}, clockSettingsCmd},
 	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(tt.payload)
+			}))
+			t.Cleanup(srv.Close)
+			withCmdTarget(t, srv.URL)
 
-func TestClockSettingsCmdRoundTrip(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(clockSettings{Enabled: true, TZLabel: "UTC"})
-	}))
-	t.Cleanup(srv.Close)
-	withCmdTarget(t, srv.URL)
-
-	if err := clockSettingsCmd.RunE(clockSettingsCmd, nil); err != nil {
-		t.Fatalf("clockSettingsCmd.RunE() = %v", err)
+			if err := tt.cmd.RunE(tt.cmd, nil); err != nil {
+				t.Fatalf("%s.RunE() = %v", tt.cmd.Name(), err)
+			}
+		})
 	}
 }
 

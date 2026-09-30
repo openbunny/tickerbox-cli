@@ -5,6 +5,7 @@ package cmd
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -190,7 +191,7 @@ func ntpStatusText(status int) string {
 func confirmSystemAction(prompt string) (bool, error) {
 	fmt.Printf("%s [y/N]: ", prompt)
 	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return false, fmt.Errorf("read confirmation: %w", err)
 	}
 	line = strings.TrimSpace(strings.ToLower(line))
@@ -401,6 +402,9 @@ var statusAll bool
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Aggregate dashboard",
+	Long: "Shows features, system, Wi-Fi, AP, NTP, display, and clock state in one report. " +
+		"--all runs this against every device in the config file instead of the resolved target.",
+	Example: "  tickerbox status --all --json",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if statusAll {
 			return runStatusAll()
@@ -421,8 +425,9 @@ var systemCmd = &cobra.Command{
 }
 
 var systemInfoCmd = &cobra.Command{
-	Use:   "info",
-	Short: "Show device system status",
+	Use:     "info",
+	Short:   "Show device system status",
+	Example: "  tickerbox system info",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := newClient()
 		var status systemStatusPayload
@@ -443,7 +448,7 @@ var systemInfoCmd = &cobra.Command{
 			{"Sketch Size", humanizeBytes(status.SketchSize)},
 			{"Free Sketch Space", humanizeBytes(status.FreeSketchSpace)},
 			{"Flash Chip Size", humanizeBytes(status.FlashChipSize)},
-			{"Flash Chip Speed", fmt.Sprintf("%d MHz", status.FlashChipSpeed/1_000_000)},
+			{"Flash Chip Speed", fmt.Sprintf("%d MHz", status.FlashChipSpeed/hzPerMHz)},
 			{"Filesystem", fmt.Sprintf("%s / %s used", humanizeBytes(status.FsUsed), humanizeBytes(status.FsTotal))},
 		})
 		return nil
@@ -451,8 +456,9 @@ var systemInfoCmd = &cobra.Command{
 }
 
 var systemFeaturesCmd = &cobra.Command{
-	Use:   "features",
-	Short: "Show enabled device features",
+	Use:     "features",
+	Short:   "Show enabled device features",
+	Example: "  tickerbox system features",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := newClient()
 		var f featuresPayload
@@ -478,8 +484,10 @@ var systemFeaturesCmd = &cobra.Command{
 var systemRestartYes bool
 
 var systemRestartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart the device",
+	Use:     "restart",
+	Short:   "Restart the device",
+	Long:    "Prompts for confirmation unless --yes.",
+	Example: "  tickerbox system restart --yes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !systemRestartYes {
 			ok, err := confirmSystemAction("Restart the device?")
@@ -504,6 +512,8 @@ const (
 	backupTimeLayout = "20060102-150405"
 	backupFileExt    = ".json"
 	backupFilePerm   = 0o600
+
+	hzPerMHz = 1_000_000
 )
 
 var systemClock = time.Now
@@ -536,6 +546,9 @@ var (
 var systemFactoryResetCmd = &cobra.Command{
 	Use:   "factory-reset",
 	Short: "Erase all device settings and restore factory defaults",
+	Long: "Erases all device settings and cannot be undone. Prompts for confirmation unless --yes. " +
+		"--backup-first writes the current config to tickerbox-backup-<UTC timestamp>.json before wiping.",
+	Example: "  tickerbox system factory-reset --backup-first --yes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("WARNING: factory reset erases all device settings and cannot be undone.")
 		if !systemFactoryResetYes {
@@ -571,7 +584,10 @@ var systemFirmwareUploadYes bool
 var systemFirmwareUploadCmd = &cobra.Command{
 	Use:   "firmware-upload FILE",
 	Short: "Upload and flash new firmware",
-	Args:  cobra.ExactArgs(1),
+	Long: "Flashes FILE, which must end in .bin, replacing the running firmware. Cannot be undone. " +
+		"Prompts for confirmation unless --yes.",
+	Example: "  tickerbox system firmware-upload firmware.bin --yes",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path := args[0]
 		info, err := os.Stat(path)

@@ -203,7 +203,12 @@ var doctorAll bool
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Read-only health check",
-	Args:  cobra.NoArgs,
+	Long: "Runs read-only checks: free heap, filesystem headroom, wifi connectivity, ntp sync, and ap " +
+		"exposure, plus a standing note that the device's REST API has no authentication. Exits non-zero " +
+		"if any check is critical. --all runs against every configured device.",
+	Example: "  tickerbox doctor\n" +
+		"  tickerbox doctor --all --json",
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var reports []doctorReport
 
@@ -294,7 +299,12 @@ var watchInterval time.Duration
 var watchCmd = &cobra.Command{
 	Use:   "watch [command args...]",
 	Short: "Re-run a read-only view on an interval until interrupted",
-	Args:  cobra.ArbitraryArgs,
+	Long: "Re-runs a read-only view on an interval until interrupted, clearing the screen each time. Only a " +
+		"fixed set of read-only commands can be targeted (status, system info/features, wifi/ap/ntp status " +
+		"and settings, display/clock settings, tz list, tickers list); with no arguments it re-runs status.",
+	Example: "  tickerbox watch\n" +
+		"  tickerbox watch --interval 5s wifi status",
+	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		target, err := resolveWatchTarget(args)
 		if err != nil {
@@ -368,9 +378,10 @@ func assembleVersion(v, c, d string, info *debug.BuildInfo, ok bool) string {
 }
 
 var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the CLI version",
-	Args:  cobra.NoArgs,
+	Use:     "version",
+	Short:   "Print the CLI version",
+	Example: "  tickerbox version",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		info, ok := debug.ReadBuildInfo()
 		fmt.Println(assembleVersion(version, commit, date, info, ok))
@@ -412,6 +423,7 @@ var openCmd = &cobra.Command{
 	Use:     "open",
 	Aliases: []string{"ui"},
 	Short:   "Open the device's web UI in the default browser",
+	Example: "  tickerbox open",
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		target := deviceUIURL(resolvedHost)

@@ -4,6 +4,7 @@ package profile
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,7 +41,7 @@ func path(name string) (string, error) {
 
 func List() ([]string, error) {
 	entries, err := os.ReadDir(Dir())
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}
 	if err != nil {
@@ -100,7 +101,7 @@ func warnIfGroupOrWorldReadable(path string) {
 		return
 	}
 	if perm := info.Mode().Perm(); perm&insecureReadBits != 0 {
-		fmt.Fprintf(os.Stderr, "warning: profile file %s is group- or world-readable (mode %o)\n", path, perm)
+		fmt.Fprintf(os.Stderr, "warning: profile file %s is group- or world-readable (mode %o); run chmod %o %s to restrict it\n", path, perm, filePerm, path)
 	}
 }
 

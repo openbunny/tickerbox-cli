@@ -29,8 +29,15 @@ telemetry, and does not check for updates on its own.
 
 ## Verifying releases
 
-Release checksums are signed with cosign by the project release identity
-`bot@fiona.sm`, which also OpenPGP-signs every commit. Public key:
+Release checksums are signed with a project-controlled cosign key. Verifying
+the signature proves `checksums.txt` was signed by whoever holds the private
+key matching the public key below — a key-based signature carries no
+embedded identity, so it does not itself assert who that is. The matching
+private key is held only by release CI; the project's public statement is
+that this is the same identity, `bot@fiona.sm`, that OpenPGP-signs every
+commit.
+
+Public key:
 
 ```
 -----BEGIN PUBLIC KEY-----
@@ -43,5 +50,18 @@ Save the key as `cosign.pub`, then verify a downloaded release:
 
 ```console
 cosign verify-blob --key cosign.pub --bundle checksums.txt.bundle --insecure-ignore-tlog checksums.txt
-sha256sum --check checksums.txt
+sha256sum --ignore-missing --check checksums.txt
 ```
+
+`checksums.txt` lists every archive and package built for the release, not
+only the one you downloaded; `--ignore-missing` skips lines for files not
+present in the working directory instead of reporting them as failures.
+
+On macOS, which ships `shasum` rather than GNU coreutils' `sha256sum`, use:
+
+```console
+shasum -a 256 --ignore-missing --check checksums.txt
+```
+
+Each release archive also ships a CycloneDX SBOM, covered by the same
+`checksums.txt`/cosign verification chain as the archive itself.

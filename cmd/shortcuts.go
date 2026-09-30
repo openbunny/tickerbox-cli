@@ -170,9 +170,11 @@ func setDeviceTimezone(c *client.Client, label string) (string, error) {
 var rebootYes bool
 
 var rebootCmd = &cobra.Command{
-	Use:   "reboot",
-	Short: "Restart the device (alias for system restart)",
-	Args:  cobra.NoArgs,
+	Use:     "reboot",
+	Short:   "Restart the device (alias for system restart)",
+	Long:    "Alias for `system restart`. Prompts for confirmation unless --yes.",
+	Example: "  tickerbox reboot --yes",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !rebootYes {
 			ok, err := confirmSystemAction("Restart the device?")
@@ -195,7 +197,10 @@ var rebootCmd = &cobra.Command{
 var brightnessCmd = &cobra.Command{
 	Use:   "brightness [10-255]",
 	Short: "Set display brightness",
-	Args:  cobra.MaximumNArgs(1),
+	Long: "Sets brightness directly to a value from 10-255. Use the up/down subcommands to step relative " +
+		"to the current value instead.",
+	Example: "  tickerbox brightness 180",
+	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("brightness requires a value between %d and %d, or a subcommand (up, down)", minBrightness, maxBrightness)
@@ -213,9 +218,11 @@ var brightnessCmd = &cobra.Command{
 }
 
 var brightnessUpCmd = &cobra.Command{
-	Use:   "up [step]",
-	Short: "Increase display brightness, clamped to 10-255",
-	Args:  cobra.MaximumNArgs(1),
+	Use:     "up [step]",
+	Short:   "Increase display brightness, clamped to 10-255",
+	Long:    "Raises brightness by step, or by 25 if step is omitted, clamped to 10-255.",
+	Example: "  tickerbox brightness up 15",
+	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		step, err := parseBrightnessStep(args)
 		if err != nil {
@@ -230,9 +237,11 @@ var brightnessUpCmd = &cobra.Command{
 }
 
 var brightnessDownCmd = &cobra.Command{
-	Use:   "down [step]",
-	Short: "Decrease display brightness, clamped to 10-255",
-	Args:  cobra.MaximumNArgs(1),
+	Use:     "down [step]",
+	Short:   "Decrease display brightness, clamped to 10-255",
+	Long:    "Lowers brightness by step, or by 25 if step is omitted, clamped to 10-255.",
+	Example: "  tickerbox brightness down",
+	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		step, err := parseBrightnessStep(args)
 		if err != nil {
@@ -247,9 +256,10 @@ var brightnessDownCmd = &cobra.Command{
 }
 
 var uptimeCmd = &cobra.Command{
-	Use:   "uptime",
-	Short: "Show device uptime since last boot",
-	Args:  cobra.NoArgs,
+	Use:     "uptime",
+	Short:   "Show device uptime since last boot",
+	Example: "  tickerbox uptime",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		formatted, err := deviceUptime(newClient())
 		if err != nil {
@@ -266,7 +276,10 @@ var uptimeCmd = &cobra.Command{
 var tzSetCmd = &cobra.Command{
 	Use:   "set <label>",
 	Short: "Set the device timezone",
-	Args:  cobra.ExactArgs(1),
+	Long: "label must be one shown by `tickerbox tz list`. Sets both the ntp and clock timezone fields on " +
+		"the device.",
+	Example: "  tickerbox tz set America/New_York",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		label := args[0]
 		posix, err := setDeviceTimezone(newClient(), label)

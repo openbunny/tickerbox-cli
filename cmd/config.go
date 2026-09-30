@@ -155,10 +155,7 @@ func fieldValue(v any, present bool) any {
 }
 
 func configDiffTickers(device, saved []tickers.Entry) []FieldDiff {
-	n := len(device)
-	if len(saved) > n {
-		n = len(saved)
-	}
+	n := max(len(device), len(saved))
 
 	var diffs []FieldDiff
 	for i := 0; i < n; i++ {
@@ -205,6 +202,9 @@ var (
 var configExportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Capture every device config section as a JSON snapshot",
+	Long: "Captures every config section, including wifi and ap. --show-secrets includes their passwords; " +
+		"otherwise they're omitted from the file.",
+	Example: "  tickerbox config export --file backup.json",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		snap, err := section.Capture(newClient(), section.Sections, configExportShowSecrets)
 		if err != nil {
@@ -231,9 +231,11 @@ var configExportCmd = &cobra.Command{
 var configImportYes bool
 
 var configImportCmd = &cobra.Command{
-	Use:   "import <file>",
-	Short: "Apply a saved config snapshot to the device",
-	Args:  cobra.ExactArgs(1),
+	Use:     "import <file>",
+	Short:   "Apply a saved config snapshot to the device",
+	Long:    "Applies only the sections present in the file. Prompts for confirmation unless --yes.",
+	Example: "  tickerbox config import backup.json --yes",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		snap, err := loadSnapshot(args[0])
 		if err != nil {
@@ -262,7 +264,10 @@ var configDiffShowSecrets bool
 var configDiffCmd = &cobra.Command{
 	Use:   "diff <file>",
 	Short: "Show per-section field differences between the device and a saved snapshot",
-	Args:  cobra.ExactArgs(1),
+	Long: "Compares every section. By default wifi/ap secret fields are omitted from both sides and show " +
+		"as (unset); --show-secrets compares their real values instead.",
+	Example: "  tickerbox config diff backup.json",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		saved, err := loadSnapshot(args[0])
 		if err != nil {

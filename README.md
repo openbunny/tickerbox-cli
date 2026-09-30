@@ -12,12 +12,17 @@ Command-line client for a TickerBox device's `/rest/` API.
 
 - [Quickstart](#quickstart)
 - [Install](#install)
+- [Security](#security)
+- [Concepts](#concepts)
+- [Getting started](#getting-started)
 - [Targeting a device](#targeting-a-device)
 - [Global flags](#global-flags)
 - [Command groups](#command-groups)
 - [Endpoints covered](#endpoints-covered)
 - [Shell completion](#shell-completion)
 - [Network behaviour](#network-behaviour)
+- [Recipes](#recipes)
+- [Troubleshooting](#troubleshooting)
 - [Tests](#tests)
 - [Documentation](#documentation)
 
@@ -97,6 +102,92 @@ From a clone:
 $ go build -o tickerbox .
 ```
 
+Verify a downloaded release archive before extracting it: see
+[SECURITY.md, Verifying releases](SECURITY.md#verifying-releases).
+
+## Security
+
+The TickerBox device's REST API has no authentication. Any client on the same
+network can call `GET /rest/wifiSettings` and `GET /rest/apSettings` and read
+the Wi-Fi and access-point passwords in cleartext — this is a device-firmware
+property, not a defect in `tickerbox`. `tickerbox doctor` always reports a
+`plaintext credentials` check at `warn` severity as a standing reminder.
+
+All CLI-to-device traffic is plain HTTP; the client has no TLS path. Anyone
+who can observe LAN traffic to the device can read or alter a request or
+response, including a `wifi set` carrying a new password.
+
+By default, no command writes a device secret to a local file:
+`internal/section.Capture` strips any wifi/ap field whose key contains
+`password` or `secret` before it reaches a snapshot. Three flags are the only
+paths that put a secret on disk or unmask one:
+
+| Command                        | Effect                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `profile save --all`           | Captures wifi/ap sections, including their passwords, into the profile file. |
+| `config export --show-secrets` | Captures wifi/ap passwords into the exported snapshot file.                  |
+| `wifi settings --show-secrets` | Unmasks the password in the live printed response only; writes no file.      |
+
+A file that gains a secret this way is written `0600`, the same as
+`config.toml`; `Load` warns to stderr, but does not refuse to read, a file
+that later becomes group- or other-readable. Treat it like a password file:
+do not commit it, do not sync it to a shared drive.
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and release
+verification.
+
+## Concepts
+
+`tickerbox` composes four objects that look similar but serve different
+purposes:
+
+- **Device** — an entry in the local `config.toml` (name → host). A network
+  target only; never holds a credential.
+- **Config snapshot** (`config export`/`import`/`diff`) — a whole-device
+  capture: every section (tickers, display, clock, ntp, wifi, ap) in one
+  JSON file, tied to one device's exact state. Use it to back up before a
+  risky change and restore that same device.
+- **Profile** (`profile save`/`apply`/`diff`/`list`/`show`/`rm`) — a named,
+  local, device-agnostic snapshot, meant to be replayed across multiple
+  devices. Its default section set is narrower than a config export
+  (tickers/display/clock/ntp); `--all`/`--include` widens it.
+- **Template** (`tickers template list`/`show`/`apply`) — a built-in,
+  read-only ticker-list preset shipped in the binary. `apply` seeds a
+  starting ticker list; it is not a saved, portable object like a profile —
+  capture the result with `profile save` to replay it elsewhere.
+
+|                  | `config export`       | `profile save`                    |
+| ---------------- | --------------------- | --------------------------------- |
+| Default sections | every section         | tickers, display, clock, ntp      |
+| Widen with       | (always full)         | `--all`, `--include`              |
+| Typical target   | the same device later | any device now                    |
+| Named, reusable  | one file per export   | named, listed with `profile list` |
+
+How they compose: `tickers template apply` seeds a ticker list, `tickers
+add`/`edit` refines it, `profile save` captures the whole working config as
+a reusable name, and `profile apply --device <other>` replays it on another
+device. `config export` sits outside this chain — a same-device backup/restore
+tool, not a reuse tool.
+
+## Getting started
+
+The [Quickstart](#quickstart) above discovers a device, checks it, and adds
+tickers. From there:
+
+1. Run `tickerbox --device office doctor` once before changing anything, to
+   see baseline health and the standing `plaintext credentials` note (see
+   [Security](#security)).
+2. Set the clock: `tickerbox --device office tz set "Europe/London"`, then
+   `tickerbox --device office ntp set`.
+3. Replace a manual ticker list with a built-in preset:
+   `tickerbox --device office tickers template list`, then
+   `tickerbox --device office tickers template apply crypto-majors`.
+4. Tune the display: `tickerbox --device office display set`,
+   `tickerbox --device office brightness 180`.
+5. Save the result as a reusable profile:
+   `tickerbox --device office profile save office` — see
+   [Concepts](#concepts) for what that captures versus `config export`.
+
 ## Targeting a device
 
 `tickerbox` resolves the device host once per invocation, in this order:
@@ -140,28 +231,28 @@ group: `tickerbox --host http://10.0.0.5 --timeout 5s wifi status`.
 
 ## Command groups
 
-| Group               | Purpose                                                                                                                                                                        | Example                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `status`            | Aggregate dashboard: features, system, network, AP, NTP, display and clock state in one call.                                                                                  | `tickerbox status`, or `--all` for every configured device                |
-| `wifi`              | Station SSID, credentials, static IP, and network scan.                                                                                                                        | `tickerbox wifi scan`                                                     |
-| `ap`                | The device's own access point.                                                                                                                                                 | `tickerbox ap status`                                                     |
-| `ntp`               | NTP sync configuration, including timezone.                                                                                                                                    | `tickerbox ntp set --tz "Europe/London"`                                  |
-| `time`              | Set the device wall-clock time; with no argument, sends the current UTC instant.                                                                                               | `tickerbox time 2026-01-01T00:00:00`                                      |
-| `tz`                | Timezone lookup and device timezone.                                                                                                                                           | `tickerbox tz list --grep Europe`, `tickerbox tz set "Europe/London"`     |
-| `display`           | Ticker screen brightness, rotation interval, sleep schedule.                                                                                                                   | `tickerbox display settings`                                              |
-| `clock`             | Clock screen.                                                                                                                                                                  | `tickerbox clock set --enabled`                                           |
-| `brightness`        | Shortcut for display brightness: set, or step up/down.                                                                                                                         | `tickerbox brightness 180`, `tickerbox brightness up 20`                  |
-| `uptime`            | Device uptime since last boot, formatted as `1d 2h 3m 4s`.                                                                                                                     | `tickerbox uptime`                                                        |
-| `reboot`            | Shortcut for `system restart`, with a confirmation prompt.                                                                                                                     | `tickerbox reboot -y`                                                     |
-| `tickers`           | The asset list shown on the display: `add`, `edit`, `move`, `remove`, `clear`, `list`, `export`, `import`, `validate`, `template`.                                             | `tickerbox tickers add --type crypto --time 15min --currency EUR BTC ETH` |
-| `system`            | Device status, features, and maintenance actions. `restart`, `factory-reset` and `firmware-upload` mutate the device and prompt for confirmation unless `--yes`/`-y` is given. | `tickerbox system info`                                                   |
-| `config`            | Whole-device config as one JSON snapshot, covering every section (tickers, display, clock, ntp, wifi, ap).                                                                     | `tickerbox config export --file office.json`                              |
-| `profile`           | Named, device-agnostic snapshots stored locally; default section set is tickers/display/clock/ntp (`--all` or `--include` widens it).                                          | `tickerbox profile save office`                                           |
-| `device`            | The local device registry: `add NAME HOST`, `use NAME`, `list`, `rm NAME`, `ping [NAME\|--all]`, `discover` (LAN scan for TickerBoxes).                                        | `tickerbox device discover`                                               |
-| `doctor`            | Read-only health check (heap, filesystem headroom, wifi, NTP, AP exposure); exits non-zero on a critical finding.                                                              | `tickerbox doctor --all`                                                  |
-| `watch`             | Re-runs a read-only view (`status` by default) on an interval until interrupted; refuses any command that is not read-only.                                                    | `tickerbox watch tickers list --interval 5s`                              |
-| `version`           | CLI build version.                                                                                                                                                             | `tickerbox version`                                                       |
-| `open` (alias `ui`) | Opens the device's web UI in the default browser.                                                                                                                              | `tickerbox open`                                                          |
+| Group               | Purpose                                                                                                                                                                                                                  | Example                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `status`            | Aggregate dashboard: features, system, network, AP, NTP, display and clock state in one call.                                                                                                                            | `tickerbox status`, or `--all` for every configured device                |
+| `wifi`              | Station SSID, credentials, static IP, and network scan.                                                                                                                                                                  | `tickerbox wifi scan`                                                     |
+| `ap`                | The device's own access point.                                                                                                                                                                                           | `tickerbox ap status`                                                     |
+| `ntp`               | NTP sync configuration, including timezone.                                                                                                                                                                              | `tickerbox ntp set --tz "Europe/London"`                                  |
+| `time`              | Set the device wall-clock time; with no argument, sends the current UTC instant.                                                                                                                                         | `tickerbox time 2026-01-01T00:00:00`                                      |
+| `tz`                | Timezone lookup and device timezone.                                                                                                                                                                                     | `tickerbox tz list --grep Europe`, `tickerbox tz set "Europe/London"`     |
+| `display`           | Ticker screen brightness, rotation interval, sleep schedule.                                                                                                                                                             | `tickerbox display settings`                                              |
+| `clock`             | Clock screen.                                                                                                                                                                                                            | `tickerbox clock set --enabled`                                           |
+| `brightness`        | Shortcut for display brightness: set, or step up/down.                                                                                                                                                                   | `tickerbox brightness 180`, `tickerbox brightness up 20`                  |
+| `uptime`            | Device uptime since last boot, formatted as `1d 2h 3m 4s`.                                                                                                                                                               | `tickerbox uptime`                                                        |
+| `reboot`            | Shortcut for `system restart`, with a confirmation prompt.                                                                                                                                                               | `tickerbox reboot -y`                                                     |
+| `tickers`           | The asset list shown on the display: `add`, `edit`, `move`, `remove`, `clear`, `list`, `export`, `import`, `validate`, `template`.                                                                                       | `tickerbox tickers add --type crypto --time 15min --currency EUR BTC ETH` |
+| `system`            | Device status, features, and maintenance actions. `restart`, `factory-reset` and `firmware-upload` mutate the device and prompt for confirmation unless `--yes`/`-y` is given.                                           | `tickerbox system info`                                                   |
+| `config`            | Whole-device config as one JSON snapshot, covering every section (tickers, display, clock, ntp, wifi, ap).                                                                                                               | `tickerbox config export --file office.json`                              |
+| `profile`           | Named, device-agnostic snapshots stored locally; default section set is tickers/display/clock/ntp (`--all` or `--include` widens it). `--all` also captures the device's WiFi/AP passwords into the local snapshot file. | `tickerbox profile save office`                                           |
+| `device`            | The local device registry: `add NAME HOST`, `use NAME`, `list`, `rm NAME`, `ping [NAME\|--all]`, `discover` (LAN scan for TickerBoxes).                                                                                  | `tickerbox device discover`                                               |
+| `doctor`            | Read-only health check (heap, filesystem headroom, wifi, NTP, AP exposure); exits non-zero on a critical finding.                                                                                                        | `tickerbox doctor --all`                                                  |
+| `watch`             | Re-runs a read-only view (`status` by default) on an interval until interrupted; refuses any command that is not read-only.                                                                                              | `tickerbox watch tickers list --interval 5s`                              |
+| `version`           | CLI build version.                                                                                                                                                                                                       | `tickerbox version`                                                       |
+| `open` (alias `ui`) | Opens the device's web UI in the default browser.                                                                                                                                                                        | `tickerbox open`                                                          |
 
 `tickers add` (SYM... form shown above) merges what was formerly a
 single-ticker `add`; every symbol given shares one `--type`/`--time`/
@@ -260,6 +351,96 @@ only for TickerBoxes on the local network.
 `tickerbox` does not check for updates on its own. `version` reports the
 build embedded at compile time and makes no request.
 
+## Recipes
+
+**Provision a device end to end.**
+
+```console
+$ tickerbox device discover
+$ tickerbox device use office
+$ tickerbox tz set "Europe/London"
+$ tickerbox tickers template apply crypto-majors
+$ tickerbox display set
+$ tickerbox doctor
+```
+
+**Mirror one device's settings to several others.**
+
+```console
+$ tickerbox --device office profile save office
+$ tickerbox profile apply office --device kitchen
+$ tickerbox profile apply office --device lobby
+```
+
+The default section set is tickers/display/clock/ntp; widen with
+`--all`/`--include` if wifi/ap should also be replayed — see
+[Concepts](#concepts).
+
+**Back up before a factory-reset.**
+
+```console
+$ tickerbox --device office config export --file office-backup.json
+$ tickerbox --device office system factory-reset
+$ tickerbox --device office config import --file office-backup.json
+```
+
+**Fleet health check.**
+
+```console
+$ tickerbox doctor --all --json | jq .
+```
+
+`doctor` exits non-zero exactly when any device's verdict is `critical`;
+wire the exit code into cron or CI — see [Troubleshooting](#troubleshooting).
+
+**Watch a dashboard while making changes elsewhere.**
+
+```console
+$ tickerbox watch status --interval 5s
+```
+
+`watch` only accepts a read-only view; see
+[Troubleshooting](#troubleshooting) for the exact allow-list.
+
+## Troubleshooting
+
+**`doctor` checks.**
+
+| Check                   | Condition                                                |
+| ----------------------- | -------------------------------------------------------- |
+| `plaintext credentials` | always reported at `warn` — see [Security](#security)    |
+| `free heap`             | `critical` below 20 KiB free, `warn` below 50 KiB free   |
+| `fs headroom`           | `critical` below 8 KiB free, `warn` below 32 KiB free    |
+| `wifi`                  | `critical` if station status is not `CONNECTED`          |
+| `ntp`                   | `warn` if not `ACTIVE`                                   |
+| `ap exposure`           | `warn` if the device's own AP is `ACTIVE` or `LINGERING` |
+
+A fetch failure for any underlying endpoint (`features`, `systemStatus`,
+`wifiStatus`, `apStatus`, `ntpStatus`) is reported as its own `critical`
+check rather than aborting the run.
+
+**Exit code.** `doctor` exits non-zero exactly when any device's aggregate
+verdict is `critical`; a run with only `warn`/`ok` checks exits 0. With
+`--all`, this is evaluated per device. `doctor --all` with no devices
+configured fails with `no devices configured: --all has nothing to check` —
+run `device add` first.
+
+**`watch` refuses a target.** Error: `"<command>" is not a read-only view
+watch can re-run`. Only these targets are allowed: `status`, `system info`,
+`system features`, `wifi status`, `wifi settings`, `ap status`,
+`ap settings`, `ntp status`, `ntp settings`, `display settings`,
+`clock settings`, `tz list`, `tickers list`. With no argument, `watch`
+re-runs `status`.
+
+**Common CLI-side errors.**
+
+| Symptom                                    | Likely cause                                                            | Fix                                                                           |
+| ------------------------------------------ | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Request to `tickerbox.local` fails         | Device not resolvable by mDNS from this host, or on a different subnet. | Run `device discover`, or set `--host` to its IP directly.                    |
+| `unknown device` on `--device NAME`        | Name not in `config.toml`.                                              | `device list` to see registered names.                                        |
+| Request times out                          | Device slow to respond, or wrong host.                                  | Raise `--timeout`; confirm the host with `device ping`.                       |
+| Transient failure on an idempotent command | One dropped packet on the LAN.                                          | Already retried up to `--retry` times (default 2); raise it for a flaky link. |
+
 ## Tests
 
 ```console
@@ -277,3 +458,4 @@ Tests use `net/http/httptest`; they never contact a device.
 - [CLI reference](docs/cli/tickerbox.md) — every command and flag, generated from the cobra command tree.
 - [Configuration schema](docs/config-schema.md) — the on-disk device config and profile store: location, permissions, field reference.
 - [docs/README.md](docs/README.md) — index of the above plus the profile-snapshot JSON schema and the timezone-data provenance record.
+- [SECURITY.md](SECURITY.md) — vulnerability reporting and release verification.

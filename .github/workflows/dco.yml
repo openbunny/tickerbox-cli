@@ -4,8 +4,7 @@
 name: DCO
 on:
   pull_request:
-permissions:
-  contents: read
+permissions: {}
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

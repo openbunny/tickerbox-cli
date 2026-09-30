@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -56,38 +57,48 @@ var deviceCmd = &cobra.Command{
 }
 
 var deviceListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List configured devices",
-	Args:  cobra.NoArgs,
-	RunE:  runDeviceList,
+	Use:     "list",
+	Short:   "List configured devices",
+	Example: "  tickerbox device list",
+	Args:    cobra.NoArgs,
+	RunE:    runDeviceList,
 }
 
 var deviceAddCmd = &cobra.Command{
 	Use:   "add NAME HOST",
 	Short: "Add or replace a configured device",
-	Args:  cobra.ExactArgs(2),
-	RunE:  runDeviceAdd,
+	Long: "Adds NAME as a device, or replaces it if the name already exists. HOST must include a scheme, " +
+		"e.g. http://tickerbox.local or http://192.168.1.42.",
+	Example: "  tickerbox device add desk http://tickerbox.local",
+	Args:    cobra.ExactArgs(2),
+	RunE:    runDeviceAdd,
 }
 
 var deviceRmCmd = &cobra.Command{
-	Use:   "rm NAME",
-	Short: "Remove a configured device",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runDeviceRm,
+	Use:     "rm NAME",
+	Short:   "Remove a configured device",
+	Example: "  tickerbox device rm desk",
+	Args:    cobra.ExactArgs(1),
+	RunE:    runDeviceRm,
 }
 
 var deviceUseCmd = &cobra.Command{
-	Use:   "use NAME",
-	Short: "Set the default device",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runDeviceUse,
+	Use:     "use NAME",
+	Short:   "Set the default device",
+	Long:    "Sets NAME as the device used when neither --host, --device, nor $TICKERBOX_HOST is given.",
+	Example: "  tickerbox device use desk",
+	Args:    cobra.ExactArgs(1),
+	RunE:    runDeviceUse,
 }
 
 var deviceDiscoverCmd = &cobra.Command{
 	Use:   "discover",
 	Short: "Find TickerBoxes on the local network",
-	Args:  cobra.NoArgs,
-	RunE:  runDeviceDiscover,
+	Long: "Probes tickerbox.local, then scans every host on the local /24 subnet for a TickerBox. " +
+		"For each one found, prompts interactively to add it as a named device.",
+	Example: "  tickerbox device discover",
+	Args:    cobra.NoArgs,
+	RunE:    runDeviceDiscover,
 }
 
 var devicePingAll bool
@@ -95,8 +106,11 @@ var devicePingAll bool
 var devicePingCmd = &cobra.Command{
 	Use:   "ping [NAME]",
 	Short: "Check reachability of one or all configured devices",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  runDevicePing,
+	Long:  "Checks whether a configured device answers. Requires exactly one of NAME or --all.",
+	Example: "  tickerbox device ping desk\n" +
+		"  tickerbox device ping --all",
+	Args: cobra.MaximumNArgs(1),
+	RunE: runDevicePing,
 }
 
 func init() {
@@ -267,7 +281,7 @@ func lookupHostname(host string) string {
 func promptLine(prompt string) (string, error) {
 	fmt.Print(prompt)
 	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return "", fmt.Errorf("read input: %w", err)
 	}
 	return strings.TrimSpace(line), nil

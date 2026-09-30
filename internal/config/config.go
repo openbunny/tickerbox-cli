@@ -3,8 +3,10 @@
 package config
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -84,7 +86,7 @@ func warnIfGroupOrWorldReadable(path string) {
 		return
 	}
 	if perm := info.Mode().Perm(); perm&insecureReadBits != 0 {
-		fmt.Fprintf(os.Stderr, "warning: config file %s is group- or world-readable (mode %o)\n", path, perm)
+		fmt.Fprintf(os.Stderr, "warning: config file %s is group- or world-readable (mode %o); run chmod %o %s to restrict it\n", path, perm, configFilePerm, path)
 	}
 }
 
@@ -110,19 +112,8 @@ func (c *Config) Save() error {
 }
 
 func (c *Config) List() []Device {
-	devices := make([]Device, 0, len(c.Devices))
-	for _, d := range c.Devices {
-		devices = append(devices, d)
-	}
-	slices.SortFunc(devices, func(a, b Device) int {
-		if a.Name < b.Name {
-			return -1
-		}
-		if a.Name > b.Name {
-			return 1
-		}
-		return 0
-	})
+	devices := slices.Collect(maps.Values(c.Devices))
+	slices.SortFunc(devices, func(a, b Device) int { return cmp.Compare(a.Name, b.Name) })
 	return devices
 }
 

@@ -93,10 +93,7 @@ func TestRunWifiSetRejectsOversizedSSID(t *testing.T) {
 	withCmdTarget(t, srv.URL)
 
 	c := wifiSetCmdFixture()
-	longSSID := ""
-	for i := 0; i < 33; i++ {
-		longSSID += "a"
-	}
+	longSSID := strings.Repeat("a", maxSSIDLength+1)
 	if err := c.Flags().Set("ssid", longSSID); err != nil {
 		t.Fatalf("set ssid: %v", err)
 	}

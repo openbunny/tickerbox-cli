@@ -77,9 +77,11 @@ demo:
     go build -o "$dir/tickerbox" .
     go run demo/mock.go &
     mock_pid=$!
-    for _ in $(seq 1 50); do
+    retries=50
+    interval=0.1
+    for _ in $(seq 1 "$retries"); do
         curl -sf http://127.0.0.1:8765/rest/features >/dev/null 2>&1 && break
-        sleep 0.1
+        sleep "$interval"
     done
     PATH="$dir:$PATH" TICKERBOX_HOST="http://127.0.0.1:8765" vhs demo/tickerbox.tape
     ls -lh demo/tickerbox.gif

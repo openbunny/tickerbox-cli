@@ -31,6 +31,7 @@ func main() {
 
 	root := cmd.Root()
 	root.DisableAutoGenTag = true
+	root.InitDefaultCompletionCmd()
 
 	if *man {
 		manDir := filepath.Join(repoRoot, "dist", "man")

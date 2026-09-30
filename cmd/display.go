@@ -23,10 +23,18 @@ type displaySettings struct {
 
 type clockSettings struct {
 	Enabled          bool   `json:"enabled"`
-	TwelweHourFormat bool   `json:"twelweHourFormat"`
+	TwelveHourFormat bool   `json:"twelweHourFormat"`
 	AnimationSpeed   int    `json:"animationSpeed"`
 	TZLabel          string `json:"tz_label"`
 }
+
+const (
+	minDisplayInterval = 10
+	maxDisplayInterval = 60
+
+	minAnimationSpeed = 10
+	maxAnimationSpeed = 200
+)
 
 var iso8601Layouts = []string{
 	time.RFC3339,
@@ -63,7 +71,7 @@ func renderDisplaySettings(s displaySettings) {
 func renderClockSettings(s clockSettings) {
 	output.KV([][2]string{
 		{"Enabled", yesNo(s.Enabled)},
-		{"12-hour format", yesNo(s.TwelweHourFormat)},
+		{"12-hour format", yesNo(s.TwelveHourFormat)},
 		{"Animation speed", fmt.Sprintf("%d", s.AnimationSpeed)},
 		{"Timezone", s.TZLabel},
 	})
@@ -75,8 +83,9 @@ var displayCmd = &cobra.Command{
 }
 
 var displaySettingsCmd = &cobra.Command{
-	Use:   "settings",
-	Short: "Show display settings",
+	Use:     "settings",
+	Short:   "Show display settings",
+	Example: "  tickerbox display settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var state displaySettings
 		if err := newClient().Get("settingsState", &state); err != nil {
@@ -93,6 +102,10 @@ var displaySettingsCmd = &cobra.Command{
 var displaySetCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Change display settings",
+	Long: "Updates only the fields given as flags. --brightness is 10-255, --interval is 10-60 seconds " +
+		"between screens. --sleep and --no-sleep are mutually exclusive. --sleep-start and --sleep-end accept " +
+		"RFC3339, 2006-01-02T15:04:05, or 2006-01-02.",
+	Example: "  tickerbox display set --brightness 180 --interval 20 --sleep --sleep-start 2026-01-01T22:00:00 --sleep-end 2026-01-02T07:00:00",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		flags := cmd.Flags()
 
@@ -106,11 +119,11 @@ var displaySetCmd = &cobra.Command{
 		if sleep && noSleep {
 			return errors.New("--sleep and --no-sleep are mutually exclusive")
 		}
-		if flags.Changed("brightness") && (brightness < 10 || brightness > 255) {
-			return fmt.Errorf("brightness must be between 10 and 255, got %d", brightness)
+		if flags.Changed("brightness") && (brightness < minBrightness || brightness > maxBrightness) {
+			return fmt.Errorf("brightness must be between %d and %d, got %d", minBrightness, maxBrightness, brightness)
 		}
-		if flags.Changed("interval") && (interval < 10 || interval > 60) {
-			return fmt.Errorf("interval must be between 10 and 60, got %d", interval)
+		if flags.Changed("interval") && (interval < minDisplayInterval || interval > maxDisplayInterval) {
+			return fmt.Errorf("interval must be between %d and %d, got %d", minDisplayInterval, maxDisplayInterval, interval)
 		}
 		if flags.Changed("sleep-start") {
 			if err := validateISO8601(sleepStart); err != nil {
@@ -166,8 +179,9 @@ var clockCmd = &cobra.Command{
 }
 
 var clockSettingsCmd = &cobra.Command{
-	Use:   "settings",
-	Short: "Show clock settings",
+	Use:     "settings",
+	Short:   "Show clock settings",
+	Example: "  tickerbox clock settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var state clockSettings
 		if err := newClient().Get("clockSetupState", &state); err != nil {
@@ -184,6 +198,9 @@ var clockSettingsCmd = &cobra.Command{
 var clockSetCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Change clock settings",
+	Long: "Updates only the fields given as flags. --enabled/--disabled and --12h/--24h are each mutually " +
+		"exclusive. --tz must be a label from `tickerbox tz list`.",
+	Example: "  tickerbox clock set --enabled --12h --tz America/Chicago",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		flags := cmd.Flags()
 
@@ -200,8 +217,8 @@ var clockSetCmd = &cobra.Command{
 		if twelveHour && twentyFourHour {
 			return errors.New("--12h and --24h are mutually exclusive")
 		}
-		if flags.Changed("animation-speed") && (animationSpeed < 10 || animationSpeed > 200) {
-			return fmt.Errorf("animation-speed must be between 10 and 200, got %d", animationSpeed)
+		if flags.Changed("animation-speed") && (animationSpeed < minAnimationSpeed || animationSpeed > maxAnimationSpeed) {
+			return fmt.Errorf("animation-speed must be between %d and %d, got %d", minAnimationSpeed, maxAnimationSpeed, animationSpeed)
 		}
 		if flags.Changed("tz") {
 			if _, ok := tz.PosixFor(tzLabel); !ok {
@@ -222,10 +239,10 @@ var clockSetCmd = &cobra.Command{
 			state.Enabled = false
 		}
 		if twelveHour {
-			state.TwelweHourFormat = true
+			state.TwelveHourFormat = true
 		}
 		if twentyFourHour {
-			state.TwelweHourFormat = false
+			state.TwelveHourFormat = false
 		}
 		if flags.Changed("animation-speed") {
 			state.AnimationSpeed = animationSpeed

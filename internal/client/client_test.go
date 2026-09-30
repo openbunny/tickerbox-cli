@@ -18,6 +18,7 @@ func TestGet(t *testing.T) {
 		name       string
 		status     int
 		body       string
+		outNil     bool
 		wantErr    bool
 		wantStatus int
 	}{
@@ -37,7 +38,15 @@ func TestGet(t *testing.T) {
 			name:    "empty body with nil out succeeds",
 			status:  http.StatusOK,
 			body:    "",
+			outNil:  true,
 			wantErr: false,
+		},
+		{
+			name:       "empty body with non-nil out fails",
+			status:     http.StatusOK,
+			body:       "",
+			wantErr:    true,
+			wantStatus: http.StatusOK,
 		},
 	}
 
@@ -53,7 +62,7 @@ func TestGet(t *testing.T) {
 
 			var out map[string]any
 			var err error
-			if tt.name == "empty body with nil out succeeds" {
+			if tt.outNil {
 				err = c.Get("thing", nil)
 			} else {
 				err = c.Get("thing", &out)
@@ -77,24 +86,6 @@ func TestGet(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
-	}
-}
-
-func TestGetEmptyBodyWithOutFails(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	c := New(srv.URL+"/", 0)
-	var out map[string]any
-	err := c.Get("thing", &out)
-	if err == nil {
-		t.Fatal("expected decode error for empty body, got nil")
-	}
-	var apiErr *APIError
-	if !errors.As(err, &apiErr) {
-		t.Fatalf("expected *APIError, got %T", err)
 	}
 }
 
@@ -263,17 +254,22 @@ func TestPostFileMissingFile(t *testing.T) {
 	}
 }
 
-func TestGetRetry(t *testing.T) {
+func TestRetry(t *testing.T) {
 	tests := []struct {
-		name      string
-		failCount int
-		retries   int
-		wantErr   bool
-		wantCalls int
+		name       string
+		failCount  int
+		retries    int
+		wantErr    bool
+		wantCalls  int
+		wantStatus int
+		op         func(*Client) error
 	}{
-		{name: "succeeds with no failures", failCount: 0, retries: 2, wantCalls: 1},
-		{name: "succeeds after one transient 503", failCount: 1, retries: 2, wantCalls: 2},
-		{name: "exhausts retries into APIError", failCount: 5, retries: 2, wantErr: true, wantCalls: 3},
+		{name: "GET succeeds with no failures", failCount: 0, retries: 2, wantCalls: 1, op: func(c *Client) error { return c.Get("thing", nil) }},
+		{name: "GET succeeds after one transient 503", failCount: 1, retries: 2, wantCalls: 2, op: func(c *Client) error { return c.Get("thing", nil) }},
+		{name: "GET exhausts retries into APIError", failCount: 5, retries: 2, wantErr: true, wantCalls: 3, wantStatus: http.StatusServiceUnavailable, op: func(c *Client) error { return c.Get("thing", nil) }},
+		{name: "POST succeeds with no failures", failCount: 0, retries: 2, wantCalls: 1, op: func(c *Client) error { return c.Post("thing", map[string]string{"key": "value"}) }},
+		{name: "POST succeeds after one transient 503", failCount: 1, retries: 2, wantCalls: 2, op: func(c *Client) error { return c.Post("thing", map[string]string{"key": "value"}) }},
+		{name: "POST exhausts retries into APIError", failCount: 5, retries: 2, wantErr: true, wantCalls: 3, op: func(c *Client) error { return c.Post("thing", map[string]string{"key": "value"}) }},
 	}
 
 	for _, tt := range tests {
@@ -294,7 +290,7 @@ func TestGetRetry(t *testing.T) {
 			c.Retries = tt.retries
 			c.sleep = func(time.Duration) {}
 
-			err := c.Get("thing", nil)
+			err := tt.op(c)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -303,57 +299,8 @@ func TestGetRetry(t *testing.T) {
 				if !errors.As(err, &apiErr) {
 					t.Fatalf("expected *APIError, got %T", err)
 				}
-				if apiErr.Status != http.StatusServiceUnavailable {
-					t.Errorf("got status %d; want %d", apiErr.Status, http.StatusServiceUnavailable)
-				}
-			} else if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if calls != tt.wantCalls {
-				t.Errorf("got %d calls; want %d", calls, tt.wantCalls)
-			}
-		})
-	}
-}
-
-func TestPostRetry(t *testing.T) {
-	tests := []struct {
-		name      string
-		failCount int
-		retries   int
-		wantErr   bool
-		wantCalls int
-	}{
-		{name: "succeeds with no failures", failCount: 0, retries: 2, wantCalls: 1},
-		{name: "succeeds after one transient 503", failCount: 1, retries: 2, wantCalls: 2},
-		{name: "exhausts retries into APIError", failCount: 5, retries: 2, wantErr: true, wantCalls: 3},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var calls int
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				calls++
-				if calls <= tt.failCount {
-					w.WriteHeader(http.StatusServiceUnavailable)
-					return
-				}
-				w.WriteHeader(http.StatusOK)
-			}))
-			defer srv.Close()
-
-			c := New(srv.URL+"/", 0)
-			c.Retries = tt.retries
-			c.sleep = func(time.Duration) {}
-
-			err := c.Post("thing", map[string]string{"key": "value"})
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				var apiErr *APIError
-				if !errors.As(err, &apiErr) {
-					t.Fatalf("expected *APIError, got %T", err)
+				if tt.wantStatus != 0 && apiErr.Status != tt.wantStatus {
+					t.Errorf("got status %d; want %d", apiErr.Status, tt.wantStatus)
 				}
 			} else if err != nil {
 				t.Fatalf("unexpected error: %v", err)

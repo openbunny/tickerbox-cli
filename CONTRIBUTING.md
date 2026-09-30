@@ -15,9 +15,20 @@ How to build, test, and submit a change to `tickerbox-cli`.
 - Use the Go toolchain declared in `go.mod`.
 - Install git hooks once per clone: `lefthook install`. `lefthook.yml` runs
   `gofumpt` and `go vet` on commit, `staticcheck` and `golangci-lint` on push.
-- Build and test: `go build ./...`, `go test -race ./...`.
-- Format with `gofumpt`. Lint with `go vet`, `staticcheck`, and
-  `golangci-lint run`. CI runs all four; a change lands only when they pass.
+- Build: `just build`. Run the canonical local checks before opening a pull
+  request: `just lint` (gofumpt, staticcheck, golangci-lint), `just test-race`,
+  and `just coverage`.
+- Every pull request is gated by these workflows; a change lands only when
+  all of them pass:
+  - `ci.yml` — build, `go test -race`, lint, and the coverage floor in
+    `.testcoverage.yml`.
+  - `dco.yml` — every commit carries a `Signed-off-by` trailer.
+  - `fuzz.yml` — runs every `Fuzz*` target in the repository.
+  - `gitleaks.yml` — scans the diff for committed secrets.
+  - `security.yml` — `gosec`, `govulncheck`, and `go-licenses`.
+  - `reuse.yml` — every source file carries a valid SPDX license header.
+- A new `.go` file opens with `// SPDX-License-Identifier: MIT`, as
+  `REUSE.toml` and `reuse.yml` require.
 - Every change ships tests for the behaviour it adds or fixes. A decoder that
   parses a device payload also ships a fuzz target.
 - No command reaches the real device in a test; use `httptest`.

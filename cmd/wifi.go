@@ -33,27 +33,38 @@ var wifiCmd = &cobra.Command{
 }
 
 var wifiStatusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show current Wi-Fi station status",
-	RunE:  runWifiStatus,
+	Use:     "status",
+	Short:   "Show current Wi-Fi station status",
+	Example: "  tickerbox wifi status",
+	RunE:    runWifiStatus,
 }
 
 var wifiSettingsCmd = &cobra.Command{
-	Use:   "settings",
-	Short: "Show Wi-Fi station settings",
-	RunE:  runWifiSettings,
+	Use:     "settings",
+	Short:   "Show Wi-Fi station settings",
+	Long:    "Password is masked as ******** unless --show-secrets is given.",
+	Example: "  tickerbox wifi settings --show-secrets",
+	RunE:    runWifiSettings,
 }
 
 var wifiSetCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Update Wi-Fi station settings",
-	RunE:  runWifiSet,
+	Long: "Updates only the fields given as flags; every other field keeps its current device value. " +
+		"--password prompts on a terminal, reads from --password-stdin, or is passed directly; setting a password " +
+		"over a plain http:// host prints a warning unless --yes. --static-ip and --no-static-ip are mutually exclusive.",
+	Example: "  tickerbox wifi set --ssid HomeNet --password-stdin < wifi.secret\n" +
+		"  tickerbox wifi set --static-ip --local-ip 192.168.1.50 --gateway-ip 192.168.1.1 --subnet-mask 255.255.255.0",
+	RunE: runWifiSet,
 }
 
 var wifiScanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scan for nearby Wi-Fi networks",
-	RunE:  runWifiScan,
+	Long: "Triggers a scan and polls for results, retrying briefly if none are ready yet. " +
+		"Results are sorted by signal strength, strongest first.",
+	Example: "  tickerbox wifi scan",
+	RunE:    runWifiScan,
 }
 
 func init() {
@@ -218,8 +229,8 @@ func runWifiSet(cmd *cobra.Command, args []string) error {
 
 	if flags.Changed("ssid") {
 		ssid, _ := flags.GetString("ssid")
-		if len(ssid) > 32 {
-			return fmt.Errorf("ssid %q exceeds 32 characters", ssid)
+		if len(ssid) > maxSSIDLength {
+			return fmt.Errorf("ssid %q exceeds %d characters", ssid, maxSSIDLength)
 		}
 		settings["ssid"] = ssid
 	}

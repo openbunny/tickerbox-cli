@@ -1,11 +1,11 @@
 # Documentation index
 
-| Document                                                     | Covers                                                                                           |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| [cli/tickerbox.md](cli/tickerbox.md)                         | CLI reference: every command and flag, generated from the cobra command tree.                    |
-| [config-schema.md](config-schema.md)                         | On-disk device config (`config.toml`) and profile store: location, permissions, field reference. |
-| [schema/snapshot.schema.json](schema/snapshot.schema.json)   | JSON Schema for a saved profile snapshot, referenced from `config-schema.md`.                    |
-| [../internal/tz/PROVENANCE.md](../internal/tz/PROVENANCE.md) | Source and regeneration record for the bundled IANA timezone data.                               |
+| Document                                                     | Covers                                                                                                                                                                                                   |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [cli/tickerbox.md](cli/tickerbox.md)                         | CLI reference: every command and flag, generated from the cobra command tree.                                                                                                                            |
+| [config-schema.md](config-schema.md)                         | On-disk device config (`config.toml`) and profile store: location, permissions, field reference.                                                                                                         |
+| [schema/snapshot.schema.json](schema/snapshot.schema.json)   | JSON Schema for a device-config snapshot: the shared `section.Snapshot` shape written and read by `config export`/`import`/`diff` and `profile save`/`apply`/`diff`, referenced from `config-schema.md`. |
+| [../internal/tz/PROVENANCE.md](../internal/tz/PROVENANCE.md) | Source and regeneration record for the bundled IANA timezone data.                                                                                                                                       |
 
 ## Generating the CLI reference
 

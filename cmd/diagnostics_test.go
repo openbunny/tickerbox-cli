@@ -66,7 +66,7 @@ func TestEvaluateWifi(t *testing.T) {
 		want   severity
 	}{
 		{doctorWifiConnectedStatus, severityOK},
-		{6, severityCritical}, // DISCONNECTED
+		{6, severityCritical},
 		{255, severityCritical},
 	}
 	for _, tt := range tests {
@@ -102,7 +102,7 @@ func TestEvaluateApExposure(t *testing.T) {
 	}{
 		{doctorApActiveStatus, severityWarn},
 		{doctorApLingeringStatus, severityWarn},
-		{1, severityOK}, // INACTIVE
+		{1, severityOK},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("status=%d", tt.status), func(t *testing.T) {
@@ -215,43 +215,53 @@ func TestRunDoctorUnreachableDeviceIsCritical(t *testing.T) {
 	}
 }
 
-func TestDoctorCmdExitsNonZeroOnCritical(t *testing.T) {
-	srv := doctorTestServer(t, map[string]any{
-		"features":     featuresPayload{},
-		"systemStatus": systemStatusPayload{FreeHeap: 1, FsTotal: 1, FsUsed: 0},
-		"wifiStatus":   dashboardWifiStatus{Status: 6},
-		"apStatus":     dashboardApStatus{Status: doctorApActiveStatus},
-		"ntpStatus":    dashboardNtpStatus{Status: 0},
-	})
-
-	origHost, origTimeout, origRetry, origAll, origJSON := resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag
-	defer func() {
-		resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag = origHost, origTimeout, origRetry, origAll, origJSON
-	}()
-	resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag = srv.URL, time.Second, 0, false, true
-
-	if err := doctorCmd.RunE(doctorCmd, nil); err == nil {
-		t.Fatal("doctorCmd.RunE() = nil error; want non-nil on a critical check")
+func TestDoctorCmdExitCode(t *testing.T) {
+	tests := []struct {
+		name     string
+		handlers map[string]any
+		wantErr  bool
+	}{
+		{
+			name: "critical check exits non-zero",
+			handlers: map[string]any{
+				"features":     featuresPayload{},
+				"systemStatus": systemStatusPayload{FreeHeap: 1, FsTotal: 1, FsUsed: 0},
+				"wifiStatus":   dashboardWifiStatus{Status: 6},
+				"apStatus":     dashboardApStatus{Status: doctorApActiveStatus},
+				"ntpStatus":    dashboardNtpStatus{Status: 0},
+			},
+			wantErr: true,
+		},
+		{
+			name: "healthy device succeeds",
+			handlers: map[string]any{
+				"features":     featuresPayload{},
+				"systemStatus": systemStatusPayload{FreeHeap: doctorFreeHeapWarnBytes * 4, FsTotal: 100000, FsUsed: 10000},
+				"wifiStatus":   dashboardWifiStatus{Status: doctorWifiConnectedStatus},
+				"apStatus":     dashboardApStatus{Status: 1},
+				"ntpStatus":    dashboardNtpStatus{Status: doctorNtpActiveStatus},
+			},
+			wantErr: false,
+		},
 	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := doctorTestServer(t, tt.handlers)
 
-func TestDoctorCmdSucceedsOnHealthyDevice(t *testing.T) {
-	srv := doctorTestServer(t, map[string]any{
-		"features":     featuresPayload{},
-		"systemStatus": systemStatusPayload{FreeHeap: doctorFreeHeapWarnBytes * 4, FsTotal: 100000, FsUsed: 10000},
-		"wifiStatus":   dashboardWifiStatus{Status: doctorWifiConnectedStatus},
-		"apStatus":     dashboardApStatus{Status: 1},
-		"ntpStatus":    dashboardNtpStatus{Status: doctorNtpActiveStatus},
-	})
+			origHost, origTimeout, origRetry, origAll, origJSON := resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag
+			t.Cleanup(func() {
+				resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag = origHost, origTimeout, origRetry, origAll, origJSON
+			})
+			resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag = srv.URL, time.Second, 0, false, true
 
-	origHost, origTimeout, origRetry, origAll, origJSON := resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag
-	defer func() {
-		resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag = origHost, origTimeout, origRetry, origAll, origJSON
-	}()
-	resolvedHost, timeoutFlag, retryFlag, doctorAll, jsonFlag = srv.URL, time.Second, 0, false, true
-
-	if err := doctorCmd.RunE(doctorCmd, nil); err != nil {
-		t.Fatalf("doctorCmd.RunE() = %v; want nil on a healthy device", err)
+			err := doctorCmd.RunE(doctorCmd, nil)
+			if tt.wantErr && err == nil {
+				t.Fatal("doctorCmd.RunE() = nil error; want non-nil on a critical check")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("doctorCmd.RunE() = %v; want nil on a healthy device", err)
+			}
+		})
 	}
 }
 

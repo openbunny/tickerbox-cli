@@ -20,8 +20,9 @@ var tzCmd = &cobra.Command{
 }
 
 var tzListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List known time zone labels and their POSIX strings",
+	Use:     "list",
+	Short:   "List known time zone labels and their POSIX strings",
+	Example: "  tickerbox tz list --grep chicago",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filtered := map[string]string{}
 		needle := strings.ToLower(tzListGrep)
