@@ -1,13 +1,14 @@
-Manages the Financial Modeling Prep API key `ticker add` uses to verify a symbol before adding it. Resolved from $TICKERBOX_FMP_API_KEY first, then the key stored here.
+Export tickers as JSON
 
 Usage:
-  tickerbox fmp [command]
+  tickerbox ticker export [flags]
 
-Available Commands:
-  set-key     Store a Financial Modeling Prep API key in the config file
+Examples:
+  tickerbox ticker export --output tickers.json
 
 Flags:
-  -h, --help   help for fmp
+  -h, --help            help for export
+      --output string   file to write; defaults to stdout
 
 Global Flags:
   -d, --device string      named device from the config file
@@ -15,5 +16,3 @@ Global Flags:
   -j, --json               emit raw device JSON instead of a decoded table
       --retry int          retry an idempotent request this many times on a transient failure (default 2)
       --timeout duration   per-request timeout (default 10s)
-
-Use "tickerbox fmp [command] --help" for more information about a command.

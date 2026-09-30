@@ -1,25 +1,26 @@
-## tickerbox tickers clear
+## tickerbox ticker rm
 
-Remove all tickers
+Remove a ticker
 
 ### Synopsis
 
-Removes every ticker. Prompts for confirmation unless --yes.
+Accepts either the 0-based index shown by `ticker list`, or a ticker symbol. Prompts for confirmation unless --yes.
 
 ```
-tickerbox tickers clear [flags]
+tickerbox ticker rm <index|ticker> [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox tickers clear --yes
+  tickerbox ticker rm BTC
+  tickerbox ticker rm 0
 ```
 
 ### Options
 
 ```
-  -h, --help   help for clear
+  -h, --help   help for rm
   -y, --yes    skip confirmation
 ```
 
@@ -35,5 +36,5 @@ tickerbox tickers clear [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
 

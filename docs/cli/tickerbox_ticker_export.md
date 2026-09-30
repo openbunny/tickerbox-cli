@@ -1,15 +1,15 @@
-## tickerbox tickers export
+## tickerbox ticker export
 
 Export tickers as JSON
 
 ```
-tickerbox tickers export [flags]
+tickerbox ticker export [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox tickers export --output tickers.json
+  tickerbox ticker export --output tickers.json
 ```
 
 ### Options
@@ -31,5 +31,5 @@ tickerbox tickers export [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
 

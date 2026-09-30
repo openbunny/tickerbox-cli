@@ -17,11 +17,11 @@ Type "tickerbox doctor"
 Enter
 Sleep 2500ms
 
-Type "tickerbox tickers list"
+Type "tickerbox ticker list"
 Enter
 Sleep 1500ms
 
-Type "tickerbox tickers template list"
+Type "tickerbox ticker template list"
 Enter
 Sleep 1500ms
 

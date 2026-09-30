@@ -4,7 +4,7 @@ Financial Modeling Prep API key, used to verify ticker symbols on add
 
 ### Synopsis
 
-Manages the Financial Modeling Prep API key `tickers add` uses to verify a symbol before adding it. Resolved from $TICKERBOX_FMP_API_KEY first, then the key stored here.
+Manages the Financial Modeling Prep API key `ticker add` uses to verify a symbol before adding it. Resolved from $TICKERBOX_FMP_API_KEY first, then the key stored here.
 
 ### Options
 

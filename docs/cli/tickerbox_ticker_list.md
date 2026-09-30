@@ -1,21 +1,21 @@
-## tickerbox tickers template show
+## tickerbox ticker list
 
-Show a preset's entries
+List configured tickers
 
 ```
-tickerbox tickers template show <name> [flags]
+tickerbox ticker list [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox tickers template show crypto-top10
+  tickerbox ticker list
 ```
 
 ### Options
 
 ```
-  -h, --help   help for show
+  -h, --help   help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,5 +30,5 @@ tickerbox tickers template show <name> [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers template](tickerbox_tickers_template.md)	 - Built-in ticker list presets
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
 

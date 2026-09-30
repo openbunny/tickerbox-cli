@@ -25,7 +25,7 @@ Available Commands:
   reboot      Restart the device (alias for system restart)
   status      Aggregate dashboard
   system      System, status, maintenance
-  tickers     Ticker / asset list
+  ticker      Ticker / asset list
   time        Device wall-clock time
   tz          Time zones
   uptime      Show device uptime since last boot

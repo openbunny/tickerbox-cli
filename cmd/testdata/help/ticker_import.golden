@@ -1,13 +1,15 @@
-Report illegal fields and duplicate symbols in the ticker list
+Replaces the entire ticker list with the contents of the file; existing entries not present in the file are dropped. Prompts for confirmation unless --yes.
 
 Usage:
-  tickerbox tickers validate [flags]
+  tickerbox ticker import [flags]
 
 Examples:
-  tickerbox tickers validate
+  tickerbox ticker import --input tickers.json --yes
 
 Flags:
-  -h, --help   help for validate
+  -h, --help           help for import
+      --input string   JSON file with an array of ticker entries
+  -y, --yes            skip confirmation
 
 Global Flags:
   -d, --device string      named device from the config file

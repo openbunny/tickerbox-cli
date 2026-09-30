@@ -1,21 +1,26 @@
-## tickerbox tickers template list
+## tickerbox ticker clear
 
-List built-in preset names
+Remove all tickers
+
+### Synopsis
+
+Removes every ticker. Prompts for confirmation unless --yes.
 
 ```
-tickerbox tickers template list [flags]
+tickerbox ticker clear [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox tickers template list
+  tickerbox ticker clear --yes
 ```
 
 ### Options
 
 ```
-  -h, --help   help for list
+  -h, --help   help for clear
+  -y, --yes    skip confirmation
 ```
 
 ### Options inherited from parent commands
@@ -30,5 +35,5 @@ tickerbox tickers template list [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers template](tickerbox_tickers_template.md)	 - Built-in ticker list presets
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
 

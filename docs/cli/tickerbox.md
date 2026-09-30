@@ -42,7 +42,7 @@ tickerbox talks to a TickerBox ESP32 device's REST API over HTTP. Target a devic
 * [tickerbox reboot](tickerbox_reboot.md)	 - Restart the device (alias for system restart)
 * [tickerbox status](tickerbox_status.md)	 - Aggregate dashboard
 * [tickerbox system](tickerbox_system.md)	 - System, status, maintenance
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
 * [tickerbox time](tickerbox_time.md)	 - Device wall-clock time
 * [tickerbox tz](tickerbox_tz.md)	 - Time zones
 * [tickerbox uptime](tickerbox_uptime.md)	 - Show device uptime since last boot

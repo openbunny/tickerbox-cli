@@ -72,11 +72,11 @@ Channel:       6
 ...
 ```
 
-**3. Add tickers.** `tickers add` appends one or more symbols that share a
+**3. Add tickers.** `ticker add` appends one or more symbols that share a
 type, refresh interval and currency:
 
 ```console
-$ tickerbox --device office tickers add --type crypto --time 15min --currency EUR BTC ETH
+$ tickerbox --device office ticker add --type crypto --time 15min --currency EUR BTC ETH
 Added 2 ticker(s)
 ```
 
@@ -158,7 +158,7 @@ purposes:
   local, device-agnostic snapshot, meant to be replayed across multiple
   devices. Its default section set is narrower than a config export
   (tickers/display/clock/ntp); `--all`/`--include` widens it.
-- **Template** (`tickers template list`/`show`/`apply`) — a built-in,
+- **Template** (`ticker template list`/`show`/`apply`) — a built-in,
   read-only ticker-list preset shipped in the binary. `apply` seeds a
   starting ticker list; it is not a saved, portable object like a profile —
   capture the result with `profile save` to replay it elsewhere.
@@ -170,7 +170,7 @@ purposes:
 | Typical target   | the same device later | any device now                    |
 | Named, reusable  | one file per export   | named, listed with `profile list` |
 
-How they compose: `tickers template apply` seeds a ticker list, `tickers
+How they compose: `ticker template apply` seeds a ticker list, `ticker
 add`/`edit` refines it, `profile save` captures the whole working config as
 a reusable name, and `profile apply --device <other>` replays it on another
 device. `config export` sits outside this chain — a same-device backup/restore
@@ -187,8 +187,8 @@ tickers. From there:
 2. Set the clock: `tickerbox --device office tz set "Europe/London"`, then
    `tickerbox --device office ntp set`.
 3. Replace a manual ticker list with a built-in preset:
-   `tickerbox --device office tickers template list`, then
-   `tickerbox --device office tickers template apply crypto-majors`.
+   `tickerbox --device office ticker template list`, then
+   `tickerbox --device office ticker template apply crypto-majors`.
 4. Tune the display: `tickerbox --device office display set`,
    `tickerbox --device office brightness 180`.
 5. Save the result as a reusable profile:
@@ -238,82 +238,82 @@ group: `tickerbox --host http://10.0.0.5 --timeout 5s wifi status`.
 
 ## Command groups
 
-| Group               | Purpose                                                                                                                                                                                                                  | Example                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `status`            | Aggregate dashboard: features, system, network, AP, NTP, display and clock state in one call.                                                                                                                            | `tickerbox status`, or `--all` for every configured device                |
-| `wifi`              | Station SSID, credentials, static IP, and network scan.                                                                                                                                                                  | `tickerbox wifi scan`                                                     |
-| `ap`                | The device's own access point.                                                                                                                                                                                           | `tickerbox ap status`                                                     |
-| `ntp`               | NTP sync configuration, including timezone.                                                                                                                                                                              | `tickerbox ntp set --tz "Europe/London"`                                  |
-| `time`              | Set the device wall-clock time; with no argument, sends the current UTC instant.                                                                                                                                         | `tickerbox time 2026-01-01T00:00:00`                                      |
-| `tz`                | Timezone lookup and device timezone.                                                                                                                                                                                     | `tickerbox tz list --grep Europe`, `tickerbox tz set "Europe/London"`     |
-| `display`           | Ticker screen brightness, rotation interval, sleep schedule.                                                                                                                                                             | `tickerbox display settings`                                              |
-| `clock`             | Clock screen.                                                                                                                                                                                                            | `tickerbox clock set --enabled`                                           |
-| `brightness`        | Shortcut for display brightness: set, or step up/down.                                                                                                                                                                   | `tickerbox brightness 180`, `tickerbox brightness up 20`                  |
-| `uptime`            | Device uptime since last boot, formatted as `1d 2h 3m 4s`.                                                                                                                                                               | `tickerbox uptime`                                                        |
-| `reboot`            | Shortcut for `system restart`, with a confirmation prompt.                                                                                                                                                               | `tickerbox reboot -y`                                                     |
-| `tickers`           | The asset list shown on the display: `add`, `edit`, `move`, `remove`, `clear`, `list`, `export`, `import`, `validate`, `template`.                                                                                       | `tickerbox tickers add --type crypto --time 15min --currency EUR BTC ETH` |
-| `system`            | Device status, features, and maintenance actions. `restart`, `factory-reset` and `firmware-upload` mutate the device and prompt for confirmation unless `--yes`/`-y` is given.                                           | `tickerbox system info`                                                   |
-| `config`            | Whole-device config as one JSON snapshot, covering every section (tickers, display, clock, ntp, wifi, ap).                                                                                                               | `tickerbox config export --file office.json`                              |
-| `profile`           | Named, device-agnostic snapshots stored locally; default section set is tickers/display/clock/ntp (`--all` or `--include` widens it). `--all` also captures the device's WiFi/AP passwords into the local snapshot file. | `tickerbox profile save office`                                           |
-| `device`            | The local device registry: `add NAME HOST`, `use NAME`, `list`, `rm NAME`, `ping [NAME\|--all]`, `discover` (LAN scan for TickerBoxes).                                                                                  | `tickerbox device discover`                                               |
-| `doctor`            | Read-only health check (heap, filesystem headroom, wifi, NTP, AP exposure); exits non-zero on a critical finding.                                                                                                        | `tickerbox doctor --all`                                                  |
-| `watch`             | Re-runs a read-only view (`status` by default) on an interval until interrupted; refuses any command that is not read-only.                                                                                              | `tickerbox watch tickers list --interval 5s`                              |
-| `version`           | CLI build version.                                                                                                                                                                                                       | `tickerbox version`                                                       |
-| `open` (alias `ui`) | Opens the device's web UI in the default browser.                                                                                                                                                                        | `tickerbox open`                                                          |
+| Group               | Purpose                                                                                                                                                                                                                  | Example                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `status`            | Aggregate dashboard: features, system, network, AP, NTP, display and clock state in one call.                                                                                                                            | `tickerbox status`, or `--all` for every configured device               |
+| `wifi`              | Station SSID, credentials, static IP, and network scan.                                                                                                                                                                  | `tickerbox wifi scan`                                                    |
+| `ap`                | The device's own access point.                                                                                                                                                                                           | `tickerbox ap status`                                                    |
+| `ntp`               | NTP sync configuration, including timezone.                                                                                                                                                                              | `tickerbox ntp set --tz "Europe/London"`                                 |
+| `time`              | Set the device wall-clock time; with no argument, sends the current UTC instant.                                                                                                                                         | `tickerbox time 2026-01-01T00:00:00`                                     |
+| `tz`                | Timezone lookup and device timezone.                                                                                                                                                                                     | `tickerbox tz list --grep Europe`, `tickerbox tz set "Europe/London"`    |
+| `display`           | Ticker screen brightness, rotation interval, sleep schedule.                                                                                                                                                             | `tickerbox display settings`                                             |
+| `clock`             | Clock screen.                                                                                                                                                                                                            | `tickerbox clock set --enabled`                                          |
+| `brightness`        | Shortcut for display brightness: set, or step up/down.                                                                                                                                                                   | `tickerbox brightness 180`, `tickerbox brightness up 20`                 |
+| `uptime`            | Device uptime since last boot, formatted as `1d 2h 3m 4s`.                                                                                                                                                               | `tickerbox uptime`                                                       |
+| `reboot`            | Shortcut for `system restart`, with a confirmation prompt.                                                                                                                                                               | `tickerbox reboot -y`                                                    |
+| `ticker`            | The asset list shown on the display: `add`, `edit`, `move`, `rm`, `clear`, `list`, `export`, `import`, `validate`, `template`.                                                                                           | `tickerbox ticker add --type crypto --time 15min --currency EUR BTC ETH` |
+| `system`            | Device status, features, and maintenance actions. `restart`, `factory-reset` and `firmware-upload` mutate the device and prompt for confirmation unless `--yes`/`-y` is given.                                           | `tickerbox system info`                                                  |
+| `config`            | Whole-device config as one JSON snapshot, covering every section (tickers, display, clock, ntp, wifi, ap).                                                                                                               | `tickerbox config export --file office.json`                             |
+| `profile`           | Named, device-agnostic snapshots stored locally; default section set is tickers/display/clock/ntp (`--all` or `--include` widens it). `--all` also captures the device's WiFi/AP passwords into the local snapshot file. | `tickerbox profile save office`                                          |
+| `device`            | The local device registry: `add NAME HOST`, `use NAME`, `list`, `rm NAME`, `ping [NAME\|--all]`, `discover` (LAN scan for TickerBoxes).                                                                                  | `tickerbox device discover`                                              |
+| `doctor`            | Read-only health check (heap, filesystem headroom, wifi, NTP, AP exposure); exits non-zero on a critical finding.                                                                                                        | `tickerbox doctor --all`                                                 |
+| `watch`             | Re-runs a read-only view (`status` by default) on an interval until interrupted; refuses any command that is not read-only.                                                                                              | `tickerbox watch ticker list --interval 5s`                              |
+| `version`           | CLI build version.                                                                                                                                                                                                       | `tickerbox version`                                                      |
+| `open` (alias `ui`) | Opens the device's web UI in the default browser.                                                                                                                                                                        | `tickerbox open`                                                         |
 
-`tickers add` (SYM... form shown above) merges what was formerly a
+`ticker add` (SYM... form shown above) merges what was formerly a
 single-ticker `add`; every symbol given shares one `--type`/`--time`/
 `--currency`.
 
-### `tickers` subcommands
+### `ticker` subcommands
 
-| Subcommand                                       | Effect                                                                 | Example                                                                   |
-| ------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `add SYM...`                                     | Append tickers sharing one type/time/currency.                         | `tickerbox tickers add --type crypto --time 15min --currency EUR BTC ETH` |
-| `edit <index\|sym>`                              | Change one entry in place, by index or symbol.                         | `tickerbox tickers edit BTC --time 5min`                                  |
-| `move <from> <to>`                               | Reorder the display cycle.                                             | `tickerbox tickers move 3 1`                                              |
-| `remove <index\|sym>`                            | Remove one entry.                                                      | `tickerbox tickers remove BTC`                                            |
-| `clear`                                          | Remove every entry.                                                    | `tickerbox tickers clear`                                                 |
-| `list`                                           | List configured tickers.                                               | `tickerbox tickers list`                                                  |
-| `export` / `import`                              | Round-trip the list as JSON.                                           | `tickerbox tickers export --file list.json`                               |
-| `validate`                                       | Report illegal fields and duplicate symbols without changing anything. | `tickerbox tickers validate`                                              |
-| `template list` / `show <name>` / `apply <name>` | Built-in presets.                                                      | `tickerbox tickers template apply crypto-majors`                          |
+| Subcommand                                       | Effect                                                                 | Example                                                                  |
+| ------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `add SYM...`                                     | Append tickers sharing one type/time/currency.                         | `tickerbox ticker add --type crypto --time 15min --currency EUR BTC ETH` |
+| `edit <index\|sym>`                              | Change one entry in place, by index or symbol.                         | `tickerbox ticker edit BTC --time 5min`                                  |
+| `move <from> <to>`                               | Reorder the display cycle.                                             | `tickerbox ticker move 3 1`                                              |
+| `rm <index\|sym>`                                | Remove one entry.                                                      | `tickerbox ticker rm BTC`                                                |
+| `clear`                                          | Remove every entry.                                                    | `tickerbox ticker clear`                                                 |
+| `list`                                           | List configured tickers.                                               | `tickerbox ticker list`                                                  |
+| `export` / `import`                              | Round-trip the list as JSON.                                           | `tickerbox ticker export --file list.json`                               |
+| `validate`                                       | Report illegal fields and duplicate symbols without changing anything. | `tickerbox ticker validate`                                              |
+| `template list` / `show <name>` / `apply <name>` | Built-in presets.                                                      | `tickerbox ticker template apply crypto-majors`                          |
 
 ## Endpoints covered
 
-| Command                                                                                           | Method           | Endpoint                                                                                              |
-| ------------------------------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------- |
-| `status`                                                                                          | GET              | `features`, `systemStatus`, `wifiStatus`, `apStatus`, `ntpStatus`, `settingsState`, `clockSetupState` |
-| `wifi status`                                                                                     | GET              | `wifiStatus`                                                                                          |
-| `wifi settings`                                                                                   | GET              | `wifiSettings`                                                                                        |
-| `wifi set`                                                                                        | GET, POST        | `wifiSettings`                                                                                        |
-| `wifi scan`                                                                                       | GET              | `scanNetworks`, `listNetworks`                                                                        |
-| `ap status`                                                                                       | GET              | `apStatus`                                                                                            |
-| `ap settings`                                                                                     | GET              | `apSettings`                                                                                          |
-| `ap set`                                                                                          | GET, POST        | `apSettings`                                                                                          |
-| `ntp status`                                                                                      | GET              | `ntpStatus`                                                                                           |
-| `ntp settings`                                                                                    | GET              | `ntpSettings`                                                                                         |
-| `ntp set`                                                                                         | GET, POST        | `ntpSettings`                                                                                         |
-| `time`                                                                                            | POST             | `time`                                                                                                |
-| `tz set`                                                                                          | GET, POST        | `ntpSettings`, `clockSetupState`                                                                      |
-| `tz list`                                                                                         | —                | bundled `timezones.json`, no device call                                                              |
-| `display settings`                                                                                | GET              | `settingsState`                                                                                       |
-| `display set`                                                                                     | GET, POST        | `settingsState`                                                                                       |
-| `brightness`, `brightness up`/`down`                                                              | GET, POST        | `settingsState`                                                                                       |
-| `clock settings`                                                                                  | GET              | `clockSetupState`                                                                                     |
-| `clock set`                                                                                       | GET, POST        | `clockSetupState`                                                                                     |
-| `tickers list`/`add`/`edit`/`move`/`remove`/`clear`/`export`/`import`/`validate`/`template apply` | GET, POST        | `coinSetupState`                                                                                      |
-| `tickers template list`/`show`                                                                    | —                | bundled presets, no device call                                                                       |
-| `system info`                                                                                     | GET              | `systemStatus`                                                                                        |
-| `system features`                                                                                 | GET              | `features`                                                                                            |
-| `system restart`, `reboot`                                                                        | POST             | `restart`                                                                                             |
-| `system factory-reset`                                                                            | POST             | `factoryReset`                                                                                        |
-| `system firmware-upload`                                                                          | POST (multipart) | `uploadFirmware`                                                                                      |
-| `uptime`                                                                                          | GET              | `ntpStatus`                                                                                           |
-| `config export`/`diff`/`import`                                                                   | GET, POST        | `coinSetupState`, `settingsState`, `clockSetupState`, `ntpSettings`, `wifiSettings`, `apSettings`     |
-| `profile save`/`apply`/`diff`                                                                     | GET, POST        | same section set as `config`, restricted to what was captured                                         |
-| `device discover`/`ping`                                                                          | GET              | `features` (probe only, to confirm a host is a TickerBox)                                             |
-| `doctor`                                                                                          | GET              | `features`, `systemStatus`, `wifiStatus`, `apStatus`, `ntpStatus`                                     |
+| Command                                                                                      | Method           | Endpoint                                                                                              |
+| -------------------------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------- |
+| `status`                                                                                     | GET              | `features`, `systemStatus`, `wifiStatus`, `apStatus`, `ntpStatus`, `settingsState`, `clockSetupState` |
+| `wifi status`                                                                                | GET              | `wifiStatus`                                                                                          |
+| `wifi settings`                                                                              | GET              | `wifiSettings`                                                                                        |
+| `wifi set`                                                                                   | GET, POST        | `wifiSettings`                                                                                        |
+| `wifi scan`                                                                                  | GET              | `scanNetworks`, `listNetworks`                                                                        |
+| `ap status`                                                                                  | GET              | `apStatus`                                                                                            |
+| `ap settings`                                                                                | GET              | `apSettings`                                                                                          |
+| `ap set`                                                                                     | GET, POST        | `apSettings`                                                                                          |
+| `ntp status`                                                                                 | GET              | `ntpStatus`                                                                                           |
+| `ntp settings`                                                                               | GET              | `ntpSettings`                                                                                         |
+| `ntp set`                                                                                    | GET, POST        | `ntpSettings`                                                                                         |
+| `time`                                                                                       | POST             | `time`                                                                                                |
+| `tz set`                                                                                     | GET, POST        | `ntpSettings`, `clockSetupState`                                                                      |
+| `tz list`                                                                                    | —                | bundled `timezones.json`, no device call                                                              |
+| `display settings`                                                                           | GET              | `settingsState`                                                                                       |
+| `display set`                                                                                | GET, POST        | `settingsState`                                                                                       |
+| `brightness`, `brightness up`/`down`                                                         | GET, POST        | `settingsState`                                                                                       |
+| `clock settings`                                                                             | GET              | `clockSetupState`                                                                                     |
+| `clock set`                                                                                  | GET, POST        | `clockSetupState`                                                                                     |
+| `ticker list`/`add`/`edit`/`move`/`rm`/`clear`/`export`/`import`/`validate`/`template apply` | GET, POST        | `coinSetupState`                                                                                      |
+| `ticker template list`/`show`                                                                | —                | bundled presets, no device call                                                                       |
+| `system info`                                                                                | GET              | `systemStatus`                                                                                        |
+| `system features`                                                                            | GET              | `features`                                                                                            |
+| `system restart`, `reboot`                                                                   | POST             | `restart`                                                                                             |
+| `system factory-reset`                                                                       | POST             | `factoryReset`                                                                                        |
+| `system firmware-upload`                                                                     | POST (multipart) | `uploadFirmware`                                                                                      |
+| `uptime`                                                                                     | GET              | `ntpStatus`                                                                                           |
+| `config export`/`diff`/`import`                                                              | GET, POST        | `coinSetupState`, `settingsState`, `clockSetupState`, `ntpSettings`, `wifiSettings`, `apSettings`     |
+| `profile save`/`apply`/`diff`                                                                | GET, POST        | same section set as `config`, restricted to what was captured                                         |
+| `device discover`/`ping`                                                                     | GET              | `features` (probe only, to confirm a host is a TickerBox)                                             |
+| `doctor`                                                                                     | GET              | `features`, `systemStatus`, `wifiStatus`, `apStatus`, `ntpStatus`                                     |
 
 `device add`, `device use`, `device list`, `device rm`, `profile list`/`show`/`rm`, `tz list` and `version` make no device call.
 
@@ -366,7 +366,7 @@ build embedded at compile time and makes no request.
 $ tickerbox device discover
 $ tickerbox device use office
 $ tickerbox tz set "Europe/London"
-$ tickerbox tickers template apply crypto-majors
+$ tickerbox ticker template apply crypto-majors
 $ tickerbox display set
 $ tickerbox doctor
 ```
@@ -436,7 +436,7 @@ run `device add` first.
 watch can re-run`. Only these targets are allowed: `status`, `system info`,
 `system features`, `wifi status`, `wifi settings`, `ap status`,
 `ap settings`, `ntp status`, `ntp settings`, `display settings`,
-`clock settings`, `tz list`, `tickers list`. With no argument, `watch`
+`clock settings`, `tz list`, `ticker list`. With no argument, `watch`
 re-runs `status`.
 
 **Common CLI-side errors.**

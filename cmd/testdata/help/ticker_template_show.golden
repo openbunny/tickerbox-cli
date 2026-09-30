@@ -1,15 +1,13 @@
-Built-in ticker list presets
+Show a preset's entries
 
 Usage:
-  tickerbox tickers template [command]
+  tickerbox ticker template show <name> [flags]
 
-Available Commands:
-  apply       Apply a preset to the current ticker list
-  list        List built-in preset names
-  show        Show a preset's entries
+Examples:
+  tickerbox ticker template show crypto-top10
 
 Flags:
-  -h, --help   help for template
+  -h, --help   help for show
 
 Global Flags:
   -d, --device string      named device from the config file
@@ -17,5 +15,3 @@ Global Flags:
   -j, --json               emit raw device JSON instead of a decoded table
       --retry int          retry an idempotent request this many times on a transient failure (default 2)
       --timeout duration   per-request timeout (default 10s)
-
-Use "tickerbox tickers template [command] --help" for more information about a command.

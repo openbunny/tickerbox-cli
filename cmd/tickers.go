@@ -68,14 +68,14 @@ func isIndex(selector string) bool {
 }
 
 var tickersCmd = &cobra.Command{
-	Use:   "tickers",
+	Use:   "ticker",
 	Short: "Ticker / asset list",
 }
 
 var tickersListCmd = &cobra.Command{
 	Use:     "list",
 	Short:   "List configured tickers",
-	Example: "  tickerbox tickers list",
+	Example: "  tickerbox ticker list",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		entries, err := fetchTickerEntries(cmdContext(cmd), newClient())
 		if err != nil {
@@ -135,11 +135,11 @@ var tickersAddCmd = &cobra.Command{
 var tickersRemoveYes bool
 
 var tickersRemoveCmd = &cobra.Command{
-	Use:   "remove <index|ticker>",
+	Use:   "rm <index|ticker>",
 	Short: "Remove a ticker",
-	Long:  "Accepts either the 0-based index shown by `tickers list`, or a ticker symbol. Prompts for confirmation unless --yes.",
-	Example: "  tickerbox tickers remove BTC\n" +
-		"  tickerbox tickers remove 0",
+	Long:  "Accepts either the 0-based index shown by `ticker list`, or a ticker symbol. Prompts for confirmation unless --yes.",
+	Example: "  tickerbox ticker rm BTC\n" +
+		"  tickerbox ticker rm 0",
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		selector := args[0]
@@ -184,7 +184,7 @@ var tickersClearCmd = &cobra.Command{
 	Use:     "clear",
 	Short:   "Remove all tickers",
 	Long:    "Removes every ticker. Prompts for confirmation unless --yes.",
-	Example: "  tickerbox tickers clear --yes",
+	Example: "  tickerbox ticker clear --yes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !tickersClearYes {
 			ok, err := confirm("Remove all tickers?")
@@ -212,7 +212,7 @@ var tickersExportOutput string
 var tickersExportCmd = &cobra.Command{
 	Use:     "export",
 	Short:   "Export tickers as JSON",
-	Example: "  tickerbox tickers export --output tickers.json",
+	Example: "  tickerbox ticker export --output tickers.json",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		entries, err := fetchTickerEntries(cmdContext(cmd), newClient())
 		if err != nil {
@@ -243,7 +243,7 @@ var tickersImportCmd = &cobra.Command{
 	Short: "Replace tickers from a JSON file",
 	Long: "Replaces the entire ticker list with the contents of the file; existing entries not present in " +
 		"the file are dropped. Prompts for confirmation unless --yes.",
-	Example: "  tickerbox tickers import --input tickers.json --yes",
+	Example: "  tickerbox ticker import --input tickers.json --yes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		raw, err := os.ReadFile(tickersImportInput)
 		if err != nil {

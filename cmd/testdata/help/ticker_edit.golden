@@ -1,17 +1,18 @@
-Adds one entry per sym, all sharing the same --type, --time, and --currency. --type and --time are required; --currency defaults to USD.
+Change fields of one ticker entry in place
 
 Usage:
-  tickerbox tickers add <sym>... [flags]
+  tickerbox ticker edit <index|sym> [flags]
 
 Examples:
-  tickerbox tickers add BTC ETH --type crypto --time 5min --currency USD
+  tickerbox ticker edit BTC --time 1min
 
 Flags:
-      --currency string   USD|EUR|GBP|CAD|AUD|JPY (default "USD")
-  -h, --help              help for add
-      --no-verify         skip Financial Modeling Prep symbol verification, add the entry unchecked
+      --currency string   USD|EUR|GBP|CAD|AUD|JPY
+  -h, --help              help for edit
+      --ticker string     new ticker symbol
       --time string       1min|5min|15min
       --type string       crypto|stocks|forex
+  -y, --yes               skip confirmation
 
 Global Flags:
   -d, --device string      named device from the config file

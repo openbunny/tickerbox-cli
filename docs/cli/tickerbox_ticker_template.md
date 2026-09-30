@@ -1,21 +1,11 @@
-## tickerbox tickers validate
+## tickerbox ticker template
 
-Report illegal fields and duplicate symbols in the ticker list
-
-```
-tickerbox tickers validate [flags]
-```
-
-### Examples
-
-```
-  tickerbox tickers validate
-```
+Built-in ticker list presets
 
 ### Options
 
 ```
-  -h, --help   help for validate
+  -h, --help   help for template
 ```
 
 ### Options inherited from parent commands
@@ -30,5 +20,8 @@ tickerbox tickers validate [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
+* [tickerbox ticker template apply](tickerbox_ticker_template_apply.md)	 - Apply a preset to the current ticker list
+* [tickerbox ticker template list](tickerbox_ticker_template_list.md)	 - List built-in preset names
+* [tickerbox ticker template show](tickerbox_ticker_template_show.md)	 - Show a preset's entries
 

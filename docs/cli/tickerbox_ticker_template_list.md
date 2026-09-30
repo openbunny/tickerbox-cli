@@ -1,11 +1,21 @@
-## tickerbox tickers template
+## tickerbox ticker template list
 
-Built-in ticker list presets
+List built-in preset names
+
+```
+tickerbox ticker template list [flags]
+```
+
+### Examples
+
+```
+  tickerbox ticker template list
+```
 
 ### Options
 
 ```
-  -h, --help   help for template
+  -h, --help   help for list
 ```
 
 ### Options inherited from parent commands
@@ -20,8 +30,5 @@ Built-in ticker list presets
 
 ### SEE ALSO
 
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
-* [tickerbox tickers template apply](tickerbox_tickers_template_apply.md)	 - Apply a preset to the current ticker list
-* [tickerbox tickers template list](tickerbox_tickers_template_list.md)	 - List built-in preset names
-* [tickerbox tickers template show](tickerbox_tickers_template_show.md)	 - Show a preset's entries
+* [tickerbox ticker template](tickerbox_ticker_template.md)	 - Built-in ticker list presets
 

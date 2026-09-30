@@ -1,19 +1,19 @@
-## tickerbox tickers move
+## tickerbox ticker move
 
 Reorder the ticker list; the display cycles in this order
 
 ### Synopsis
 
-FROM and TO are 0-based positions in the order the display cycles through, as shown by `tickers list`.
+FROM and TO are 0-based positions in the order the display cycles through, as shown by `ticker list`.
 
 ```
-tickerbox tickers move <from> <to> [flags]
+tickerbox ticker move <from> <to> [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox tickers move 3 0
+  tickerbox ticker move 3 0
 ```
 
 ### Options
@@ -34,5 +34,5 @@ tickerbox tickers move <from> <to> [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
 

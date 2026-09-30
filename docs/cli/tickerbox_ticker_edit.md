@@ -1,27 +1,26 @@
-## tickerbox tickers remove
+## tickerbox ticker edit
 
-Remove a ticker
-
-### Synopsis
-
-Accepts either the 0-based index shown by `tickers list`, or a ticker symbol. Prompts for confirmation unless --yes.
+Change fields of one ticker entry in place
 
 ```
-tickerbox tickers remove <index|ticker> [flags]
+tickerbox ticker edit <index|sym> [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox tickers remove BTC
-  tickerbox tickers remove 0
+  tickerbox ticker edit BTC --time 1min
 ```
 
 ### Options
 
 ```
-  -h, --help   help for remove
-  -y, --yes    skip confirmation
+      --currency string   USD|EUR|GBP|CAD|AUD|JPY
+  -h, --help              help for edit
+      --ticker string     new ticker symbol
+      --time string       1min|5min|15min
+      --type string       crypto|stocks|forex
+  -y, --yes               skip confirmation
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +35,5 @@ tickerbox tickers remove <index|ticker> [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
 

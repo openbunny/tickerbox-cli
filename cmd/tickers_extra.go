@@ -191,7 +191,7 @@ var tickersAddBulkCmd = &cobra.Command{
 	Short: "Add one or more tickers, sharing --type/--time/--currency",
 	Long: "Adds one entry per sym, all sharing the same --type, --time, and --currency. --type and --time " +
 		"are required; --currency defaults to USD.",
-	Example: "  tickerbox tickers add BTC ETH --type crypto --time 5min --currency USD",
+	Example: "  tickerbox ticker add BTC ETH --type crypto --time 5min --currency USD",
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		newEntries := buildBulkEntries(args, tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency)
@@ -234,7 +234,7 @@ var (
 var tickersEditCmd = &cobra.Command{
 	Use:     "edit <index|sym>",
 	Short:   "Change fields of one ticker entry in place",
-	Example: "  tickerbox tickers edit BTC --time 1min",
+	Example: "  tickerbox ticker edit BTC --time 1min",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := rejectInvalidEditFlags(cmd, tickersEditType, tickersEditTime, tickersEditCurrency); err != nil {
@@ -288,8 +288,8 @@ var tickersMoveCmd = &cobra.Command{
 	Use:   "move <from> <to>",
 	Short: "Reorder the ticker list; the display cycles in this order",
 	Long: "FROM and TO are 0-based positions in the order the display cycles through, as shown by " +
-		"`tickers list`.",
-	Example: "  tickerbox tickers move 3 0",
+		"`ticker list`.",
+	Example: "  tickerbox ticker move 3 0",
 	Args:    cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		from, err := strconv.Atoi(args[0])
@@ -324,7 +324,7 @@ var tickersMoveCmd = &cobra.Command{
 var tickersValidateCmd = &cobra.Command{
 	Use:     "validate",
 	Short:   "Report illegal fields and duplicate symbols in the ticker list",
-	Example: "  tickerbox tickers validate",
+	Example: "  tickerbox ticker validate",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		entries, err := fetchTickerEntries(cmdContext(cmd), newClient())
 		if err != nil {
@@ -358,7 +358,7 @@ type presetSummary struct {
 var tickersTemplateListCmd = &cobra.Command{
 	Use:     "list",
 	Short:   "List built-in preset names",
-	Example: "  tickerbox tickers template list",
+	Example: "  tickerbox ticker template list",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		names := template.List()
 		summaries := make([]presetSummary, len(names))
@@ -385,7 +385,7 @@ type presetShow struct {
 var tickersTemplateShowCmd = &cobra.Command{
 	Use:     "show <name>",
 	Short:   "Show a preset's entries",
-	Example: "  tickerbox tickers template show crypto-top10",
+	Example: "  tickerbox ticker template show crypto-top10",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		entries, ok := template.Get(args[0])
@@ -415,7 +415,7 @@ var tickersTemplateApplyCmd = &cobra.Command{
 	Short: "Apply a preset to the current ticker list",
 	Long: "By default appends the preset's entries, skipping any ticker already in the list. --replace " +
 		"discards the current list and uses the preset's entries only.",
-	Example: "  tickerbox tickers template apply crypto-top10 --replace",
+	Example: "  tickerbox ticker template apply crypto-top10 --replace",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		preset, ok := template.Get(args[0])

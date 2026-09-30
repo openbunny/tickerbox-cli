@@ -360,7 +360,7 @@ var watchCmd = &cobra.Command{
 	Short: "Re-run a read-only view on an interval until interrupted",
 	Long: "Re-runs a read-only view on an interval until interrupted, clearing the screen each time. Only a " +
 		"fixed set of read-only commands can be targeted (status, system info/features, wifi/ap/ntp status " +
-		"and settings, display/clock settings, tz list, tickers list); with no arguments it re-runs status.",
+		"and settings, display/clock settings, tz list, ticker list); with no arguments it re-runs status.",
 	Example: "  tickerbox watch\n" +
 		"  tickerbox watch --interval 5s wifi status",
 	Args: cobra.ArbitraryArgs,

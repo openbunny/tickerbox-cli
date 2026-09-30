@@ -1,15 +1,14 @@
-Replaces the entire ticker list with the contents of the file; existing entries not present in the file are dropped. Prompts for confirmation unless --yes.
+Removes every ticker. Prompts for confirmation unless --yes.
 
 Usage:
-  tickerbox tickers import [flags]
+  tickerbox ticker clear [flags]
 
 Examples:
-  tickerbox tickers import --input tickers.json --yes
+  tickerbox ticker clear --yes
 
 Flags:
-  -h, --help           help for import
-      --input string   JSON file with an array of ticker entries
-  -y, --yes            skip confirmation
+  -h, --help   help for clear
+  -y, --yes    skip confirmation
 
 Global Flags:
   -d, --device string      named device from the config file

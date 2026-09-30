@@ -1,13 +1,13 @@
-FROM and TO are 0-based positions in the order the display cycles through, as shown by `tickers list`.
+Report illegal fields and duplicate symbols in the ticker list
 
 Usage:
-  tickerbox tickers move <from> <to> [flags]
+  tickerbox ticker validate [flags]
 
 Examples:
-  tickerbox tickers move 3 0
+  tickerbox ticker validate
 
 Flags:
-  -h, --help   help for move
+  -h, --help   help for validate
 
 Global Flags:
   -d, --device string      named device from the config file

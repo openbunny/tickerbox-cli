@@ -1,14 +1,14 @@
-Accepts either the 0-based index shown by `tickers list`, or a ticker symbol. Prompts for confirmation unless --yes.
+Accepts either the 0-based index shown by `ticker list`, or a ticker symbol. Prompts for confirmation unless --yes.
 
 Usage:
-  tickerbox tickers remove <index|ticker> [flags]
+  tickerbox ticker rm <index|ticker> [flags]
 
 Examples:
-  tickerbox tickers remove BTC
-  tickerbox tickers remove 0
+  tickerbox ticker rm BTC
+  tickerbox ticker rm 0
 
 Flags:
-  -h, --help   help for remove
+  -h, --help   help for rm
   -y, --yes    skip confirmation
 
 Global Flags:

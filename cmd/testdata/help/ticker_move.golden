@@ -1,14 +1,13 @@
-Removes every ticker. Prompts for confirmation unless --yes.
+FROM and TO are 0-based positions in the order the display cycles through, as shown by `ticker list`.
 
 Usage:
-  tickerbox tickers clear [flags]
+  tickerbox ticker move <from> <to> [flags]
 
 Examples:
-  tickerbox tickers clear --yes
+  tickerbox ticker move 3 0
 
 Flags:
-  -h, --help   help for clear
-  -y, --yes    skip confirmation
+  -h, --help   help for move
 
 Global Flags:
   -d, --device string      named device from the config file

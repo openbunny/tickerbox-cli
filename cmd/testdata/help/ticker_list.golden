@@ -1,10 +1,10 @@
 List configured tickers
 
 Usage:
-  tickerbox tickers list [flags]
+  tickerbox ticker list [flags]
 
 Examples:
-  tickerbox tickers list
+  tickerbox ticker list
 
 Flags:
   -h, --help   help for list

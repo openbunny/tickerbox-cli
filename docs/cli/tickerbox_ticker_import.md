@@ -1,4 +1,4 @@
-## tickerbox tickers import
+## tickerbox ticker import
 
 Replace tickers from a JSON file
 
@@ -7,13 +7,13 @@ Replace tickers from a JSON file
 Replaces the entire ticker list with the contents of the file; existing entries not present in the file are dropped. Prompts for confirmation unless --yes.
 
 ```
-tickerbox tickers import [flags]
+tickerbox ticker import [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox tickers import --input tickers.json --yes
+  tickerbox ticker import --input tickers.json --yes
 ```
 
 ### Options
@@ -36,5 +36,5 @@ tickerbox tickers import [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
+* [tickerbox ticker](tickerbox_ticker.md)	 - Ticker / asset list
 
