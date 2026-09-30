@@ -27,3 +27,118 @@ github.com/pelletier/go-toml/v2
 Copyright (c) 2021 - 2023 Thomas Pelletier
 Licensed under the MIT License.
 https://github.com/pelletier/go-toml/blob/v2/LICENSE
+
+github.com/charmbracelet/fang (module path charm.land/fang/v2)
+Copyright (c) 2024-2026 Charmbracelet, Inc
+Licensed under the MIT License.
+https://github.com/charmbracelet/fang/blob/v2.0.1/LICENSE.md
+
+github.com/charmbracelet/lipgloss (module path charm.land/lipgloss/v2)
+Copyright (c) 2020-2024 Charmbracelet, Inc
+Licensed under the MIT License.
+https://github.com/charmbracelet/lipgloss/blob/v2.0.6/LICENSE
+
+github.com/charmbracelet/colorprofile
+Copyright (c) 2025 Charmbracelet, Inc
+Licensed under the MIT License.
+https://github.com/charmbracelet/colorprofile/blob/v0.4.3/LICENSE
+
+github.com/charmbracelet/ultraviolet
+Copyright (c) 2023 Charmbracelet, Inc.
+Licensed under the MIT License.
+https://github.com/charmbracelet/ultraviolet/blob/006e29f97886/LICENSE
+
+github.com/charmbracelet/x/ansi
+Copyright (c) 2023 Charmbracelet, Inc.
+Licensed under the MIT License.
+https://github.com/charmbracelet/x/blob/ansi/v0.11.8/ansi/LICENSE
+
+github.com/charmbracelet/x/exp/charmtone
+Copyright (c) 2023 Charmbracelet, Inc.
+Licensed under the MIT License.
+https://github.com/charmbracelet/x/blob/c31516f43444/exp/charmtone/LICENSE
+
+github.com/charmbracelet/x/term
+Copyright (c) 2023 Charmbracelet, Inc.
+Licensed under the MIT License.
+https://github.com/charmbracelet/x/blob/term/v0.2.2/term/LICENSE
+
+github.com/charmbracelet/x/termios
+Copyright (c) 2023 Charmbracelet, Inc.
+Licensed under the MIT License.
+https://github.com/charmbracelet/x/blob/termios/v0.1.1/termios/LICENSE
+
+github.com/charmbracelet/x/windows
+Copyright (c) 2023 Charmbracelet, Inc.
+Licensed under the MIT License.
+https://github.com/charmbracelet/x/blob/windows/v0.2.2/windows/LICENSE
+
+github.com/clipperhouse/displaywidth
+Copyright (c) 2025 Matt Sherman
+Licensed under the MIT License.
+https://github.com/clipperhouse/displaywidth/blob/v0.11.0/LICENSE
+
+github.com/clipperhouse/uax29/v2
+Copyright (c) 2020 Matt Sherman
+Licensed under the MIT License.
+https://github.com/clipperhouse/uax29/blob/v2.7.0/LICENSE
+
+github.com/lucasb-eyer/go-colorful
+Copyright (c) 2013 Lucas Beyer
+Licensed under the MIT License.
+https://github.com/lucasb-eyer/go-colorful/blob/v1.4.1/LICENSE
+
+github.com/mattn/go-runewidth
+Copyright (c) 2016 Yasuhiro Matsumoto
+Licensed under the MIT License.
+https://github.com/mattn/go-runewidth/blob/v0.0.24/LICENSE
+
+github.com/muesli/cancelreader
+Copyright (c) 2022 Erik Geiser and Christian Muehlhaeuser
+Licensed under the MIT License.
+https://github.com/muesli/cancelreader/blob/v0.2.2/LICENSE
+
+github.com/muesli/mango
+Copyright (c) 2022 Christian Muehlhaeuser
+Licensed under the MIT License.
+https://github.com/muesli/mango/blob/v0.1.0/LICENSE
+
+github.com/muesli/mango-cobra
+Copyright (c) 2022 Christian Muehlhaeuser
+Licensed under the MIT License.
+https://github.com/muesli/mango-cobra/blob/v1.2.0/LICENSE
+
+github.com/muesli/mango-pflag
+Copyright (c) 2022 Christian Muehlhaeuser
+Licensed under the MIT License.
+https://github.com/muesli/mango-pflag/blob/v0.1.0/LICENSE
+
+github.com/muesli/roff
+Copyright (c) 2022 Christian Muehlhaeuser
+Licensed under the MIT License.
+https://github.com/muesli/roff/blob/v0.1.0/LICENSE
+
+github.com/rivo/uniseg
+Copyright (c) 2019 Oliver Kuederle
+Licensed under the MIT License.
+https://github.com/rivo/uniseg/blob/v0.4.7/LICENSE.txt
+
+github.com/xo/terminfo
+Copyright (c) 2016 Anmol Sethi
+Licensed under the MIT License.
+https://github.com/xo/terminfo/blob/abceb7e1c41e/LICENSE
+
+golang.org/x/sync
+Copyright 2009 The Go Authors.
+Licensed under a 3-clause BSD license.
+https://cs.opensource.google/go/x/sync/+/refs/tags/v0.23.0:LICENSE
+
+golang.org/x/sys
+Copyright 2009 The Go Authors.
+Licensed under a 3-clause BSD license.
+https://cs.opensource.google/go/x/sys/+/refs/tags/v0.47.0:LICENSE
+
+golang.org/x/text
+Copyright 2009 The Go Authors.
+Licensed under a 3-clause BSD license.
+https://cs.opensource.google/go/x/text/+/refs/tags/v0.42.0:LICENSE
