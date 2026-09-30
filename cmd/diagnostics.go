@@ -38,7 +38,7 @@ func (s severity) String() string {
 	case severityCritical:
 		return "critical"
 	default:
-		return "unknown"
+		panic(fmt.Sprintf("severity: unhandled value %d", int(s)))
 	}
 }
 
