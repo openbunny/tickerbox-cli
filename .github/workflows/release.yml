@@ -29,7 +29,8 @@ jobs:
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
-          version: latest
+          # renovate: datasource=github-releases depName=goreleaser/goreleaser
+          version: v2.18.2
           args: release --snapshot --clean
 
   release:
@@ -50,7 +51,8 @@ jobs:
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
-          version: latest
+          # renovate: datasource=github-releases depName=goreleaser/goreleaser
+          version: v2.18.2
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

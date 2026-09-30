@@ -20,6 +20,17 @@
     labels: ['security'],
     schedule: [],
   },
+  // Tracks CI tool versions pinned as env vars or action inputs, annotated
+  // above each with a Renovate datasource/depName comment.
+  customManagers: [
+    {
+      customType: 'regex',
+      fileMatch: ['^\\.github/workflows/.+\\.ya?ml$'],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s*\\n\\s*[\\w-]+:\\s*[\'"]?(?<currentValue>[^\'"\\s]+)',
+      ],
+    },
+  ],
   packageRules: [
     {
       matchManagers: ['gomod'],
@@ -29,6 +40,11 @@
     {
       matchManagers: ['github-actions'],
       pinDigests: true,
+      automerge: true,
+    },
+    {
+      matchManagers: ['custom.regex'],
+      matchUpdateTypes: ['minor', 'patch'],
       automerge: true,
     },
     {
