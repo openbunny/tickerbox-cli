@@ -99,7 +99,7 @@ binaries, `.deb` and `.rpm` packages are attached to each
 Homebrew, on macOS and Linux:
 
 ```console
-$ brew install openbunny/tap/tickerbox-cli
+$ brew install oa/tap/tickerbox-cli
 ```
 
 From a clone:

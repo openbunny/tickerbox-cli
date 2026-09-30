@@ -103,7 +103,7 @@ release:
   prerelease: auto
 homebrew_casks:
   - repository:
-      owner: openbunny
+      owner: OA
       name: homebrew-tap
       token: '{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}'
     name: tickerbox-cli
