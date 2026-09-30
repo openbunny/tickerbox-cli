@@ -79,9 +79,20 @@ var rootCmd = &cobra.Command{
 // resolved device.
 var deviceIndependentCommands = map[*cobra.Command]bool{}
 
+// reservedCommandNames holds cobra's own auto-generated command names. help,
+// completion, and its two completion-driver subcommands run through
+// PersistentPreRunE like any other command, so without this exclusion they fail to
+// resolve a device even though none of them targets one.
+var reservedCommandNames = map[string]bool{
+	"help":             true,
+	"completion":       true,
+	"__complete":       true,
+	"__completeNoDesc": true,
+}
+
 func commandTargetsDevice(cmd *cobra.Command) bool {
 	for c := cmd; c != nil; c = c.Parent() {
-		if deviceIndependentCommands[c] {
+		if deviceIndependentCommands[c] || reservedCommandNames[c.Name()] {
 			return false
 		}
 	}

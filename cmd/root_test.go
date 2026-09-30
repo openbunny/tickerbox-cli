@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
@@ -214,5 +215,39 @@ func TestPersistentPreRunEResolvesHostForTzSet(t *testing.T) {
 	}
 	if resolvedHost != "http://1.2.3.4" {
 		t.Errorf("resolvedHost = %q; want %q, since tz set targets a device like any other device-needing command", resolvedHost, "http://1.2.3.4")
+	}
+}
+
+func TestCommandTargetsDeviceExcludesReservedCobraNames(t *testing.T) {
+	for _, name := range []string{"help", "completion", "__complete", "__completeNoDesc"} {
+		t.Run(name, func(t *testing.T) {
+			c := &cobra.Command{Use: name}
+			if commandTargetsDevice(c) {
+				t.Errorf("commandTargetsDevice(%s) = true; want false, since it is a reserved cobra command name", name)
+			}
+		})
+	}
+}
+
+func TestBuiltinCommandsSucceedWithZeroDevices(t *testing.T) {
+	useTempDeviceConfigDir(t)
+
+	tests := [][]string{
+		{"help", "device"},
+		{"completion", "bash"},
+		{"__complete", ""},
+	}
+	for _, args := range tests {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			var out bytes.Buffer
+			rootCmd.SetOut(&out)
+			rootCmd.SetErr(&out)
+			rootCmd.SetArgs(args)
+			t.Cleanup(func() { rootCmd.SetArgs(nil) })
+
+			if err := rootCmd.Execute(); err != nil {
+				t.Fatalf("rootCmd.Execute(%v) = %v; want nil with zero devices configured", args, err)
+			}
+		})
 	}
 }
