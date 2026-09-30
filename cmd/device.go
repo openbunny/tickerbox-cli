@@ -41,6 +41,14 @@ type deviceListEntry struct {
 	Default bool   `json:"default"`
 }
 
+type deviceCurrentInfo struct {
+	Host           string `json:"host"`
+	Source         string `json:"source"`
+	Device         string `json:"device"`
+	DefaultDevice  string `json:"default_device"`
+	MatchesDefault bool   `json:"matches_default"`
+}
+
 type discoveredDevice struct {
 	Host     string `json:"host"`
 	Hostname string `json:"hostname"`
@@ -56,6 +64,10 @@ type pingResult struct {
 var deviceCmd = &cobra.Command{
 	Use:   "device",
 	Short: "Manage configured devices",
+	Long: "Manages named devices this CLI can target: add one with `device add <name> <host>`, pick which is " +
+		"used by default with `device use <name>`, or point a single call at any device with --host or " +
+		"--device without changing the default. See `tickerbox profile` for named, device-agnostic setting " +
+		"bundles, and `tickerbox config` for a raw export/import/diff of one device's live snapshot.",
 }
 
 var deviceListCmd = &cobra.Command{
@@ -67,9 +79,9 @@ var deviceListCmd = &cobra.Command{
 }
 
 var deviceAddCmd = &cobra.Command{
-	Use:   "add NAME HOST",
+	Use:   "add <name> <host>",
 	Short: "Add or replace a configured device",
-	Long: "Adds NAME as a device, or replaces it if the name already exists. HOST must include a scheme, " +
+	Long: "Adds name as a device, or replaces it if the name already exists. host must include a scheme, " +
 		"e.g. http://tickerbox.local or http://192.168.1.42.",
 	Example: "  tickerbox device add desk http://tickerbox.local",
 	Args:    cobra.ExactArgs(2),
@@ -77,7 +89,7 @@ var deviceAddCmd = &cobra.Command{
 }
 
 var deviceRmCmd = &cobra.Command{
-	Use:     "rm NAME",
+	Use:     "rm <name>",
 	Short:   "Remove a configured device",
 	Example: "  tickerbox device rm desk",
 	Args:    cobra.ExactArgs(1),
@@ -85,12 +97,22 @@ var deviceRmCmd = &cobra.Command{
 }
 
 var deviceUseCmd = &cobra.Command{
-	Use:     "use NAME",
+	Use:     "use <name>",
 	Short:   "Set the default device",
 	Long:    "Sets NAME as the device used when neither --host, --device, nor $TICKERBOX_HOST is given.",
 	Example: "  tickerbox device use desk",
 	Args:    cobra.ExactArgs(1),
 	RunE:    runDeviceUse,
+}
+
+var deviceCurrentCmd = &cobra.Command{
+	Use:   "current",
+	Short: "Show the device the CLI currently targets",
+	Long: "Shows the host that resolves from --host, --device, $TICKERBOX_HOST, or the config default, in " +
+		"that order, and whether it matches the stored default device.",
+	Example: "  tickerbox device current",
+	Args:    cobra.NoArgs,
+	RunE:    runDeviceCurrent,
 }
 
 var deviceDiscoverCmd = &cobra.Command{
@@ -106,7 +128,7 @@ var deviceDiscoverCmd = &cobra.Command{
 var devicePingAll bool
 
 var devicePingCmd = &cobra.Command{
-	Use:   "ping [NAME]",
+	Use:   "ping [name]",
 	Short: "Check reachability of one or all configured devices",
 	Long:  "Checks whether a configured device answers. Requires exactly one of NAME or --all.",
 	Example: "  tickerbox device ping desk\n" +
@@ -118,8 +140,71 @@ var devicePingCmd = &cobra.Command{
 func init() {
 	devicePingCmd.Flags().BoolVar(&devicePingAll, "all", false, "ping every configured device")
 
-	deviceCmd.AddCommand(deviceListCmd, deviceAddCmd, deviceRmCmd, deviceUseCmd, deviceDiscoverCmd, devicePingCmd)
+	deviceCmd.AddCommand(deviceListCmd, deviceCurrentCmd, deviceAddCmd, deviceRmCmd, deviceUseCmd, deviceDiscoverCmd, devicePingCmd)
 	rootCmd.AddCommand(deviceCmd)
+}
+
+func hostSourceLabel(s config.HostSource) string {
+	switch s {
+	case config.SourceHostFlag:
+		return "--host"
+	case config.SourceDeviceFlag:
+		return "--device"
+	case config.SourceEnv:
+		return "$TICKERBOX_HOST"
+	case config.SourceDefault:
+		return "default"
+	default:
+		return "unknown"
+	}
+}
+
+func runDeviceCurrent(cmd *cobra.Command, args []string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load device config: %w", err)
+	}
+	resolved, err := cfg.Resolve(hostFlag, deviceFlag)
+	if err != nil {
+		return fmt.Errorf("resolve target host: %w", err)
+	}
+
+	matches := false
+	if d, ok := cfg.Devices[cfg.Default]; ok {
+		matches = resolved.Host == d.Host
+	}
+
+	info := deviceCurrentInfo{
+		Host:           resolved.Host,
+		Source:         hostSourceLabel(resolved.Source),
+		Device:         resolved.DeviceName,
+		DefaultDevice:  cfg.Default,
+		MatchesDefault: matches,
+	}
+
+	if jsonOut() {
+		return output.EmitJSON(info)
+	}
+
+	device := info.Device
+	if device == "" {
+		device = "-"
+	}
+	defaultDevice := info.DefaultDevice
+	if defaultDevice == "" {
+		defaultDevice = "-"
+	}
+	matchesText := "no"
+	if info.MatchesDefault {
+		matchesText = "yes"
+	}
+	return output.KV([][2]string{
+		{"host", info.Host},
+		{"source", info.Source},
+		{"device", device},
+		{"default_device", defaultDevice},
+		{"matches_default", matchesText},
+	})
 }
 
 func runDeviceList(cmd *cobra.Command, args []string) error {
@@ -328,7 +413,7 @@ func runDeviceDiscover(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, d := range found {
-		add, err := confirmSystemAction(fmt.Sprintf("Add %s as a device?", d.Host))
+		add, err := confirm(fmt.Sprintf("Add %s as a device?", d.Host))
 		if err != nil {
 			return err
 		}

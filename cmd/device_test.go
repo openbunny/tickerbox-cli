@@ -237,8 +237,8 @@ func TestRunDeviceAddRmUseList(t *testing.T) {
 	if _, ok := cfg.Devices["office"]; ok {
 		t.Error("Devices still contains removed device office")
 	}
-	if cfg.Default != "" {
-		t.Errorf("Default after removing default device = %q, want empty", cfg.Default)
+	if cfg.Default != "kitchen" {
+		t.Errorf("Default after removing the default device with one device left = %q, want kitchen (Load adopts the sole device)", cfg.Default)
 	}
 
 	if err := runDeviceRm(nil, []string{"office"}); err == nil {
