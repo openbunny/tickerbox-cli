@@ -87,13 +87,9 @@ tickerbox device use office
 $ go install github.com/openbunny/tickerbox-cli@latest
 ```
 
-`go install` places the `tickerbox` binary in `$(go env GOPATH)/bin`.
-
-Homebrew:
-
-```console
-$ brew install openbunny/tap/tickerbox
-```
+`go install` places the `tickerbox` binary in `$(go env GOPATH)/bin`. Prebuilt
+binaries, `.deb` and `.rpm` packages are attached to each
+[release](https://github.com/openbunny/tickerbox-cli/releases).
 
 From a clone:
 
