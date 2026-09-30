@@ -1,0 +1,21 @@
+name: Install Go tool
+description: Installs a versioned Go tool into ~/go/bin, cached per module and version so a pinned tool is downloaded once.
+inputs:
+  module:
+    description: Go install target with its version, e.g. mvdan.cc/gofumpt@v0.12.0
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: cache ${{ inputs.module }}
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/go/bin
+        key: ${{ runner.os }}-gobin-${{ inputs.module }}
+    - name: install ${{ inputs.module }}
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        MODULE: ${{ inputs.module }}
+      run: go install "$MODULE"

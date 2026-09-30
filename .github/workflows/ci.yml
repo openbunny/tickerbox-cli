@@ -3,9 +3,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 permissions: {}
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # workflow_ref (not workflow) so a tag-push release run that calls this
+  # workflow alongside security.yml, gitleaks.yml and reuse.yml gets its own
+  # group per called file instead of one shared group that cancels the others.
+  group: ${{ github.workflow_ref }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   test:
@@ -49,19 +53,18 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: ./.github/actions/install-go-tool # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
         with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-gobin-gofumpt-${{ env.GOFUMPT_VERSION }}-staticcheck-${{ env.STATICCHECK_VERSION }}
+          module: mvdan.cc/gofumpt@${{ env.GOFUMPT_VERSION }}
+      - uses: ./.github/actions/install-go-tool # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
+        with:
+          module: honnef.co/go/tools/cmd/staticcheck@${{ env.STATICCHECK_VERSION }}
       - name: gofumpt
         run: |
-          go install "mvdan.cc/gofumpt@${GOFUMPT_VERSION}"
           unformatted=$(gofumpt -l .)
           test -z "$unformatted" || { echo "gofumpt needs to run on:"; echo "$unformatted"; exit 1; }
       - name: staticcheck
-        run: |
-          go install "honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION}"
-          staticcheck ./...
+        run: staticcheck ./...
       - name: golangci-lint
         uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7.0.1
         with:
@@ -107,19 +110,18 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: ./.github/actions/install-go-tool # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
         with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-gobin-actionlint-${{ env.ACTIONLINT_VERSION }}-pinact-${{ env.PINACT_VERSION }}
+          module: github.com/rhysd/actionlint/cmd/actionlint@${{ env.ACTIONLINT_VERSION }}
+      - uses: ./.github/actions/install-go-tool # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
+        with:
+          module: github.com/suzuki-shunsuke/pinact/v5/cmd/pinact@${{ env.PINACT_VERSION }}
       - name: actionlint
-        run: |
-          go install "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
-          actionlint
+        run: actionlint
       - name: pinact
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          go install "github.com/suzuki-shunsuke/pinact/v5/cmd/pinact@${PINACT_VERSION}"
           shopt -s nullglob
           files=(.github/workflows/*.yml .github/workflows/*.yaml)
           if [ "${#files[@]}" -eq 0 ]; then

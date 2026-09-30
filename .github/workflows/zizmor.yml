@@ -1,10 +1,15 @@
+# The trigger below carries no `paths:` filter, on purpose: a required status
+# check attached to a workflow that a path filter can skip never reports on a
+# PR outside those paths, which GitHub's branch protection then waits on
+# forever — this is what blocked every release-please PR (version bump and
+# changelog only, never .github/workflows/**) until an admin force-merged it.
+# The job always runs; the `changed` step below decides whether it has
+# anything to scan, so "Zizmor" always posts a status either way.
 name: zizmor
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/**']
   pull_request:
-    paths: ['.github/workflows/**']
 permissions: {}
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,7 +28,26 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+      - id: changed
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            actions:
+              - '.github/workflows/**'
+              - '.github/actions/**'
+      - name: cache zizmor
+        if: steps.changed.outputs.actions == 'true'
+        id: cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/pipx/venvs/zizmor
+          key: ${{ runner.os }}-pipx-zizmor-${{ env.ZIZMOR_VERSION }}
       - name: zizmor
+        if: steps.changed.outputs.actions == 'true'
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
         run: |
-          pipx install "zizmor==${ZIZMOR_VERSION}"
-          zizmor --persona=pedantic .github/workflows
+          if [ "$CACHE_HIT" != 'true' ]; then
+            pipx install "zizmor==${ZIZMOR_VERSION}"
+          fi
+          zizmor --persona=pedantic .github/workflows .github/actions

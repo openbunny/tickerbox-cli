@@ -3,9 +3,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 permissions: {}
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # workflow_ref (not workflow): release.yml calls this workflow alongside
+  # ci.yml, security.yml and gitleaks.yml, and each needs its own group.
+  group: ${{ github.workflow_ref }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   reuse:

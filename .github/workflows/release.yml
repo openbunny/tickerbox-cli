@@ -36,47 +36,43 @@ jobs:
           version: v2.18.2
           args: release --snapshot --clean
 
-  # A tagged commit is released only if every CI check on that exact commit
-  # concluded successfully: CI failures must block the release, and a tag push
-  # does not re-run CI, so the release job cannot publish on its own.
-  verify:
-    name: Gate release on CI
+  # A tagged commit is released only if it passes the same gates as any other
+  # commit: a tag push does not re-run the CI workflows that graded the merge
+  # commit, so the jobs below call those workflows directly (workflow_call)
+  # and re-run their exact current definition against the tag. `needs:` on
+  # the release job below then blocks it natively on their result — no
+  # polling of the Checks API, since there is nothing external left to poll.
+  ci:
+    name: CI
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
-      checks: read
       contents: read
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - name: Require the tagged commit's CI checks to have passed
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          sha='${{ github.sha }}'
-          repo='${{ github.repository }}'
-          for _ in $(seq 1 45); do
-            json=$(gh api "repos/$repo/commits/$sha/check-runs" --paginate)
-            total=$(jq '[.check_runs[]|select(.name|test("^(Gate release|Release|Snapshot)")|not)]|length' <<<"$json")
-            running=$(jq '[.check_runs[]|select((.name|test("^(Gate release|Release|Snapshot)")|not) and .status!="completed")]|length' <<<"$json")
-            if [ "$total" -gt 0 ] && [ "$running" -eq 0 ]; then
-              failed=$(jq -r '[.check_runs[]|select((.name|test("^(Gate release|Release|Snapshot)")|not) and (.conclusion|IN("success","skipped","neutral")|not))|.name]|join(", ")' <<<"$json")
-              if [ -n "$failed" ]; then
-                echo "::error::refusing to release $sha; failing checks: $failed"
-                exit 1
-              fi
-              echo "all $total CI checks green on $sha; release may proceed"
-              exit 0
-            fi
-            echo "waiting for CI on $sha ($running of $total still running)"
-            sleep 20
-          done
-          echo "::error::refusing to release $sha; CI checks did not complete or none were found"
-          exit 1
+    uses: ./.github/workflows/ci.yml # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
+
+  security:
+    name: Security
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/security.yml # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
+
+  gitleaks:
+    name: Gitleaks
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/gitleaks.yml # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
+
+  reuse:
+    name: REUSE
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reuse.yml # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
 
   release:
     name: Release
-    needs: verify
+    needs: [ci, security, gitleaks, reuse]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write # goreleaser creates the GitHub Release and uploads its artifacts

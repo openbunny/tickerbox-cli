@@ -6,9 +6,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 permissions: {}
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # workflow_ref (not workflow): release.yml calls this workflow alongside
+  # ci.yml, security.yml and reuse.yml, and each needs its own group.
+  group: ${{ github.workflow_ref }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   gitleaks:
@@ -29,11 +32,8 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: ./.github/actions/install-go-tool # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
         with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-gobin-gitleaks-${{ env.GITLEAKS_VERSION }}
+          module: github.com/zricethezav/gitleaks/v8@${{ env.GITLEAKS_VERSION }}
       - name: gitleaks
-        run: |
-          go install "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}"
-          gitleaks detect --source . --redact -v
+        run: gitleaks detect --source . --redact -v

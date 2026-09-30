@@ -6,9 +6,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 permissions: {}
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # workflow_ref (not workflow): release.yml calls this workflow alongside
+  # ci.yml, gitleaks.yml and reuse.yml, and each needs its own group.
+  group: ${{ github.workflow_ref }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   gosec:
@@ -28,19 +31,16 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: ./.github/actions/install-go-tool # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
         with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-gobin-gosec-${{ env.GOSEC_VERSION }}
+          module: github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }}
       - name: gosec
         # G304 (file path from a variable) and G204 (subprocess with a variable)
         # are inherent to a CLI that reads and writes user-named files and opens
         # a browser; go.md forbids the #nosec comment that would suppress them
         # inline, so they are excluded here. -confidence=medium drops a
         # LOW-confidence G101 false positive on a plaintext-warning message.
-        run: |
-          go install "github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}"
-          gosec -confidence=medium -exclude=G204,G304 ./...
+        run: gosec -confidence=medium -exclude=G204,G304 ./...
 
   govulncheck:
     name: Govulncheck
@@ -59,18 +59,15 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-gobin-govulncheck-${{ env.GOVULNCHECK_VERSION }}
       - name: go mod verify
         run: go mod verify
       - name: go mod tidy -diff
         run: go mod tidy -diff
+      - uses: ./.github/actions/install-go-tool # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
+        with:
+          module: golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }}
       - name: govulncheck
-        run: |
-          go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
-          govulncheck ./...
+        run: govulncheck ./...
 
   go-licenses:
     name: Go Licenses
@@ -89,12 +86,9 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: ./.github/actions/install-go-tool # zizmor: ignore[self-repository] actionlint v1.7.12 rejects the $/ form; keep ./ until actionlint accepts it
         with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-gobin-go-licenses-${{ env.GO_LICENSES_VERSION }}
-      - name: install go-licenses
-        run: go install "github.com/google/go-licenses/v2@${GO_LICENSES_VERSION}"
+          module: github.com/google/go-licenses/v2@${{ env.GO_LICENSES_VERSION }}
       - name: report dependency licenses
         run: go-licenses report ./...
       - name: check dependency licenses
