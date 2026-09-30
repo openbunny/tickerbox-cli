@@ -244,7 +244,6 @@ var doctorCmd = &cobra.Command{
 			reports = make([]doctorReport, len(devices))
 			tasks := make([]func(), len(devices))
 			for i, d := range devices {
-				i, d := i, d
 				tasks[i] = func() {
 					c := client.New(restBase(d.Host), timeoutFlag)
 					c.Retries = retryFlag

@@ -66,7 +66,6 @@ func Capture(ctx context.Context, c *client.Client, include []string, withSecret
 	results := make([]captureResult, len(include))
 	tasks := make([]func(), len(include))
 	for i, name := range include {
-		i, name := i, name
 		tasks[i] = func() {
 			if name == SectionTickers {
 				entries, err := getTickers(ctx, c)

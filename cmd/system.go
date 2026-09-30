@@ -394,7 +394,6 @@ func collectDeviceStatuses(ctx context.Context, devices []config.Device) []devic
 	reports := make([]deviceStatusReport, len(devices))
 	tasks := make([]func(), len(devices))
 	for i, d := range devices {
-		i, d := i, d
 		tasks[i] = func() {
 			c := client.New(restBase(d.Host), timeoutFlag)
 			c.Retries = retryFlag

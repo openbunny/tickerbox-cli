@@ -405,7 +405,6 @@ func runDevicePing(cmd *cobra.Command, args []string) error {
 	results := make([]pingResult, len(targets))
 	tasks := make([]func(), len(targets))
 	for i, d := range targets {
-		i, d := i, d
 		tasks[i] = func() {
 			results[i] = pingDevice(cmdContext(cmd), d)
 		}
