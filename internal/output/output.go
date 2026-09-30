@@ -28,6 +28,13 @@ func EmitJSON(v any) error {
 	return nil
 }
 
+func DeviceBanner(name, host string) error {
+	if _, err := fmt.Fprintf(os.Stdout, "device: %s (%s)\n", name, host); err != nil {
+		return fmt.Errorf("write output: %w", err)
+	}
+	return nil
+}
+
 func KV(pairs [][2]string) error {
 	w := tabwriter.NewWriter(os.Stdout, tabMinWidth, tabWidth, tabPadding, tabPadChar, tabFlags)
 	for _, p := range pairs {

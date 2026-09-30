@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/openbunny/tickerbox-cli/internal/client"
 )
 
 func useTempConfigDir(t *testing.T) string {
@@ -156,8 +154,14 @@ func TestAddRemoveSetDefault(t *testing.T) {
 	if err := cfg.Add("living-room", "10.0.0.5"); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
+	if cfg.Default != "living-room" {
+		t.Errorf("Default after first Add() = %q, want living-room (auto-selected)", cfg.Default)
+	}
 	if err := cfg.Add("office", "10.0.0.6"); err != nil {
 		t.Fatalf("Add() error = %v", err)
+	}
+	if cfg.Default != "living-room" {
+		t.Errorf("Default after second Add() = %q, want living-room (unchanged)", cfg.Default)
 	}
 
 	if err := cfg.SetDefault("unknown"); err == nil {
@@ -197,27 +201,33 @@ func TestAddRemoveSetDefault(t *testing.T) {
 
 func TestResolveHost(t *testing.T) {
 	tests := []struct {
-		name       string
-		hostFlag   string
-		deviceFlag string
-		envHost    string
-		cfg        *Config
-		want       string
-		wantErr    bool
+		name           string
+		hostFlag       string
+		deviceFlag     string
+		envHost        string
+		cfg            *Config
+		want           string
+		wantSource     HostSource
+		wantDeviceName string
+		wantErr        bool
 	}{
 		{
-			name:     "host flag wins over everything",
-			hostFlag: "10.0.0.1",
-			envHost:  "10.0.0.2",
-			cfg:      &Config{Default: "kitchen", Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
-			want:     "10.0.0.1",
+			name:           "host flag wins over everything",
+			hostFlag:       "10.0.0.1",
+			envHost:        "10.0.0.2",
+			cfg:            &Config{Default: "kitchen", Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
+			want:           "10.0.0.1",
+			wantSource:     SourceHostFlag,
+			wantDeviceName: "",
 		},
 		{
-			name:       "device flag resolves to its host",
-			deviceFlag: "kitchen",
-			envHost:    "10.0.0.2",
-			cfg:        &Config{Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
-			want:       "10.0.0.3",
+			name:           "device flag resolves to its host",
+			deviceFlag:     "kitchen",
+			envHost:        "10.0.0.2",
+			cfg:            &Config{Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
+			want:           "10.0.0.3",
+			wantSource:     SourceDeviceFlag,
+			wantDeviceName: "kitchen",
 		},
 		{
 			name:       "unknown device flag errors",
@@ -226,20 +236,29 @@ func TestResolveHost(t *testing.T) {
 			wantErr:    true,
 		},
 		{
-			name:    "env host wins over configured default",
-			envHost: "10.0.0.2",
-			cfg:     &Config{Default: "kitchen", Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
-			want:    "10.0.0.2",
+			name:           "env host wins over configured default",
+			envHost:        "10.0.0.2",
+			cfg:            &Config{Default: "kitchen", Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
+			want:           "10.0.0.2",
+			wantSource:     SourceEnv,
+			wantDeviceName: "",
 		},
 		{
-			name: "configured default used when no flag or env",
-			cfg:  &Config{Default: "kitchen", Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
-			want: "10.0.0.3",
+			name:           "configured default used when no flag or env",
+			cfg:            &Config{Default: "kitchen", Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
+			want:           "10.0.0.3",
+			wantSource:     SourceDefault,
+			wantDeviceName: "kitchen",
 		},
 		{
-			name: "client default host used as last resort",
-			cfg:  &Config{Devices: map[string]Device{}},
-			want: client.DefaultHost,
+			name:    "no flags, no env, no default device: errors instead of a fallback host",
+			cfg:     &Config{Devices: map[string]Device{}},
+			wantErr: true,
+		},
+		{
+			name:    "default device set but no longer configured: errors instead of a fallback host",
+			cfg:     &Config{Default: "gone", Devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}},
+			wantErr: true,
 		},
 	}
 
@@ -261,8 +280,77 @@ func TestResolveHost(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ResolveHost() error = %v", err)
 			}
-			if got != tt.want {
-				t.Errorf("ResolveHost() = %q, want %q", got, tt.want)
+			if got.Host != tt.want {
+				t.Errorf("ResolveHost().Host = %q, want %q", got.Host, tt.want)
+			}
+			if got.Source != tt.wantSource {
+				t.Errorf("ResolveHost().Source = %v, want %v", got.Source, tt.wantSource)
+			}
+			if got.DeviceName != tt.wantDeviceName {
+				t.Errorf("ResolveHost().DeviceName = %q, want %q", got.DeviceName, tt.wantDeviceName)
+			}
+		})
+	}
+}
+
+func TestResolveHostErrorsAreDistinct(t *testing.T) {
+	useTempConfigDir(t)
+
+	t.Run("no selection", func(t *testing.T) {
+		cfg := &Config{Devices: map[string]Device{}}
+		_, err := cfg.Resolve("", "")
+		if err == nil {
+			t.Fatal("Resolve() error = nil, want error")
+		}
+		if !strings.Contains(err.Error(), "no target device") {
+			t.Errorf("Resolve() error = %q, want it to mention \"no target device\"", err.Error())
+		}
+	})
+
+	t.Run("broken default", func(t *testing.T) {
+		cfg := &Config{Default: "gone", Devices: map[string]Device{}}
+		_, err := cfg.Resolve("", "")
+		if err == nil {
+			t.Fatal("Resolve() error = nil, want error")
+		}
+		if !strings.Contains(err.Error(), "is not configured") {
+			t.Errorf("Resolve() error = %q, want it to mention \"is not configured\"", err.Error())
+		}
+	})
+}
+
+func TestLoadAdoptsSoleDeviceAsDefault(t *testing.T) {
+	tests := []struct {
+		name        string
+		devices     map[string]Device
+		wantDefault string
+	}{
+		{name: "zero devices: no adoption", devices: map[string]Device{}, wantDefault: ""},
+		{name: "one device: adopted as default", devices: map[string]Device{"kitchen": {Name: "kitchen", Host: "10.0.0.3"}}, wantDefault: "kitchen"},
+		{
+			name: "two devices: no adoption",
+			devices: map[string]Device{
+				"kitchen": {Name: "kitchen", Host: "10.0.0.3"},
+				"office":  {Name: "office", Host: "10.0.0.4"},
+			},
+			wantDefault: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			useTempConfigDir(t)
+			cfg := &Config{Devices: tt.devices}
+			if err := cfg.Save(); err != nil {
+				t.Fatalf("Save() error = %v", err)
+			}
+
+			got, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			if got.Default != tt.wantDefault {
+				t.Errorf("Load().Default = %q, want %q", got.Default, tt.wantDefault)
 			}
 		})
 	}

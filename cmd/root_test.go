@@ -3,8 +3,13 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/spf13/cobra"
+
+	"github.com/openbunny/tickerbox-cli/internal/config"
 )
 
 func TestRestBase(t *testing.T) {
@@ -37,5 +42,156 @@ func TestNewClientAppliesFlags(t *testing.T) {
 	c := newClient()
 	if c.Retries != retryFlag {
 		t.Errorf("got Retries %d; want %d", c.Retries, retryFlag)
+	}
+}
+
+func TestCommandTargetsDevice(t *testing.T) {
+	tests := []struct {
+		name string
+		cmd  *cobra.Command
+		want bool
+	}{
+		{"a leaf under deviceCmd returns false", deviceUseCmd, false},
+		{"deviceCmd itself returns false", deviceCmd, false},
+		{"a leaf under tzCmd returns false", tzListCmd, false},
+		{"tzCmd itself returns false", tzCmd, false},
+		{"profile list returns false", profileListCmd, false},
+		{"profile show returns false", profileShowCmd, false},
+		{"profile rm returns false", profileRmCmd, false},
+		{"version returns false", versionCmd, false},
+		{"profile save returns true", profileSaveCmd, true},
+		{"profile apply returns true", profileApplyCmd, true},
+		{"profile diff returns true", profileDiffCmd, true},
+		{"a representative device-needing leaf returns true", statusCmd, true},
+		{"wifi status returns true", wifiStatusCmd, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := commandTargetsDevice(tt.cmd); got != tt.want {
+				t.Errorf("commandTargetsDevice(%s) = %v; want %v", tt.cmd.Name(), got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPersistentPreRunESkipsDeviceIndependentCommands(t *testing.T) {
+	useTempDeviceConfigDir(t)
+
+	origResolvedHost := resolvedHost
+	t.Cleanup(func() { resolvedHost = origResolvedHost })
+	resolvedHost = "unchanged"
+
+	if err := rootCmd.PersistentPreRunE(deviceListCmd, nil); err != nil {
+		t.Fatalf("PersistentPreRunE(deviceListCmd) = %v; want nil (device-independent commands skip resolution)", err)
+	}
+	if resolvedHost != "unchanged" {
+		t.Errorf("resolvedHost = %q; want unchanged, since deviceListCmd never resolves a target", resolvedHost)
+	}
+}
+
+func TestPersistentPreRunEBanner(t *testing.T) {
+	tests := []struct {
+		name           string
+		devices        map[string]config.Device
+		defaultName    string
+		json           bool
+		wantBanner     bool
+		wantSource     config.HostSource
+		wantDeviceName string
+	}{
+		{
+			name: "multi-device config prints the banner",
+			devices: map[string]config.Device{
+				"kitchen": {Name: "kitchen", Host: "http://10.0.0.1"},
+				"office":  {Name: "office", Host: "http://10.0.0.2"},
+			},
+			defaultName:    "kitchen",
+			wantBanner:     true,
+			wantSource:     config.SourceDefault,
+			wantDeviceName: "kitchen",
+		},
+		{
+			name:           "single-device config: no banner",
+			devices:        map[string]config.Device{"kitchen": {Name: "kitchen", Host: "http://10.0.0.1"}},
+			defaultName:    "kitchen",
+			wantBanner:     false,
+			wantSource:     config.SourceDefault,
+			wantDeviceName: "kitchen",
+		},
+		{
+			name: "multi-device config under --json: no banner",
+			devices: map[string]config.Device{
+				"kitchen": {Name: "kitchen", Host: "http://10.0.0.1"},
+				"office":  {Name: "office", Host: "http://10.0.0.2"},
+			},
+			defaultName:    "kitchen",
+			json:           true,
+			wantBanner:     false,
+			wantSource:     config.SourceDefault,
+			wantDeviceName: "kitchen",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			useTempDeviceConfigDir(t)
+			cfg := &config.Config{Devices: tt.devices, Default: tt.defaultName}
+			if err := cfg.Save(); err != nil {
+				t.Fatalf("Save() error = %v", err)
+			}
+
+			origHostFlag, origDeviceFlag, origJSON := hostFlag, deviceFlag, jsonFlag
+			origHost, origSource, origDeviceName := resolvedHost, resolvedSource, resolvedDeviceName
+			t.Cleanup(func() {
+				hostFlag, deviceFlag, jsonFlag = origHostFlag, origDeviceFlag, origJSON
+				resolvedHost, resolvedSource, resolvedDeviceName = origHost, origSource, origDeviceName
+			})
+			hostFlag, deviceFlag, jsonFlag = "", "", tt.json
+
+			var preErr error
+			stdout := captureStdout(t, func() {
+				preErr = rootCmd.PersistentPreRunE(statusCmd, nil)
+			})
+			if preErr != nil {
+				t.Fatalf("PersistentPreRunE() = %v", preErr)
+			}
+
+			gotBanner := strings.Contains(stdout, "device: ")
+			if gotBanner != tt.wantBanner {
+				t.Errorf("banner printed = %v (stdout %q); want %v", gotBanner, stdout, tt.wantBanner)
+			}
+			if resolvedSource != tt.wantSource {
+				t.Errorf("resolvedSource = %v; want %v", resolvedSource, tt.wantSource)
+			}
+			if resolvedDeviceName != tt.wantDeviceName {
+				t.Errorf("resolvedDeviceName = %q; want %q", resolvedDeviceName, tt.wantDeviceName)
+			}
+		})
+	}
+}
+
+func TestPersistentPreRunEBannerAbsentForDeviceIndependentCommand(t *testing.T) {
+	useTempDeviceConfigDir(t)
+	cfg := &config.Config{Devices: map[string]config.Device{
+		"kitchen": {Name: "kitchen", Host: "http://10.0.0.1"},
+		"office":  {Name: "office", Host: "http://10.0.0.2"},
+	}, Default: "kitchen"}
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	origHostFlag, origDeviceFlag := hostFlag, deviceFlag
+	t.Cleanup(func() { hostFlag, deviceFlag = origHostFlag, origDeviceFlag })
+	hostFlag, deviceFlag = "", ""
+
+	var preErr error
+	stdout := captureStdout(t, func() {
+		preErr = rootCmd.PersistentPreRunE(deviceListCmd, nil)
+	})
+	if preErr != nil {
+		t.Fatalf("PersistentPreRunE(deviceListCmd) = %v", preErr)
+	}
+	if strings.Contains(stdout, "device: ") {
+		t.Errorf("stdout = %q; want no banner for a device-independent command", stdout)
 	}
 }

@@ -12,8 +12,6 @@ import (
 	"slices"
 
 	"github.com/pelletier/go-toml/v2"
-
-	"github.com/openbunny/tickerbox-cli/internal/client"
 )
 
 const (
@@ -77,6 +75,11 @@ func Load() (*Config, error) {
 	if cfg.Devices == nil {
 		cfg.Devices = map[string]Device{}
 	}
+	if cfg.Default == "" && len(cfg.Devices) == 1 {
+		for name := range cfg.Devices {
+			cfg.Default = name
+		}
+	}
 	return &cfg, nil
 }
 
@@ -128,6 +131,9 @@ func (c *Config) Add(name, host string) error {
 		c.Devices = map[string]Device{}
 	}
 	c.Devices[name] = Device{Name: name, Host: host}
+	if c.Default == "" {
+		c.Default = name
+	}
 	return nil
 }
 
@@ -150,33 +156,67 @@ func (c *Config) SetDefault(name string) error {
 	return nil
 }
 
-func ResolveHost(hostFlag, deviceFlag string) (string, error) {
-	if hostFlag != "" {
-		return hostFlag, nil
-	}
+type HostSource int
 
-	cfg, err := Load()
-	if err != nil {
-		return "", err
+const (
+	SourceHostFlag HostSource = iota
+	SourceDeviceFlag
+	SourceEnv
+	SourceDefault
+)
+
+type ResolvedHost struct {
+	Host       string
+	Source     HostSource
+	DeviceName string
+}
+
+// Resolve implements the target-host precedence chain: --host, then --device, then
+// $TICKERBOX_HOST, then the configured default device. Unlike the deleted
+// package-level ResolveHost, it never falls back to a hardcoded default host: with
+// nothing to resolve, or a default device the config no longer lists, it returns an
+// error naming the fix instead of dying later on a fallback host that fooled nobody.
+func (c *Config) Resolve(hostFlag, deviceFlag string) (ResolvedHost, error) {
+	if hostFlag != "" {
+		return ResolvedHost{Host: hostFlag, Source: SourceHostFlag}, nil
 	}
 
 	if deviceFlag != "" {
-		d, ok := cfg.Devices[deviceFlag]
+		d, ok := c.Devices[deviceFlag]
 		if !ok {
-			return "", fmt.Errorf("unknown device %q", deviceFlag)
+			return ResolvedHost{}, fmt.Errorf("unknown device %q: run `tickerbox device list` to see configured devices", deviceFlag)
 		}
-		return d.Host, nil
+		return ResolvedHost{Host: d.Host, Source: SourceDeviceFlag, DeviceName: deviceFlag}, nil
 	}
 
 	if host := os.Getenv(envHost); host != "" {
-		return host, nil
+		return ResolvedHost{Host: host, Source: SourceEnv}, nil
 	}
 
-	if cfg.Default != "" {
-		if d, ok := cfg.Devices[cfg.Default]; ok {
-			return d.Host, nil
+	if c.Default != "" {
+		d, ok := c.Devices[c.Default]
+		if !ok {
+			path, pathErr := Path()
+			if pathErr != nil {
+				return ResolvedHost{}, pathErr
+			}
+			return ResolvedHost{}, fmt.Errorf("default device %q is not configured\n\n"+
+				"config at %s lists it as default but has no matching device entry; run `tickerbox device use <name>` to pick one, or edit the file to clear the stale default",
+				c.Default, path)
 		}
+		return ResolvedHost{Host: d.Host, Source: SourceDefault, DeviceName: c.Default}, nil
 	}
 
-	return client.DefaultHost, nil
+	return ResolvedHost{}, errors.New("no target device: no --host, no --device, no $TICKERBOX_HOST, and no default device configured\n\n" +
+		"add one: `tickerbox device add <name> <host>`\n" +
+		"set a default: `tickerbox device use <name>`\n" +
+		"or target one call: pass --host <url>")
+}
+
+func ResolveHost(hostFlag, deviceFlag string) (ResolvedHost, error) {
+	cfg, err := Load()
+	if err != nil {
+		return ResolvedHost{}, err
+	}
+	return cfg.Resolve(hostFlag, deviceFlag)
 }

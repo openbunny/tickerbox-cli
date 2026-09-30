@@ -18,10 +18,7 @@ import (
 
 const DefaultHost = "http://tickerbox.local"
 
-const (
-	defaultTimeout = 10 * time.Second
-	retryBackoff   = 200 * time.Millisecond
-)
+const retryBackoff = 200 * time.Millisecond
 
 type APIError struct {
 	Path   string
@@ -57,20 +54,6 @@ func New(base string, timeout time.Duration) *Client {
 
 func shouldRetry(status int, err error) bool {
 	return err != nil || status >= http.StatusInternalServerError
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
-}
-
-func Make(host string) *Client {
-	base := strings.TrimRight(firstNonEmpty(host, os.Getenv("TICKERBOX_HOST"), DefaultHost), "/") + "/rest/"
-	return New(base, defaultTimeout)
 }
 
 func (c *Client) url(path string) string {
