@@ -264,7 +264,7 @@ func fetchStatusReport(ctx context.Context, c *client.Client) statusReport {
 func printStatusReport(report statusReport) error {
 	fmt.Println("Features")
 	if report.Features == nil {
-		fmt.Println("  unavailable")
+		fmt.Printf("  unavailable: %v\n", report.Errors["features"])
 	} else {
 		f := report.Features
 		if err := output.KV([][2]string{
@@ -282,7 +282,7 @@ func printStatusReport(report statusReport) error {
 
 	fmt.Println("\nSystem")
 	if report.SystemStatus == nil {
-		fmt.Println("  unavailable")
+		fmt.Printf("  unavailable: %v\n", report.Errors["systemStatus"])
 	} else {
 		s := report.SystemStatus
 		if err := output.KV([][2]string{
@@ -299,7 +299,7 @@ func printStatusReport(report statusReport) error {
 
 	fmt.Println("\nWi-Fi")
 	if report.WifiStatus == nil {
-		fmt.Println("  unavailable")
+		fmt.Printf("  unavailable: %v\n", report.Errors["wifiStatus"])
 	} else {
 		w := report.WifiStatus
 		if err := output.KV([][2]string{
@@ -315,7 +315,7 @@ func printStatusReport(report statusReport) error {
 
 	fmt.Println("\nAccess Point")
 	if report.ApStatus == nil {
-		fmt.Println("  unavailable")
+		fmt.Printf("  unavailable: %v\n", report.Errors["apStatus"])
 	} else {
 		a := report.ApStatus
 		if err := output.KV([][2]string{
@@ -329,7 +329,7 @@ func printStatusReport(report statusReport) error {
 
 	fmt.Println("\nNTP")
 	if report.NtpStatus == nil {
-		fmt.Println("  unavailable")
+		fmt.Printf("  unavailable: %v\n", report.Errors["ntpStatus"])
 	} else {
 		n := report.NtpStatus
 		if err := output.KV([][2]string{
@@ -343,7 +343,7 @@ func printStatusReport(report statusReport) error {
 
 	fmt.Println("\nDisplay")
 	if report.SettingsState == nil {
-		fmt.Println("  unavailable")
+		fmt.Printf("  unavailable: %v\n", report.Errors["settingsState"])
 	} else {
 		d := report.SettingsState
 		if err := output.KV([][2]string{
@@ -357,7 +357,7 @@ func printStatusReport(report statusReport) error {
 
 	fmt.Println("\nClock")
 	if report.ClockSetupState == nil {
-		fmt.Println("  unavailable")
+		fmt.Printf("  unavailable: %v\n", report.Errors["clockSetupState"])
 	} else {
 		cl := report.ClockSetupState
 		if err := output.KV([][2]string{

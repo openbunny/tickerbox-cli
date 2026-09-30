@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -154,6 +155,33 @@ func TestFetchStatusReportAllAvailableHasNoErrors(t *testing.T) {
 	report := fetchStatusReport(context.Background(), client.New(srv.URL+"/", 0))
 	if report.Errors != nil {
 		t.Errorf("report.Errors = %v; want nil when every endpoint responds", report.Errors)
+	}
+}
+
+func TestPrintStatusReportShowsErrorDetail(t *testing.T) {
+	report := statusReport{Errors: map[string]string{
+		"features":        "get features: timeout",
+		"systemStatus":    "get systemStatus: 404",
+		"wifiStatus":      "get wifiStatus: 404",
+		"apStatus":        "get apStatus: 404",
+		"ntpStatus":       "get ntpStatus: 404",
+		"settingsState":   "get settingsState: 404",
+		"clockSetupState": "get clockSetupState: 404",
+	}}
+
+	stdout := captureStdout(t, func() {
+		if err := printStatusReport(report); err != nil {
+			t.Fatalf("printStatusReport: %v", err)
+		}
+	})
+
+	for key, detail := range report.Errors {
+		if !strings.Contains(stdout, detail) {
+			t.Errorf("stdout missing %q's error detail %q; got %q", key, detail, stdout)
+		}
+	}
+	if strings.Count(stdout, "  unavailable\n") != 0 {
+		t.Errorf("stdout contains a bare \"unavailable\" with no error detail: %q", stdout)
 	}
 }
 
