@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"sort"
+	"sync"
 	"testing"
 
 	"github.com/openbunny/tickerbox-cli/internal/client"
@@ -18,10 +19,13 @@ import (
 
 func newTestServer(t *testing.T, bodies map[string]string) (*httptest.Server, *[]string) {
 	t.Helper()
+	var mu sync.Mutex
 	var requested []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path[1:]
+		mu.Lock()
 		requested = append(requested, path)
+		mu.Unlock()
 		body, ok := bodies[path]
 		if !ok {
 			w.WriteHeader(http.StatusNotFound)

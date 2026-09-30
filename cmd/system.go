@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openbunny/tickerbox-cli/internal/client"
+	"github.com/openbunny/tickerbox-cli/internal/concurrent"
 	"github.com/openbunny/tickerbox-cli/internal/config"
 	"github.com/openbunny/tickerbox-cli/internal/output"
 	"github.com/openbunny/tickerbox-cli/internal/section"
@@ -201,25 +202,35 @@ func confirmSystemAction(prompt string) (bool, error) {
 
 func fetchStatusReport(ctx context.Context, c *client.Client) statusReport {
 	var features featuresPayload
-	featuresErr := c.Get(ctx, "features", &features)
+	var featuresErr error
 
 	var sysStatus systemStatusPayload
-	sysStatusErr := c.Get(ctx, "systemStatus", &sysStatus)
+	var sysStatusErr error
 
 	var wifiStatus dashboardWifiStatus
-	wifiStatusErr := c.Get(ctx, "wifiStatus", &wifiStatus)
+	var wifiStatusErr error
 
 	var apStatus dashboardApStatus
-	apStatusErr := c.Get(ctx, "apStatus", &apStatus)
+	var apStatusErr error
 
 	var ntpStatus dashboardNtpStatus
-	ntpStatusErr := c.Get(ctx, "ntpStatus", &ntpStatus)
+	var ntpStatusErr error
 
 	var settingsState dashboardSettingsState
-	settingsStateErr := c.Get(ctx, "settingsState", &settingsState)
+	var settingsStateErr error
 
 	var clockSetupState dashboardClockSetupState
-	clockSetupStateErr := c.Get(ctx, "clockSetupState", &clockSetupState)
+	var clockSetupStateErr error
+
+	concurrent.Run(deviceRequestConcurrency,
+		func() { featuresErr = c.Get(ctx, "features", &features) },
+		func() { sysStatusErr = c.Get(ctx, "systemStatus", &sysStatus) },
+		func() { wifiStatusErr = c.Get(ctx, "wifiStatus", &wifiStatus) },
+		func() { apStatusErr = c.Get(ctx, "apStatus", &apStatus) },
+		func() { ntpStatusErr = c.Get(ctx, "ntpStatus", &ntpStatus) },
+		func() { settingsStateErr = c.Get(ctx, "settingsState", &settingsState) },
+		func() { clockSetupStateErr = c.Get(ctx, "clockSetupState", &clockSetupState) },
+	)
 
 	report := statusReport{Errors: map[string]string{}}
 	if featuresErr == nil {
@@ -381,11 +392,16 @@ type deviceStatusReport struct {
 
 func collectDeviceStatuses(ctx context.Context, devices []config.Device) []deviceStatusReport {
 	reports := make([]deviceStatusReport, len(devices))
+	tasks := make([]func(), len(devices))
 	for i, d := range devices {
-		c := client.New(restBase(d.Host), timeoutFlag)
-		c.Retries = retryFlag
-		reports[i] = deviceStatusReport{Device: d.Name, Host: d.Host, Report: fetchStatusReport(ctx, c)}
+		i, d := i, d
+		tasks[i] = func() {
+			c := client.New(restBase(d.Host), timeoutFlag)
+			c.Retries = retryFlag
+			reports[i] = deviceStatusReport{Device: d.Name, Host: d.Host, Report: fetchStatusReport(ctx, c)}
+		}
 	}
+	concurrent.Run(deviceFanOutConcurrency, tasks...)
 	return reports
 }
 

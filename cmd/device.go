@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openbunny/tickerbox-cli/internal/client"
+	"github.com/openbunny/tickerbox-cli/internal/concurrent"
 	"github.com/openbunny/tickerbox-cli/internal/config"
 	"github.com/openbunny/tickerbox-cli/internal/output"
 )
@@ -402,9 +403,14 @@ func runDevicePing(cmd *cobra.Command, args []string) error {
 	}
 
 	results := make([]pingResult, len(targets))
+	tasks := make([]func(), len(targets))
 	for i, d := range targets {
-		results[i] = pingDevice(cmdContext(cmd), d)
+		i, d := i, d
+		tasks[i] = func() {
+			results[i] = pingDevice(cmdContext(cmd), d)
+		}
 	}
+	concurrent.Run(deviceFanOutConcurrency, tasks...)
 
 	if jsonOut() {
 		return output.EmitJSON(results)

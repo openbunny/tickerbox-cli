@@ -19,6 +19,9 @@ const (
 	defaultTimeout = 10 * time.Second
 
 	maxSSIDLength = 32
+
+	deviceRequestConcurrency = 3
+	deviceFanOutConcurrency  = 8
 )
 
 var (

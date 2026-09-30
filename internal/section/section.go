@@ -8,8 +8,11 @@ import (
 	"strings"
 
 	"github.com/openbunny/tickerbox-cli/internal/client"
+	"github.com/openbunny/tickerbox-cli/internal/concurrent"
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
+
+const captureConcurrency = 3
 
 const (
 	SectionTickers = "tickers"
@@ -52,29 +55,49 @@ type Snapshot struct {
 	Tickers []tickers.Entry `json:"tickers,omitempty"`
 }
 
+type captureResult struct {
+	name    string
+	tickers []tickers.Entry
+	m       map[string]any
+	err     error
+}
+
 func Capture(ctx context.Context, c *client.Client, include []string, withSecrets bool) (*Snapshot, error) {
-	s := &Snapshot{}
-	for _, name := range include {
-		if name == SectionTickers {
-			entries, err := getTickers(ctx, c)
-			if err != nil {
-				return nil, err
+	results := make([]captureResult, len(include))
+	tasks := make([]func(), len(include))
+	for i, name := range include {
+		i, name := i, name
+		tasks[i] = func() {
+			if name == SectionTickers {
+				entries, err := getTickers(ctx, c)
+				results[i] = captureResult{name: name, tickers: entries, err: err}
+				return
 			}
-			s.Tickers = entries
+			path, ok := mapSectionPath[name]
+			if !ok {
+				results[i] = captureResult{name: name, err: fmt.Errorf("unknown section %q", name)}
+				return
+			}
+			m, err := getMap(ctx, c, path)
+			results[i] = captureResult{name: name, m: m, err: err}
+		}
+	}
+	concurrent.Run(captureConcurrency, tasks...)
+
+	s := &Snapshot{}
+	for _, r := range results {
+		if r.err != nil {
+			return nil, r.err
+		}
+		if r.name == SectionTickers {
+			s.Tickers = r.tickers
 			continue
 		}
-		path, ok := mapSectionPath[name]
-		if !ok {
-			return nil, fmt.Errorf("unknown section %q", name)
-		}
-		m, err := getMap(ctx, c, path)
-		if err != nil {
-			return nil, err
-		}
-		if secretSections[name] && !withSecrets {
+		m := r.m
+		if secretSections[r.name] && !withSecrets {
 			m = stripSecrets(m)
 		}
-		setSection(s, name, m)
+		setSection(s, r.name, m)
 	}
 	return s, nil
 }

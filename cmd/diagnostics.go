@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openbunny/tickerbox-cli/internal/client"
+	"github.com/openbunny/tickerbox-cli/internal/concurrent"
 	"github.com/openbunny/tickerbox-cli/internal/config"
 	"github.com/openbunny/tickerbox-cli/internal/output"
 )
@@ -152,37 +153,55 @@ func aggregateSeverity(checks []doctorCheck) severity {
 }
 
 func runDoctor(ctx context.Context, c *client.Client) doctorReport {
-	checks := []doctorCheck{secretExposureCheck()}
-
 	var features featuresPayload
-	if err := c.Get(ctx, "features", &features); err != nil {
-		checks = append(checks, fetchFailureCheck("features", err))
-	}
+	var featuresErr error
 
 	var sys systemStatusPayload
-	if err := c.Get(ctx, "systemStatus", &sys); err != nil {
-		checks = append(checks, fetchFailureCheck("systemStatus", err))
+	var sysErr error
+
+	var wifi dashboardWifiStatus
+	var wifiErr error
+
+	var ap dashboardApStatus
+	var apErr error
+
+	var ntp dashboardNtpStatus
+	var ntpErr error
+
+	concurrent.Run(deviceRequestConcurrency,
+		func() { featuresErr = c.Get(ctx, "features", &features) },
+		func() { sysErr = c.Get(ctx, "systemStatus", &sys) },
+		func() { wifiErr = c.Get(ctx, "wifiStatus", &wifi) },
+		func() { apErr = c.Get(ctx, "apStatus", &ap) },
+		func() { ntpErr = c.Get(ctx, "ntpStatus", &ntp) },
+	)
+
+	checks := []doctorCheck{secretExposureCheck()}
+
+	if featuresErr != nil {
+		checks = append(checks, fetchFailureCheck("features", featuresErr))
+	}
+
+	if sysErr != nil {
+		checks = append(checks, fetchFailureCheck("systemStatus", sysErr))
 	} else {
 		checks = append(checks, evaluateFreeHeap(sys.FreeHeap), evaluateFsHeadroom(sys.FsTotal, sys.FsUsed))
 	}
 
-	var wifi dashboardWifiStatus
-	if err := c.Get(ctx, "wifiStatus", &wifi); err != nil {
-		checks = append(checks, fetchFailureCheck("wifiStatus", err))
+	if wifiErr != nil {
+		checks = append(checks, fetchFailureCheck("wifiStatus", wifiErr))
 	} else {
 		checks = append(checks, evaluateWifi(wifi.Status))
 	}
 
-	var ap dashboardApStatus
-	if err := c.Get(ctx, "apStatus", &ap); err != nil {
-		checks = append(checks, fetchFailureCheck("apStatus", err))
+	if apErr != nil {
+		checks = append(checks, fetchFailureCheck("apStatus", apErr))
 	} else {
 		checks = append(checks, evaluateApExposure(ap.Status))
 	}
 
-	var ntp dashboardNtpStatus
-	if err := c.Get(ctx, "ntpStatus", &ntp); err != nil {
-		checks = append(checks, fetchFailureCheck("ntpStatus", err))
+	if ntpErr != nil {
+		checks = append(checks, fetchFailureCheck("ntpStatus", ntpErr))
 	} else {
 		checks = append(checks, evaluateNtp(ntp.Status))
 	}
@@ -222,13 +241,19 @@ var doctorCmd = &cobra.Command{
 			if len(devices) == 0 {
 				return errors.New("no devices configured: --all has nothing to check")
 			}
-			for _, d := range devices {
-				c := client.New(restBase(d.Host), timeoutFlag)
-				c.Retries = retryFlag
-				report := runDoctor(cmdContext(cmd), c)
-				report.Device = d.Name
-				reports = append(reports, report)
+			reports = make([]doctorReport, len(devices))
+			tasks := make([]func(), len(devices))
+			for i, d := range devices {
+				i, d := i, d
+				tasks[i] = func() {
+					c := client.New(restBase(d.Host), timeoutFlag)
+					c.Retries = retryFlag
+					report := runDoctor(cmdContext(cmd), c)
+					report.Device = d.Name
+					reports[i] = report
+				}
 			}
+			concurrent.Run(deviceFanOutConcurrency, tasks...)
 		} else {
 			report := runDoctor(cmdContext(cmd), newClient())
 			report.Device = resolvedHost
