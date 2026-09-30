@@ -139,12 +139,17 @@ var apStatusCmd = &cobra.Command{
 var apSettingsCmd = &cobra.Command{
 	Use:     "settings",
 	Short:   "Show access point settings",
-	Long:    "The AP password is always shown in the clear; there is no masking flag.",
+	Long:    "Password is masked as ******** unless --show-secrets is given.",
 	Example: "  tickerbox ap settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		showSecrets, _ := cmd.Flags().GetBool("show-secrets")
+
 		var s apSettingsPayload
 		if err := newClient().Get(cmdContext(cmd), "apSettings", &s); err != nil {
 			return fmt.Errorf("get ap settings: %w", err)
+		}
+		if !showSecrets {
+			s.Password = maskSecret(s.Password)
 		}
 		if jsonOut() {
 			return output.EmitJSON(s)
@@ -201,6 +206,9 @@ func init() {
 	apSetCmd.Flags().StringVar(&gatewayIP, "gateway-ip", "", "AP gateway IP")
 	apSetCmd.Flags().StringVar(&subnetMask, "subnet-mask", "", "AP subnet mask")
 
+	apSetCmd.MarkFlagsMutuallyExclusive("hidden", "no-hidden")
+	apSetCmd.MarkFlagsMutuallyExclusive("password", "password-stdin")
+
 	apSetCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		c := newClient()
 
@@ -244,9 +252,6 @@ func init() {
 				return fmt.Errorf("invalid --channel %d: must be %d-%d", channel, minAPChannel, maxAPChannel)
 			}
 			cur.Channel = channel
-		}
-		if flags.Changed("hidden") && flags.Changed("no-hidden") {
-			return fmt.Errorf("cannot set both --hidden and --no-hidden")
 		}
 		if flags.Changed("hidden") {
 			cur.SSIDHidden = true
@@ -364,6 +369,8 @@ func init() {
 	ntpSetCmd.Flags().StringVar(&server, "server", "", "NTP server hostname or IP")
 	ntpSetCmd.Flags().StringVar(&label, "tz", "", "timezone label")
 
+	ntpSetCmd.MarkFlagsMutuallyExclusive("enabled", "disabled")
+
 	ntpSetCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		c := newClient()
 
@@ -374,9 +381,6 @@ func init() {
 
 		flags := cmd.Flags()
 
-		if flags.Changed("enabled") && flags.Changed("disabled") {
-			return fmt.Errorf("cannot set both --enabled and --disabled")
-		}
 		if flags.Changed("enabled") {
 			cur.Enabled = true
 		}
@@ -412,10 +416,10 @@ func init() {
 }
 
 var timeCmd = &cobra.Command{
-	Use:   "time [VALUE]",
+	Use:   "time [value]",
 	Short: "Device wall-clock time",
-	Long: "Sets the device wall clock. With no VALUE, or VALUE `now`, uses the current UTC time. " +
-		"Otherwise VALUE must be RFC3339 or 2006-01-02T15:04:05, and is sent to the device as UTC.",
+	Long: "Sets the device wall clock. With no value, or value `now`, uses the current UTC time. " +
+		"Otherwise value must be RFC3339 or 2006-01-02T15:04:05, and is sent to the device as UTC.",
 	Example: "  tickerbox time\n" +
 		"  tickerbox time 2026-01-15T09:00:00Z",
 	Args: cobra.MaximumNArgs(1),
@@ -443,6 +447,8 @@ var timeCmd = &cobra.Command{
 }
 
 func init() {
+	apSettingsCmd.Flags().Bool("show-secrets", false, "reveal the AP password instead of masking it")
+
 	apCmd.AddCommand(apStatusCmd, apSettingsCmd, apSetCmd)
 	ntpCmd.AddCommand(ntpStatusCmd, ntpSettingsCmd, ntpSetCmd)
 	rootCmd.AddCommand(apCmd, ntpCmd, timeCmd)

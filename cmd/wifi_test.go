@@ -36,7 +36,7 @@ func TestWifiStatusLabel(t *testing.T) {
 	}
 }
 
-func TestWifiMaskPassword(t *testing.T) {
+func TestMaskSecret(t *testing.T) {
 	tests := []struct {
 		name, in, want string
 	}{
@@ -45,8 +45,8 @@ func TestWifiMaskPassword(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := wifiMaskPassword(tt.in); got != tt.want {
-				t.Errorf("wifiMaskPassword(%q) = %q; want %q", tt.in, got, tt.want)
+			if got := maskSecret(tt.in); got != tt.want {
+				t.Errorf("maskSecret(%q) = %q; want %q", tt.in, got, tt.want)
 			}
 		})
 	}
@@ -66,6 +66,8 @@ func wifiSetCmdFixture() *cobra.Command {
 	c.Flags().String("subnet-mask", "", "")
 	c.Flags().String("dns1", "", "")
 	c.Flags().String("dns2", "", "")
+	c.MarkFlagsMutuallyExclusive("password", "password-stdin")
+	c.MarkFlagsMutuallyExclusive("static-ip", "no-static-ip")
 	return c
 }
 
@@ -78,9 +80,8 @@ func TestRunWifiSetRejectsConflictingStaticIPFlags(t *testing.T) {
 		t.Fatalf("set no-static-ip: %v", err)
 	}
 
-	err := runWifiSet(c, nil)
-	if err == nil {
-		t.Fatal("runWifiSet() = nil error; want error for mutually exclusive --static-ip/--no-static-ip")
+	if err := c.ValidateFlagGroups(); err == nil {
+		t.Fatal("ValidateFlagGroups() = nil error; want error for mutually exclusive --static-ip/--no-static-ip")
 	}
 }
 
@@ -330,10 +331,6 @@ func TestRunWifiSetPasswordStdin(t *testing.T) {
 }
 
 func TestRunWifiSetPasswordAndStdinMutuallyExclusive(t *testing.T) {
-	var posted map[string]any
-	srv := wifiSetPasswordServer(t, &posted)
-	withCmdTarget(t, srv.URL)
-
 	c := wifiSetCmdFixture()
 	if err := c.Flags().Set("password", "hunter22"); err != nil {
 		t.Fatalf("set password: %v", err)
@@ -342,7 +339,7 @@ func TestRunWifiSetPasswordAndStdinMutuallyExclusive(t *testing.T) {
 		t.Fatalf("set password-stdin: %v", err)
 	}
 
-	if err := runWifiSet(c, nil); err == nil {
-		t.Fatal("runWifiSet() = nil error; want error for --password and --password-stdin together")
+	if err := c.ValidateFlagGroups(); err == nil {
+		t.Fatal("ValidateFlagGroups() = nil error; want error for --password and --password-stdin together")
 	}
 }

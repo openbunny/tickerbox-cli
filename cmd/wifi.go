@@ -85,6 +85,9 @@ func init() {
 	wifiSetCmd.Flags().String("subnet-mask", "", "static subnet mask")
 	wifiSetCmd.Flags().String("dns1", "", "primary DNS server")
 	wifiSetCmd.Flags().String("dns2", "", "secondary DNS server")
+
+	wifiSetCmd.MarkFlagsMutuallyExclusive("password", "password-stdin")
+	wifiSetCmd.MarkFlagsMutuallyExclusive("static-ip", "no-static-ip")
 }
 
 type wifiStatusResp struct {
@@ -180,7 +183,7 @@ func runWifiSettings(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get wifi settings: %w", err)
 	}
 	if !showSecrets {
-		s.Password = wifiMaskPassword(s.Password)
+		s.Password = maskSecret(s.Password)
 	}
 
 	if jsonOut() {
@@ -205,7 +208,7 @@ func runWifiSettings(cmd *cobra.Command, args []string) error {
 	return output.KV(pairs)
 }
 
-func wifiMaskPassword(password string) string {
+func maskSecret(password string) string {
 	if password == "" {
 		return ""
 	}
@@ -214,10 +217,6 @@ func wifiMaskPassword(password string) string {
 
 func runWifiSet(cmd *cobra.Command, args []string) error {
 	flags := cmd.Flags()
-
-	if flags.Changed("static-ip") && flags.Changed("no-static-ip") {
-		return fmt.Errorf("--static-ip and --no-static-ip are mutually exclusive")
-	}
 
 	c := newClient()
 	var settings map[string]any
@@ -292,8 +291,6 @@ func resolveSecretValue(cmd *cobra.Command, label string) (string, bool, error) 
 	value, _ := flags.GetString("password")
 
 	switch {
-	case stdinRequested && value != "":
-		return "", false, fmt.Errorf("--password and --password-stdin are mutually exclusive")
 	case stdinRequested:
 		secret, err := readSecretStdin()
 		return secret, true, err

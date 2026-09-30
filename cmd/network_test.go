@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -256,7 +257,7 @@ func apSetServer(t *testing.T, posted *map[string]any) *httptest.Server {
 func resetApSetFlags(t *testing.T) {
 	t.Helper()
 	fs := apSetCmd.Flags()
-	for _, name := range []string{"password", "password-stdin", "yes"} {
+	for _, name := range []string{"password", "password-stdin", "yes", "hidden", "no-hidden"} {
 		if err := fs.Set(name, fs.Lookup(name).DefValue); err != nil {
 			t.Fatalf("reset %s: %v", name, err)
 		}
@@ -333,9 +334,6 @@ func TestApSetCmdPasswordStdin(t *testing.T) {
 
 func TestApSetCmdPasswordAndStdinMutuallyExclusive(t *testing.T) {
 	resetApSetFlags(t)
-	var posted map[string]any
-	srv := apSetServer(t, &posted)
-	withCmdTarget(t, srv.URL)
 
 	if err := apSetCmd.Flags().Set("password", "hunterhunter2"); err != nil {
 		t.Fatalf("set password: %v", err)
@@ -344,8 +342,83 @@ func TestApSetCmdPasswordAndStdinMutuallyExclusive(t *testing.T) {
 		t.Fatalf("set password-stdin: %v", err)
 	}
 
-	if err := apSetCmd.RunE(apSetCmd, nil); err == nil {
-		t.Fatal("apSetCmd.RunE() = nil error; want error for --password and --password-stdin together")
+	if err := apSetCmd.ValidateFlagGroups(); err == nil {
+		t.Fatal("ValidateFlagGroups() = nil error; want error for --password and --password-stdin together")
+	}
+}
+
+func TestApSetCmdHiddenAndNoHiddenMutuallyExclusive(t *testing.T) {
+	resetApSetFlags(t)
+
+	if err := apSetCmd.Flags().Set("hidden", "true"); err != nil {
+		t.Fatalf("set hidden: %v", err)
+	}
+	if err := apSetCmd.Flags().Set("no-hidden", "true"); err != nil {
+		t.Fatalf("set no-hidden: %v", err)
+	}
+
+	if err := apSetCmd.ValidateFlagGroups(); err == nil {
+		t.Fatal("ValidateFlagGroups() = nil error; want error for --hidden and --no-hidden together")
+	}
+}
+
+func resetNtpSetFlags(t *testing.T) {
+	t.Helper()
+	fs := ntpSetCmd.Flags()
+	for _, name := range []string{"enabled", "disabled"} {
+		if err := fs.Set(name, fs.Lookup(name).DefValue); err != nil {
+			t.Fatalf("reset %s: %v", name, err)
+		}
+	}
+}
+
+func TestNtpSetCmdEnabledAndDisabledMutuallyExclusive(t *testing.T) {
+	resetNtpSetFlags(t)
+	t.Cleanup(func() { resetNtpSetFlags(t) })
+
+	if err := ntpSetCmd.Flags().Set("enabled", "true"); err != nil {
+		t.Fatalf("set enabled: %v", err)
+	}
+	if err := ntpSetCmd.Flags().Set("disabled", "true"); err != nil {
+		t.Fatalf("set disabled: %v", err)
+	}
+
+	if err := ntpSetCmd.ValidateFlagGroups(); err == nil {
+		t.Fatal("ValidateFlagGroups() = nil error; want error for --enabled and --disabled together")
+	}
+}
+
+func TestApSettingsCmdMasksPasswordByDefault(t *testing.T) {
+	srv := apJSONServer(t, "apSettings", apSettingsPayload{SSID: "box-ap", Password: "hunter2"})
+
+	tests := []struct {
+		name        string
+		showSecrets bool
+		want        string
+	}{
+		{"masked by default", false, "********"},
+		{"revealed with --show-secrets", true, "hunter2"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			withCmdTarget(t, srv.URL)
+			jsonFlag = false
+			if err := apSettingsCmd.Flags().Set("show-secrets", strconv.FormatBool(tt.showSecrets)); err != nil {
+				t.Fatalf("set show-secrets: %v", err)
+			}
+			t.Cleanup(func() {
+				_ = apSettingsCmd.Flags().Set("show-secrets", "false")
+			})
+
+			stdout := captureStdout(t, func() {
+				if err := apSettingsCmd.RunE(apSettingsCmd, nil); err != nil {
+					t.Fatalf("apSettingsCmd.RunE() = %v", err)
+				}
+			})
+			if !strings.Contains(stdout, tt.want) {
+				t.Errorf("apSettingsCmd.RunE() stdout = %q; want it to contain %q", stdout, tt.want)
+			}
+		})
 	}
 }
 

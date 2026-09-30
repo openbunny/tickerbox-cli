@@ -53,6 +53,7 @@ func displaySetCmdFixture() *cobra.Command {
 	c.Flags().Bool("no-sleep", false, "")
 	c.Flags().String("sleep-start", "", "")
 	c.Flags().String("sleep-end", "", "")
+	c.MarkFlagsMutuallyExclusive("sleep", "no-sleep")
 	return c
 }
 
@@ -64,6 +65,8 @@ func clockSetCmdFixture() *cobra.Command {
 	c.Flags().Bool("24h", false, "")
 	c.Flags().Int("animation-speed", 0, "")
 	c.Flags().String("tz", "", "")
+	c.MarkFlagsMutuallyExclusive("enabled", "disabled")
+	c.MarkFlagsMutuallyExclusive("12h", "24h")
 	return c
 }
 
@@ -72,7 +75,6 @@ func TestDisplaySetRejectsInvalidInput(t *testing.T) {
 		name  string
 		flags map[string]string
 	}{
-		{"conflicting sleep flags", map[string]string{"sleep": "true", "no-sleep": "true"}},
 		{"brightness below 10", map[string]string{"brightness": "5"}},
 		{"invalid sleep-start", map[string]string{"sleep-start": "not-a-time"}},
 	}
@@ -89,13 +91,21 @@ func TestDisplaySetRejectsInvalidInput(t *testing.T) {
 	}
 }
 
+func TestDisplaySetSleepAndNoSleepMutuallyExclusive(t *testing.T) {
+	c := displaySetCmdFixture()
+	mustSet(t, c, "sleep", "true")
+	mustSet(t, c, "no-sleep", "true")
+
+	if err := c.ValidateFlagGroups(); err == nil {
+		t.Fatal("ValidateFlagGroups() = nil error; want error for --sleep and --no-sleep together")
+	}
+}
+
 func TestClockSetRejectsInvalidInput(t *testing.T) {
 	tests := []struct {
 		name  string
 		flags map[string]string
 	}{
-		{"conflicting enabled flags", map[string]string{"enabled": "true", "disabled": "true"}},
-		{"conflicting hour format flags", map[string]string{"12h": "true", "24h": "true"}},
 		{"unknown timezone", map[string]string{"tz": "Not/A_Real_Zone"}},
 		{"animation-speed below 10", map[string]string{"animation-speed": "5"}},
 	}
@@ -109,6 +119,26 @@ func TestClockSetRejectsInvalidInput(t *testing.T) {
 				t.Fatalf("expected error for %s", tt.name)
 			}
 		})
+	}
+}
+
+func TestClockSetEnabledAndDisabledMutuallyExclusive(t *testing.T) {
+	c := clockSetCmdFixture()
+	mustSet(t, c, "enabled", "true")
+	mustSet(t, c, "disabled", "true")
+
+	if err := c.ValidateFlagGroups(); err == nil {
+		t.Fatal("ValidateFlagGroups() = nil error; want error for --enabled and --disabled together")
+	}
+}
+
+func TestClockSet12hAnd24hMutuallyExclusive(t *testing.T) {
+	c := clockSetCmdFixture()
+	mustSet(t, c, "12h", "true")
+	mustSet(t, c, "24h", "true")
+
+	if err := c.ValidateFlagGroups(); err == nil {
+		t.Fatal("ValidateFlagGroups() = nil error; want error for --12h and --24h together")
 	}
 }
 

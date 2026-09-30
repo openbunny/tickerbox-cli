@@ -3,7 +3,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -115,9 +114,6 @@ var displaySetCmd = &cobra.Command{
 		sleepStart, _ := flags.GetString("sleep-start")
 		sleepEnd, _ := flags.GetString("sleep-end")
 
-		if sleep && noSleep {
-			return errors.New("--sleep and --no-sleep are mutually exclusive")
-		}
 		if flags.Changed("brightness") && (brightness < minBrightness || brightness > maxBrightness) {
 			return fmt.Errorf("brightness must be between %d and %d, got %d", minBrightness, maxBrightness, brightness)
 		}
@@ -208,12 +204,6 @@ var clockSetCmd = &cobra.Command{
 		animationSpeed, _ := flags.GetInt("animation-speed")
 		tzLabel, _ := flags.GetString("tz")
 
-		if enabled && disabled {
-			return errors.New("--enabled and --disabled are mutually exclusive")
-		}
-		if twelveHour && twentyFourHour {
-			return errors.New("--12h and --24h are mutually exclusive")
-		}
 		if flags.Changed("animation-speed") && (animationSpeed < minAnimationSpeed || animationSpeed > maxAnimationSpeed) {
 			return fmt.Errorf("animation-speed must be between %d and %d, got %d", minAnimationSpeed, maxAnimationSpeed, animationSpeed)
 		}
@@ -275,6 +265,7 @@ func init() {
 	displaySetCmd.Flags().Bool("no-sleep", false, "disable scheduled sleep")
 	displaySetCmd.Flags().String("sleep-start", "", "sleep start time, ISO8601")
 	displaySetCmd.Flags().String("sleep-end", "", "sleep end time, ISO8601")
+	displaySetCmd.MarkFlagsMutuallyExclusive("sleep", "no-sleep")
 
 	clockSetCmd.Flags().Bool("enabled", false, "enable the clock screen")
 	clockSetCmd.Flags().Bool("disabled", false, "disable the clock screen")
@@ -282,4 +273,6 @@ func init() {
 	clockSetCmd.Flags().Bool("24h", false, "use 24-hour time format")
 	clockSetCmd.Flags().Int("animation-speed", 0, "clock animation speed (10-200)")
 	clockSetCmd.Flags().String("tz", "", "timezone label")
+	clockSetCmd.MarkFlagsMutuallyExclusive("enabled", "disabled")
+	clockSetCmd.MarkFlagsMutuallyExclusive("12h", "24h")
 }
