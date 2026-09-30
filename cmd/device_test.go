@@ -193,10 +193,10 @@ func TestPingDevice(t *testing.T) {
 func TestRunDeviceAddRmUseList(t *testing.T) {
 	useTempDeviceConfigDir(t)
 
-	if err := runDeviceAdd(nil, []string{"kitchen", "10.0.0.5"}); err != nil {
+	if err := runDeviceAdd(nil, []string{"kitchen", "http://10.0.0.5"}); err != nil {
 		t.Fatalf("runDeviceAdd() error = %v", err)
 	}
-	if err := runDeviceAdd(nil, []string{"office", "10.0.0.6"}); err != nil {
+	if err := runDeviceAdd(nil, []string{"office", "http://10.0.0.6"}); err != nil {
 		t.Fatalf("runDeviceAdd() error = %v", err)
 	}
 
@@ -243,6 +243,14 @@ func TestRunDeviceAddRmUseList(t *testing.T) {
 
 	if err := runDeviceRm(nil, []string{"office"}); err == nil {
 		t.Error("runDeviceRm(office) twice: error = nil, want error")
+	}
+}
+
+func TestRunDeviceAddRejectsSchemelessHost(t *testing.T) {
+	useTempDeviceConfigDir(t)
+
+	if err := runDeviceAdd(nil, []string{"kitchen", "tickerbox.local"}); err == nil {
+		t.Error("runDeviceAdd() with a schemeless host = nil error, want error")
 	}
 }
 

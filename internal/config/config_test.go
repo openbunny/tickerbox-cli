@@ -57,7 +57,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	dir := useTempConfigDir(t)
 
 	cfg := &Config{Devices: map[string]Device{}}
-	if err := cfg.Add("kitchen", "192.168.1.10"); err != nil {
+	if err := cfg.Add("kitchen", "http://192.168.1.10"); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
 	if err := cfg.SetDefault("kitchen"); err != nil {
@@ -89,7 +89,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	if got.Default != "kitchen" {
 		t.Errorf("Default = %q, want kitchen", got.Default)
 	}
-	want := Device{Name: "kitchen", Host: "192.168.1.10"}
+	want := Device{Name: "kitchen", Host: "http://192.168.1.10"}
 	if got.Devices["kitchen"] != want {
 		t.Errorf("Devices[kitchen] = %+v, want %+v", got.Devices["kitchen"], want)
 	}
@@ -110,7 +110,7 @@ func TestLoadWarnsOnGroupOrWorldReadablePermissions(t *testing.T) {
 			useTempConfigDir(t)
 
 			cfg := &Config{Devices: map[string]Device{}}
-			if err := cfg.Add("kitchen", "10.0.0.1"); err != nil {
+			if err := cfg.Add("kitchen", "http://10.0.0.1"); err != nil {
 				t.Fatalf("Add() error = %v", err)
 			}
 			if err := cfg.Save(); err != nil {
@@ -151,13 +151,13 @@ func TestAddRemoveSetDefault(t *testing.T) {
 		t.Error("Add() with empty host: want error, got nil")
 	}
 
-	if err := cfg.Add("living-room", "10.0.0.5"); err != nil {
+	if err := cfg.Add("living-room", "http://10.0.0.5"); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
 	if cfg.Default != "living-room" {
 		t.Errorf("Default after first Add() = %q, want living-room (auto-selected)", cfg.Default)
 	}
-	if err := cfg.Add("office", "10.0.0.6"); err != nil {
+	if err := cfg.Add("office", "http://10.0.0.6"); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
 	if cfg.Default != "living-room" {
@@ -175,7 +175,7 @@ func TestAddRemoveSetDefault(t *testing.T) {
 	}
 
 	got := cfg.List()
-	want := []Device{{Name: "living-room", Host: "10.0.0.5"}, {Name: "office", Host: "10.0.0.6"}}
+	want := []Device{{Name: "living-room", Host: "http://10.0.0.5"}, {Name: "office", Host: "http://10.0.0.6"}}
 	if len(got) != len(want) {
 		t.Fatalf("List() = %v, want %v", got, want)
 	}
@@ -196,6 +196,32 @@ func TestAddRemoveSetDefault(t *testing.T) {
 	}
 	if _, ok := cfg.Devices["office"]; ok {
 		t.Error("Devices still contains removed device office")
+	}
+}
+
+func TestAddRejectsSchemelessHost(t *testing.T) {
+	tests := []struct {
+		name    string
+		host    string
+		wantErr bool
+	}{
+		{name: "http scheme accepted", host: "http://tickerbox.local"},
+		{name: "https scheme accepted", host: "https://tickerbox.local"},
+		{name: "bare hostname rejected", host: "tickerbox.local", wantErr: true},
+		{name: "bare IP rejected", host: "192.168.1.42", wantErr: true},
+		{name: "other scheme rejected", host: "ws://tickerbox.local", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{Devices: map[string]Device{}}
+			err := cfg.Add("desk", tt.host)
+			if tt.wantErr && err == nil {
+				t.Fatalf("Add(%q) = nil error; want error", tt.host)
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("Add(%q) = %v; want nil", tt.host, err)
+			}
+		})
 	}
 }
 

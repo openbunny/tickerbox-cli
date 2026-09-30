@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -126,6 +127,9 @@ func (c *Config) Add(name, host string) error {
 	}
 	if host == "" {
 		return errors.New("device host must not be empty")
+	}
+	if !strings.HasPrefix(host, "http://") && !strings.HasPrefix(host, "https://") {
+		return fmt.Errorf("device host %q must include a scheme (http:// or https://)", host)
 	}
 	if c.Devices == nil {
 		c.Devices = map[string]Device{}
