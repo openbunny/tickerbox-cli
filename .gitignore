@@ -8,3 +8,7 @@
 *.cover
 *.out
 coverage.*
+
+dist/
+/manpages/
+/completions/

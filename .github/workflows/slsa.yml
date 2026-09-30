@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       hashes: ${{ steps.hash.outputs.hashes }}
     steps:

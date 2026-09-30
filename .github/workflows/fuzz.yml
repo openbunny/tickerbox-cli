@@ -1,0 +1,61 @@
+name: Fuzz
+on:
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 0'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  discover:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      targets: ${{ steps.list.outputs.targets }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: true
+      - id: list
+        run: |
+          targets="[]"
+          for pkg in $(go list ./...); do
+            names=$(go test -list '^Fuzz' "$pkg" | grep '^Fuzz' || true)
+            for name in $names; do
+              targets=$(echo "$targets" | jq -c --arg pkg "$pkg" --arg name "$name" '. + [{"pkg":$pkg,"name":$name}]')
+            done
+          done
+          if [ "$targets" = "[]" ]; then
+            echo "no fuzz targets found via 'go test -list ^Fuzz ./...'" >&2
+            exit 1
+          fi
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+
+  fuzz:
+    needs: discover
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.discover.outputs.targets) }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: true
+      - name: ${{ matrix.target.name }}
+        run: go test -run '^$' -fuzz=${{ matrix.target.name }} -fuzztime=60s ${{ matrix.target.pkg }}

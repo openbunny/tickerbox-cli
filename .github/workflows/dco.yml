@@ -1,0 +1,35 @@
+# Verifies every commit in a pull request carries a Signed-off-by trailer, per
+# CONTRIBUTING.md. The DCO GitHub App (github.com/apps/dco) is an alternative
+# that needs an org-level app install rather than a workflow.
+name: DCO
+on:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  dco:
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: verify sign-off on every commit
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+          for sha in $(git rev-list "$BASE".."$HEAD"); do
+            if ! git show -s --format=%B "$sha" | grep -qiE '^Signed-off-by: .+ <.+@.+>'; then
+              echo "missing Signed-off-by: $sha $(git show -s --format=%s "$sha")"
+              missing=1
+            fi
+          done
+          exit $missing

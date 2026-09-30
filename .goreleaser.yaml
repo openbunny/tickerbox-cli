@@ -1,6 +1,15 @@
 # Release build. Runs only at tag time, deferred until public release is authorized.
 version: 2
 project_name: tickerbox-cli
+before:
+  hooks:
+    - go run ./docs/gen -man
+    - sh -c 'mkdir -p dist/completions && go run . completion bash > dist/completions/tickerbox.bash && go run . completion zsh > dist/completions/tickerbox.zsh && go run . completion fish > dist/completions/tickerbox.fish && go run . completion powershell > dist/completions/tickerbox.ps1'
+    # docs/gen and the completions above write into dist/, but goreleaser's
+    # own "ensure ./dist exists and is empty" check runs immediately after
+    # these hooks and fails if dist/ is non-empty, so the generated files
+    # are relocated out of dist/ before that check runs.
+    - sh -c 'rm -rf manpages completions && mv dist/man manpages && mv dist/completions completions && rm -rf dist'
 builds:
   - id: tickerbox
     main: .
@@ -27,6 +36,10 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
+    files:
+      - LICENSE
+      - NOTICE
+      - LICENSES/*
 checksum:
   name_template: checksums.txt
 sboms:
@@ -46,11 +59,16 @@ sboms:
 signs:
   - id: checksums
     cmd: cosign
-    signature: '${artifact}.sig'
+    signature: '${artifact}.bundle'
     args:
       - sign-blob
       - --key=env://COSIGN_PRIVATE_KEY
-      - --output-signature=${signature}
+      - --bundle=${signature}
+      # cosign's new bundle format otherwise requires reaching Fulcio/Rekor
+      # even for key-based signing; both flags are deprecated but still
+      # honored, and there is no non-deprecated way to keep this offline.
+      - --use-signing-config=false
+      - --tlog-upload=false
       - --yes
       - ${artifact}
     artifacts: checksum
@@ -68,6 +86,21 @@ nfpms:
       - rpm
     bindir: /usr/bin
     section: utils
+    contents:
+      - src: LICENSE
+        dst: /usr/share/doc/tickerbox-cli/LICENSE
+      - src: NOTICE
+        dst: /usr/share/doc/tickerbox-cli/NOTICE
+      - src: LICENSES/*
+        dst: /usr/share/doc/tickerbox-cli/LICENSES
+      - src: manpages/*
+        dst: /usr/share/man/man1
+      - src: completions/tickerbox.bash
+        dst: /usr/share/bash-completion/completions/tickerbox
+      - src: completions/tickerbox.zsh
+        dst: /usr/share/zsh/site-functions/_tickerbox
+      - src: completions/tickerbox.fish
+        dst: /usr/share/fish/vendor_completions.d/tickerbox.fish
 release:
   draft: true
   prerelease: auto
