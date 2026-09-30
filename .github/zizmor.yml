@@ -9,5 +9,4 @@ rules:
       - security.yml
       - gitleaks.yml
       - release.yml
-      - slsa.yml
       - zizmor.yml
