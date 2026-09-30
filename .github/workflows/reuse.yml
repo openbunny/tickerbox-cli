@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   reuse:
+    name: REUSE
     permissions:
       contents: read
     runs-on: ubuntu-24.04

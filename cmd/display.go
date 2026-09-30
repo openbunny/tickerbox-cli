@@ -58,8 +58,8 @@ func yesNo(b bool) string {
 	return "no"
 }
 
-func renderDisplaySettings(s displaySettings) {
-	output.KV([][2]string{
+func renderDisplaySettings(s displaySettings) error {
+	return output.KV([][2]string{
 		{"Brightness", fmt.Sprintf("%d", s.Brightness)},
 		{"Change interval (s)", fmt.Sprintf("%d", s.ChangeInterval)},
 		{"Sleep enabled", yesNo(s.SleepEnabled)},
@@ -68,8 +68,8 @@ func renderDisplaySettings(s displaySettings) {
 	})
 }
 
-func renderClockSettings(s clockSettings) {
-	output.KV([][2]string{
+func renderClockSettings(s clockSettings) error {
+	return output.KV([][2]string{
 		{"Enabled", yesNo(s.Enabled)},
 		{"12-hour format", yesNo(s.TwelveHourFormat)},
 		{"Animation speed", fmt.Sprintf("%d", s.AnimationSpeed)},
@@ -88,14 +88,13 @@ var displaySettingsCmd = &cobra.Command{
 	Example: "  tickerbox display settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var state displaySettings
-		if err := newClient().Get("settingsState", &state); err != nil {
+		if err := newClient().Get(cmdContext(cmd), "settingsState", &state); err != nil {
 			return fmt.Errorf("get display settings: %w", err)
 		}
 		if jsonOut() {
 			return output.EmitJSON(state)
 		}
-		renderDisplaySettings(state)
-		return nil
+		return renderDisplaySettings(state)
 	},
 }
 
@@ -138,7 +137,7 @@ var displaySetCmd = &cobra.Command{
 
 		c := newClient()
 		var state displaySettings
-		if err := c.Get("settingsState", &state); err != nil {
+		if err := c.Get(cmdContext(cmd), "settingsState", &state); err != nil {
 			return fmt.Errorf("get display settings: %w", err)
 		}
 
@@ -161,15 +160,14 @@ var displaySetCmd = &cobra.Command{
 			state.SleepEnd = sleepEnd
 		}
 
-		if err := c.Post("settingsState", state); err != nil {
+		if err := c.Post(cmdContext(cmd), "settingsState", state); err != nil {
 			return fmt.Errorf("post display settings: %w", err)
 		}
 
 		if jsonOut() {
 			return output.EmitJSON(state)
 		}
-		renderDisplaySettings(state)
-		return nil
+		return renderDisplaySettings(state)
 	},
 }
 
@@ -184,14 +182,13 @@ var clockSettingsCmd = &cobra.Command{
 	Example: "  tickerbox clock settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var state clockSettings
-		if err := newClient().Get("clockSetupState", &state); err != nil {
+		if err := newClient().Get(cmdContext(cmd), "clockSetupState", &state); err != nil {
 			return fmt.Errorf("get clock settings: %w", err)
 		}
 		if jsonOut() {
 			return output.EmitJSON(state)
 		}
-		renderClockSettings(state)
-		return nil
+		return renderClockSettings(state)
 	},
 }
 
@@ -228,7 +225,7 @@ var clockSetCmd = &cobra.Command{
 
 		c := newClient()
 		var state clockSettings
-		if err := c.Get("clockSetupState", &state); err != nil {
+		if err := c.Get(cmdContext(cmd), "clockSetupState", &state); err != nil {
 			return fmt.Errorf("get clock settings: %w", err)
 		}
 
@@ -251,15 +248,14 @@ var clockSetCmd = &cobra.Command{
 			state.TZLabel = tzLabel
 		}
 
-		if err := c.Post("clockSetupState", state); err != nil {
+		if err := c.Post(cmdContext(cmd), "clockSetupState", state); err != nil {
 			return fmt.Errorf("post clock settings: %w", err)
 		}
 
 		if jsonOut() {
 			return output.EmitJSON(state)
 		}
-		renderClockSettings(state)
-		return nil
+		return renderClockSettings(state)
 	},
 }
 

@@ -128,7 +128,7 @@ func runWifiStatus(cmd *cobra.Command, args []string) error {
 	c := newClient()
 
 	var s wifiStatusResp
-	if err := c.Get("wifiStatus", &s); err != nil {
+	if err := c.Get(cmdContext(cmd), "wifiStatus", &s); err != nil {
 		return fmt.Errorf("get wifi status: %w", err)
 	}
 
@@ -136,7 +136,7 @@ func runWifiStatus(cmd *cobra.Command, args []string) error {
 		return output.EmitJSON(s)
 	}
 
-	output.KV([][2]string{
+	return output.KV([][2]string{
 		{"status", wifiStatusLabel(s.Status)},
 		{"ssid", s.SSID},
 		{"bssid", s.BSSID},
@@ -148,7 +148,6 @@ func runWifiStatus(cmd *cobra.Command, args []string) error {
 		{"dns_ip_1", s.DNSIP1},
 		{"mac_address", s.MACAddress},
 	})
-	return nil
 }
 
 func wifiStatusLabel(status int) string {
@@ -177,7 +176,7 @@ func runWifiSettings(cmd *cobra.Command, args []string) error {
 
 	c := newClient()
 	var s wifiSettingsResp
-	if err := c.Get("wifiSettings", &s); err != nil {
+	if err := c.Get(cmdContext(cmd), "wifiSettings", &s); err != nil {
 		return fmt.Errorf("get wifi settings: %w", err)
 	}
 	if !showSecrets {
@@ -203,8 +202,7 @@ func runWifiSettings(cmd *cobra.Command, args []string) error {
 			[2]string{"dns_ip_2", s.DNSIP2},
 		)
 	}
-	output.KV(pairs)
-	return nil
+	return output.KV(pairs)
 }
 
 func wifiMaskPassword(password string) string {
@@ -223,7 +221,7 @@ func runWifiSet(cmd *cobra.Command, args []string) error {
 
 	c := newClient()
 	var settings map[string]any
-	if err := c.Get("wifiSettings", &settings); err != nil {
+	if err := c.Get(cmdContext(cmd), "wifiSettings", &settings); err != nil {
 		return fmt.Errorf("get wifi settings: %w", err)
 	}
 
@@ -277,7 +275,7 @@ func runWifiSet(cmd *cobra.Command, args []string) error {
 		warnPlaintextPassword(os.Stderr, resolvedHost, yes)
 	}
 
-	if err := c.Post("wifiSettings", settings); err != nil {
+	if err := c.Post(cmdContext(cmd), "wifiSettings", settings); err != nil {
 		return fmt.Errorf("update wifi settings: %w", err)
 	}
 
@@ -366,7 +364,7 @@ func warnPlaintextPassword(w io.Writer, host string, yes bool) {
 
 func runWifiScan(cmd *cobra.Command, args []string) error {
 	c := newClient()
-	if err := c.Get("scanNetworks", nil); err != nil {
+	if err := c.Get(cmdContext(cmd), "scanNetworks", nil); err != nil {
 		return fmt.Errorf("trigger wifi scan: %w", err)
 	}
 
@@ -374,7 +372,7 @@ func runWifiScan(cmd *cobra.Command, args []string) error {
 	var lastErr error
 	for attempt := 0; attempt < wifiScanAttempts; attempt++ {
 		resp = wifiNetworksResp{}
-		lastErr = c.Get("listNetworks", &resp)
+		lastErr = c.Get(cmdContext(cmd), "listNetworks", &resp)
 		if lastErr == nil && len(resp.Networks) > 0 {
 			break
 		}
@@ -398,6 +396,5 @@ func runWifiScan(cmd *cobra.Command, args []string) error {
 	for i, n := range resp.Networks {
 		rows[i] = []string{n.SSID, strconv.Itoa(n.RSSI), n.BSSID, strconv.Itoa(n.Channel), strconv.Itoa(n.EncryptionType)}
 	}
-	output.Table([]string{"SSID", "RSSI", "BSSID", "CHANNEL", "ENCRYPTION"}, rows)
-	return nil
+	return output.Table([]string{"SSID", "RSSI", "BSSID", "CHANNEL", "ENCRYPTION"}, rows)
 }

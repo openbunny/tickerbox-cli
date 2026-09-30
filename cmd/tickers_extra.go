@@ -153,12 +153,12 @@ var tickersAddBulkCmd = &cobra.Command{
 	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := newClient()
-		entries, err := fetchTickerEntries(c)
+		entries, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
 			return err
 		}
 		entries = append(entries, buildBulkEntries(args, tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency)...)
-		if err := postTickerEntries(c, entries); err != nil {
+		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
 		}
 		if jsonOut() {
@@ -183,7 +183,7 @@ var tickersEditCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := newClient()
-		entries, err := fetchTickerEntries(c)
+		entries, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
 			return err
 		}
@@ -201,7 +201,7 @@ var tickersEditCmd = &cobra.Command{
 			currency:    tickersEditCurrency,
 			currencySet: cmd.Flags().Changed("currency"),
 		})
-		if err := postTickerEntries(c, entries); err != nil {
+		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
 		}
 		if jsonOut() {
@@ -230,7 +230,7 @@ var tickersMoveCmd = &cobra.Command{
 		}
 
 		c := newClient()
-		entries, err := fetchTickerEntries(c)
+		entries, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
 			return err
 		}
@@ -238,7 +238,7 @@ var tickersMoveCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := postTickerEntries(c, reordered); err != nil {
+		if err := postTickerEntries(cmdContext(cmd), c, reordered); err != nil {
 			return err
 		}
 		if jsonOut() {
@@ -254,7 +254,7 @@ var tickersValidateCmd = &cobra.Command{
 	Short:   "Report illegal fields and duplicate symbols in the ticker list",
 	Example: "  tickerbox tickers validate",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		entries, err := fetchTickerEntries(newClient())
+		entries, err := fetchTickerEntries(cmdContext(cmd), newClient())
 		if err != nil {
 			return err
 		}
@@ -311,8 +311,7 @@ var tickersTemplateShowCmd = &cobra.Command{
 		for i, e := range entries {
 			rows[i] = []string{strconv.Itoa(i), e.Type, e.Ticker, e.Time, e.Currency}
 		}
-		output.Table([]string{"#", "type", "ticker", "time", "currency"}, rows)
-		return nil
+		return output.Table([]string{"#", "type", "ticker", "time", "currency"}, rows)
 	},
 }
 
@@ -331,12 +330,12 @@ var tickersTemplateApplyCmd = &cobra.Command{
 			return fmt.Errorf("no such template %q", args[0])
 		}
 		c := newClient()
-		existing, err := fetchTickerEntries(c)
+		existing, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
 			return err
 		}
 		merged := applyTemplatePreset(existing, preset, tickersTemplateReplace)
-		if err := postTickerEntries(c, merged); err != nil {
+		if err := postTickerEntries(cmdContext(cmd), c, merged); err != nil {
 			return err
 		}
 		if jsonOut() {

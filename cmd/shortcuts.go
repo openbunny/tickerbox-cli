@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -57,36 +58,35 @@ func parseBrightnessStep(args []string) (int, error) {
 	return step, nil
 }
 
-func mutateBrightness(c *client.Client, mutate func(int) int) (int, error) {
+func mutateBrightness(ctx context.Context, c *client.Client, mutate func(int) int) (int, error) {
 	var state displaySettings
-	if err := c.Get("settingsState", &state); err != nil {
+	if err := c.Get(ctx, "settingsState", &state); err != nil {
 		return 0, fmt.Errorf("get display settings: %w", err)
 	}
 	state.Brightness = mutate(state.Brightness)
-	if err := c.Post("settingsState", state); err != nil {
+	if err := c.Post(ctx, "settingsState", state); err != nil {
 		return 0, fmt.Errorf("set brightness: %w", err)
 	}
 	return state.Brightness, nil
 }
 
-func setBrightness(c *client.Client, val int) (int, error) {
-	return mutateBrightness(c, func(int) int { return val })
+func setBrightness(ctx context.Context, c *client.Client, val int) (int, error) {
+	return mutateBrightness(ctx, c, func(int) int { return val })
 }
 
-func raiseBrightness(c *client.Client, step int) (int, error) {
-	return mutateBrightness(c, func(cur int) int { return clampBrightness(cur + step) })
+func raiseBrightness(ctx context.Context, c *client.Client, step int) (int, error) {
+	return mutateBrightness(ctx, c, func(cur int) int { return clampBrightness(cur + step) })
 }
 
-func lowerBrightness(c *client.Client, step int) (int, error) {
-	return mutateBrightness(c, func(cur int) int { return clampBrightness(cur - step) })
+func lowerBrightness(ctx context.Context, c *client.Client, step int) (int, error) {
+	return mutateBrightness(ctx, c, func(cur int) int { return clampBrightness(cur - step) })
 }
 
 func renderBrightness(val int) error {
 	if jsonOut() {
 		return output.EmitJSON(map[string]int{"brightness": val})
 	}
-	output.KV([][2]string{{"brightness", strconv.Itoa(val)}})
-	return nil
+	return output.KV([][2]string{{"brightness", strconv.Itoa(val)}})
 }
 
 func formatUptime(seconds int) string {
@@ -113,55 +113,55 @@ func formatUptime(seconds int) string {
 	return strings.Join(parts, " ")
 }
 
-func deviceUptime(c *client.Client) (string, error) {
+func deviceUptime(ctx context.Context, c *client.Client) (string, error) {
 	var st ntpStatusPayload
-	if err := c.Get("ntpStatus", &st); err != nil {
+	if err := c.Get(ctx, "ntpStatus", &st); err != nil {
 		return "", fmt.Errorf("get uptime: %w", err)
 	}
 	return formatUptime(st.Uptime), nil
 }
 
-func rebootDevice(c *client.Client) error {
-	if err := c.Post("restart", nil); err != nil {
+func rebootDevice(ctx context.Context, c *client.Client) error {
+	if err := c.Post(ctx, "restart", nil); err != nil {
 		return fmt.Errorf("restart device: %w", err)
 	}
 	return nil
 }
 
-func setNTPTimezone(c *client.Client, label, posix string) error {
+func setNTPTimezone(ctx context.Context, c *client.Client, label, posix string) error {
 	var settings ntpSettingsPayload
-	if err := c.Get("ntpSettings", &settings); err != nil {
+	if err := c.Get(ctx, "ntpSettings", &settings); err != nil {
 		return fmt.Errorf("get ntp settings: %w", err)
 	}
 	settings.TZLabel = label
 	settings.TZFormat = posix
-	if err := c.Post("ntpSettings", settings); err != nil {
+	if err := c.Post(ctx, "ntpSettings", settings); err != nil {
 		return fmt.Errorf("set ntp settings: %w", err)
 	}
 	return nil
 }
 
-func setClockTimezone(c *client.Client, label string) error {
+func setClockTimezone(ctx context.Context, c *client.Client, label string) error {
 	var state clockSettings
-	if err := c.Get("clockSetupState", &state); err != nil {
+	if err := c.Get(ctx, "clockSetupState", &state); err != nil {
 		return fmt.Errorf("get clock settings: %w", err)
 	}
 	state.TZLabel = label
-	if err := c.Post("clockSetupState", state); err != nil {
+	if err := c.Post(ctx, "clockSetupState", state); err != nil {
 		return fmt.Errorf("set clock settings: %w", err)
 	}
 	return nil
 }
 
-func setDeviceTimezone(c *client.Client, label string) (string, error) {
+func setDeviceTimezone(ctx context.Context, c *client.Client, label string) (string, error) {
 	posix, ok := tz.PosixFor(label)
 	if !ok {
 		return "", fmt.Errorf("unknown timezone label %q", label)
 	}
-	if err := setNTPTimezone(c, label, posix); err != nil {
+	if err := setNTPTimezone(ctx, c, label, posix); err != nil {
 		return "", err
 	}
-	if err := setClockTimezone(c, label); err != nil {
+	if err := setClockTimezone(ctx, c, label); err != nil {
 		return "", err
 	}
 	return posix, nil
@@ -186,7 +186,7 @@ var rebootCmd = &cobra.Command{
 				return nil
 			}
 		}
-		if err := rebootDevice(newClient()); err != nil {
+		if err := rebootDevice(cmdContext(cmd), newClient()); err != nil {
 			return err
 		}
 		fmt.Println("restart requested")
@@ -209,7 +209,7 @@ var brightnessCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		got, err := setBrightness(newClient(), val)
+		got, err := setBrightness(cmdContext(cmd), newClient(), val)
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,7 @@ var brightnessUpCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		got, err := raiseBrightness(newClient(), step)
+		got, err := raiseBrightness(cmdContext(cmd), newClient(), step)
 		if err != nil {
 			return err
 		}
@@ -247,7 +247,7 @@ var brightnessDownCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		got, err := lowerBrightness(newClient(), step)
+		got, err := lowerBrightness(cmdContext(cmd), newClient(), step)
 		if err != nil {
 			return err
 		}
@@ -261,15 +261,14 @@ var uptimeCmd = &cobra.Command{
 	Example: "  tickerbox uptime",
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		formatted, err := deviceUptime(newClient())
+		formatted, err := deviceUptime(cmdContext(cmd), newClient())
 		if err != nil {
 			return err
 		}
 		if jsonOut() {
 			return output.EmitJSON(map[string]string{"uptime": formatted})
 		}
-		output.KV([][2]string{{"uptime", formatted}})
-		return nil
+		return output.KV([][2]string{{"uptime", formatted}})
 	},
 }
 
@@ -282,15 +281,14 @@ var tzSetCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		label := args[0]
-		posix, err := setDeviceTimezone(newClient(), label)
+		posix, err := setDeviceTimezone(cmdContext(cmd), newClient(), label)
 		if err != nil {
 			return err
 		}
 		if jsonOut() {
 			return output.EmitJSON(map[string]string{"tz_label": label, "tz_format": posix})
 		}
-		output.KV([][2]string{{"tz_label", label}, {"tz_format", posix}})
-		return nil
+		return output.KV([][2]string{{"tz_label", label}, {"tz_format", posix}})
 	},
 }
 

@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -63,7 +64,7 @@ func TestWriteBackup(t *testing.T) {
 	t.Chdir(t.TempDir())
 
 	c := client.New(srv.URL+"/", 0)
-	name, err := writeBackup(c)
+	name, err := writeBackup(context.Background(), c)
 	if err != nil {
 		t.Fatalf("writeBackup: %v", err)
 	}
@@ -102,7 +103,7 @@ func TestWriteBackupCaptureError(t *testing.T) {
 	t.Chdir(t.TempDir())
 
 	c := client.New(srv.URL+"/", 0)
-	if _, err := writeBackup(c); err == nil {
+	if _, err := writeBackup(context.Background(), c); err == nil {
 		t.Fatal("writeBackup() with a failing device: want error, got nil")
 	}
 }
@@ -118,7 +119,7 @@ func TestFetchStatusReport(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	report := fetchStatusReport(c)
+	report := fetchStatusReport(context.Background(), c)
 
 	if report.Features == nil || !report.Features.Project {
 		t.Errorf("report.Features = %+v; want Project=true", report.Features)
@@ -150,7 +151,7 @@ func TestFetchStatusReportAllAvailableHasNoErrors(t *testing.T) {
 	srv := newStatusDeviceServer(t, bodies)
 	defer srv.Close()
 
-	report := fetchStatusReport(client.New(srv.URL+"/", 0))
+	report := fetchStatusReport(context.Background(), client.New(srv.URL+"/", 0))
 	if report.Errors != nil {
 		t.Errorf("report.Errors = %v; want nil when every endpoint responds", report.Errors)
 	}
@@ -170,7 +171,7 @@ func TestCollectDeviceStatuses(t *testing.T) {
 		{Name: "kitchen", Host: srvA.URL},
 		{Name: "office", Host: srvB.URL},
 	}
-	got := collectDeviceStatuses(devices)
+	got := collectDeviceStatuses(context.Background(), devices)
 
 	if len(got) != 2 {
 		t.Fatalf("collectDeviceStatuses() returned %d reports; want 2", len(got))
@@ -194,7 +195,7 @@ func useSystemTempConfigDir(t *testing.T) {
 func TestRunStatusAllNoDevicesConfigured(t *testing.T) {
 	useSystemTempConfigDir(t)
 
-	if err := runStatusAll(); err == nil {
+	if err := runStatusAll(context.Background()); err == nil {
 		t.Fatal("runStatusAll() with no configured devices: want error, got nil")
 	}
 }
@@ -217,7 +218,7 @@ func TestRunStatusAllJSON(t *testing.T) {
 	jsonFlag = true
 	defer func() { jsonFlag = origJSON }()
 
-	if err := runStatusAll(); err != nil {
+	if err := runStatusAll(context.Background()); err != nil {
 		t.Fatalf("runStatusAll: %v", err)
 	}
 }

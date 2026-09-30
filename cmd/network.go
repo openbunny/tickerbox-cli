@@ -121,19 +121,18 @@ var apStatusCmd = &cobra.Command{
 	Example: "  tickerbox ap status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var st apStatusPayload
-		if err := newClient().Get("apStatus", &st); err != nil {
+		if err := newClient().Get(cmdContext(cmd), "apStatus", &st); err != nil {
 			return fmt.Errorf("get ap status: %w", err)
 		}
 		if jsonOut() {
 			return output.EmitJSON(st)
 		}
-		output.KV([][2]string{
+		return output.KV([][2]string{
 			{"status", apStatusLabel(st.Status)},
 			{"ip_address", st.IPAddress},
 			{"mac_address", st.MACAddress},
 			{"station_num", strconv.Itoa(st.StationNum)},
 		})
-		return nil
 	},
 }
 
@@ -144,13 +143,13 @@ var apSettingsCmd = &cobra.Command{
 	Example: "  tickerbox ap settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var s apSettingsPayload
-		if err := newClient().Get("apSettings", &s); err != nil {
+		if err := newClient().Get(cmdContext(cmd), "apSettings", &s); err != nil {
 			return fmt.Errorf("get ap settings: %w", err)
 		}
 		if jsonOut() {
 			return output.EmitJSON(s)
 		}
-		output.KV([][2]string{
+		return output.KV([][2]string{
 			{"provision_mode", apModeLabel(s.ProvisionMode)},
 			{"ssid", s.SSID},
 			{"password", s.Password},
@@ -161,7 +160,6 @@ var apSettingsCmd = &cobra.Command{
 			{"gateway_ip", s.GatewayIP},
 			{"subnet_mask", s.SubnetMask},
 		})
-		return nil
 	},
 }
 
@@ -207,7 +205,7 @@ func init() {
 		c := newClient()
 
 		var cur apSettingsPayload
-		if err := c.Get("apSettings", &cur); err != nil {
+		if err := c.Get(cmdContext(cmd), "apSettings", &cur); err != nil {
 			return fmt.Errorf("get ap settings: %w", err)
 		}
 
@@ -277,14 +275,14 @@ func init() {
 			warnPlaintextPassword(os.Stderr, resolvedHost, yes)
 		}
 
-		if err := c.Post("apSettings", cur); err != nil {
+		if err := c.Post(cmdContext(cmd), "apSettings", cur); err != nil {
 			return fmt.Errorf("set ap settings: %w", err)
 		}
 
 		if jsonOut() {
 			return output.EmitJSON(cur)
 		}
-		output.KV([][2]string{
+		return output.KV([][2]string{
 			{"provision_mode", apModeLabel(cur.ProvisionMode)},
 			{"ssid", cur.SSID},
 			{"channel", strconv.Itoa(cur.Channel)},
@@ -294,7 +292,6 @@ func init() {
 			{"gateway_ip", cur.GatewayIP},
 			{"subnet_mask", cur.SubnetMask},
 		})
-		return nil
 	}
 }
 
@@ -309,20 +306,19 @@ var ntpStatusCmd = &cobra.Command{
 	Example: "  tickerbox ntp status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var st ntpStatusPayload
-		if err := newClient().Get("ntpStatus", &st); err != nil {
+		if err := newClient().Get(cmdContext(cmd), "ntpStatus", &st); err != nil {
 			return fmt.Errorf("get ntp status: %w", err)
 		}
 		if jsonOut() {
 			return output.EmitJSON(st)
 		}
-		output.KV([][2]string{
+		return output.KV([][2]string{
 			{"status", ntpStatusLabel(st.Status)},
 			{"utc_time", st.UTCTime},
 			{"local_time", st.LocalTime},
 			{"server", st.Server},
 			{"uptime", strconv.Itoa(st.Uptime)},
 		})
-		return nil
 	},
 }
 
@@ -332,19 +328,18 @@ var ntpSettingsCmd = &cobra.Command{
 	Example: "  tickerbox ntp settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var s ntpSettingsPayload
-		if err := newClient().Get("ntpSettings", &s); err != nil {
+		if err := newClient().Get(cmdContext(cmd), "ntpSettings", &s); err != nil {
 			return fmt.Errorf("get ntp settings: %w", err)
 		}
 		if jsonOut() {
 			return output.EmitJSON(s)
 		}
-		output.KV([][2]string{
+		return output.KV([][2]string{
 			{"enabled", strconv.FormatBool(s.Enabled)},
 			{"server", s.Server},
 			{"tz_label", s.TZLabel},
 			{"tz_format", s.TZFormat},
 		})
-		return nil
 	},
 }
 
@@ -373,7 +368,7 @@ func init() {
 		c := newClient()
 
 		var cur ntpSettingsPayload
-		if err := c.Get("ntpSettings", &cur); err != nil {
+		if err := c.Get(cmdContext(cmd), "ntpSettings", &cur); err != nil {
 			return fmt.Errorf("get ntp settings: %w", err)
 		}
 
@@ -400,20 +395,19 @@ func init() {
 			cur.TZFormat = posix
 		}
 
-		if err := c.Post("ntpSettings", cur); err != nil {
+		if err := c.Post(cmdContext(cmd), "ntpSettings", cur); err != nil {
 			return fmt.Errorf("set ntp settings: %w", err)
 		}
 
 		if jsonOut() {
 			return output.EmitJSON(cur)
 		}
-		output.KV([][2]string{
+		return output.KV([][2]string{
 			{"enabled", strconv.FormatBool(cur.Enabled)},
 			{"server", cur.Server},
 			{"tz_label", cur.TZLabel},
 			{"tz_format", cur.TZFormat},
 		})
-		return nil
 	}
 }
 
@@ -437,15 +431,14 @@ var timeCmd = &cobra.Command{
 
 		formatted := t.UTC().Format(timeLayout)
 		body := map[string]string{"local_time": formatted}
-		if err := newClient().Post("time", body); err != nil {
+		if err := newClient().Post(cmdContext(cmd), "time", body); err != nil {
 			return fmt.Errorf("set device time: %w", err)
 		}
 
 		if jsonOut() {
 			return output.EmitJSON(body)
 		}
-		output.KV([][2]string{{"local_time", formatted}})
-		return nil
+		return output.KV([][2]string{{"local_time", formatted}})
 	},
 }
 

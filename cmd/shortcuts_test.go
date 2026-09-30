@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -152,31 +153,31 @@ func TestBrightnessMutations(t *testing.T) {
 		{
 			name:    "set within range",
 			initial: 100,
-			run:     func(c *client.Client) (int, error) { return setBrightness(c, 200) },
+			run:     func(c *client.Client) (int, error) { return setBrightness(context.Background(), c, 200) },
 			want:    200,
 		},
 		{
 			name:    "raise within range",
 			initial: 100,
-			run:     func(c *client.Client) (int, error) { return raiseBrightness(c, 30) },
+			run:     func(c *client.Client) (int, error) { return raiseBrightness(context.Background(), c, 30) },
 			want:    130,
 		},
 		{
 			name:    "raise clamps at max",
 			initial: 250,
-			run:     func(c *client.Client) (int, error) { return raiseBrightness(c, 20) },
+			run:     func(c *client.Client) (int, error) { return raiseBrightness(context.Background(), c, 20) },
 			want:    maxBrightness,
 		},
 		{
 			name:    "lower within range",
 			initial: 100,
-			run:     func(c *client.Client) (int, error) { return lowerBrightness(c, 30) },
+			run:     func(c *client.Client) (int, error) { return lowerBrightness(context.Background(), c, 30) },
 			want:    70,
 		},
 		{
 			name:    "lower clamps at min",
 			initial: 15,
-			run:     func(c *client.Client) (int, error) { return lowerBrightness(c, 20) },
+			run:     func(c *client.Client) (int, error) { return lowerBrightness(context.Background(), c, 20) },
 			want:    minBrightness,
 		},
 	}
@@ -231,7 +232,7 @@ func TestMutateBrightnessPropagatesErrors(t *testing.T) {
 			defer srv.Close()
 
 			c := client.New(srv.URL+"/", 0)
-			if _, err := setBrightness(c, 150); err == nil {
+			if _, err := setBrightness(context.Background(), c, 150); err == nil {
 				t.Fatal("expected error, got nil")
 			}
 		})
@@ -245,7 +246,7 @@ func TestDeviceUptime(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	got, err := deviceUptime(c)
+	got, err := deviceUptime(context.Background(), c)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -261,7 +262,7 @@ func TestDeviceUptimeError(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	if _, err := deviceUptime(c); err == nil {
+	if _, err := deviceUptime(context.Background(), c); err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
@@ -288,7 +289,7 @@ func TestRebootDevice(t *testing.T) {
 			defer srv.Close()
 
 			c := client.New(srv.URL+"/", 0)
-			err := rebootDevice(c)
+			err := rebootDevice(context.Background(), c)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -315,7 +316,7 @@ func TestSetDeviceTimezoneUnknownLabel(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	if _, err := setDeviceTimezone(c, "Not/AReal"); err == nil {
+	if _, err := setDeviceTimezone(context.Background(), c, "Not/AReal"); err == nil {
 		t.Fatal("expected error for unknown timezone label, got nil")
 	}
 }
@@ -348,7 +349,7 @@ func TestSetDeviceTimezoneWritesBothSections(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	posix, err := setDeviceTimezone(c, label)
+	posix, err := setDeviceTimezone(context.Background(), c, label)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -404,7 +405,7 @@ func TestSetDeviceTimezonePropagatesErrors(t *testing.T) {
 			defer srv.Close()
 
 			c := client.New(srv.URL+"/", 0)
-			if _, err := setDeviceTimezone(c, "Africa/Algiers"); err == nil {
+			if _, err := setDeviceTimezone(context.Background(), c, "Africa/Algiers"); err == nil {
 				t.Fatal("expected error, got nil")
 			}
 		})

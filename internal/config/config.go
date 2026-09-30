@@ -37,12 +37,12 @@ type Config struct {
 	Devices map[string]Device
 }
 
-func Path() string {
+func Path() (string, error) {
 	dir, err := configDir()
 	if err != nil {
-		return filepath.Join(appDirName, configFileName)
+		return "", err
 	}
-	return filepath.Join(dir, configFileName)
+	return filepath.Join(dir, configFileName), nil
 }
 
 func configDir() (string, error) {

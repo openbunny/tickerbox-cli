@@ -3,6 +3,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -63,9 +64,9 @@ func TestGet(t *testing.T) {
 			var out map[string]any
 			var err error
 			if tt.outNil {
-				err = c.Get("thing", nil)
+				err = c.Get(context.Background(), "thing", nil)
 			} else {
-				err = c.Get("thing", &out)
+				err = c.Get(context.Background(), "thing", &out)
 			}
 
 			if tt.wantErr {
@@ -95,7 +96,7 @@ func TestGetTransportError(t *testing.T) {
 	srv.Close()
 
 	c := New(url+"/", 0)
-	err := c.Get("thing", nil)
+	err := c.Get(context.Background(), "thing", nil)
 	if err == nil {
 		t.Fatal("expected transport error, got nil")
 	}
@@ -131,7 +132,7 @@ func TestPost(t *testing.T) {
 			defer srv.Close()
 
 			c := New(srv.URL+"/", 0)
-			err := c.Post("thing", map[string]string{"key": "value"})
+			err := c.Post(context.Background(), "thing", map[string]string{"key": "value"})
 
 			if tt.wantErr {
 				if err == nil {
@@ -163,7 +164,7 @@ func TestPostTransportError(t *testing.T) {
 	srv.Close()
 
 	c := New(url+"/", 0)
-	err := c.Post("thing", nil)
+	err := c.Post(context.Background(), "thing", nil)
 	if err == nil {
 		t.Fatal("expected transport error, got nil")
 	}
@@ -213,7 +214,7 @@ func TestPostFile(t *testing.T) {
 			}
 
 			c := New(srv.URL+"/", 0)
-			err := c.PostFile("thing", "file", filePath)
+			err := c.PostFile(context.Background(), "thing", "file", filePath)
 
 			if tt.wantErr {
 				if err == nil {
@@ -244,7 +245,7 @@ func TestPostFile(t *testing.T) {
 
 func TestPostFileMissingFile(t *testing.T) {
 	c := New("http://example.invalid/", 0)
-	err := c.PostFile("thing", "file", "/nonexistent/path/firmware.bin")
+	err := c.PostFile(context.Background(), "thing", "file", "/nonexistent/path/firmware.bin")
 	if err == nil {
 		t.Fatal("expected error for missing file, got nil")
 	}
@@ -264,12 +265,12 @@ func TestRetry(t *testing.T) {
 		wantStatus int
 		op         func(*Client) error
 	}{
-		{name: "GET succeeds with no failures", failCount: 0, retries: 2, wantCalls: 1, op: func(c *Client) error { return c.Get("thing", nil) }},
-		{name: "GET succeeds after one transient 503", failCount: 1, retries: 2, wantCalls: 2, op: func(c *Client) error { return c.Get("thing", nil) }},
-		{name: "GET exhausts retries into APIError", failCount: 5, retries: 2, wantErr: true, wantCalls: 3, wantStatus: http.StatusServiceUnavailable, op: func(c *Client) error { return c.Get("thing", nil) }},
-		{name: "POST succeeds with no failures", failCount: 0, retries: 2, wantCalls: 1, op: func(c *Client) error { return c.Post("thing", map[string]string{"key": "value"}) }},
-		{name: "POST succeeds after one transient 503", failCount: 1, retries: 2, wantCalls: 2, op: func(c *Client) error { return c.Post("thing", map[string]string{"key": "value"}) }},
-		{name: "POST exhausts retries into APIError", failCount: 5, retries: 2, wantErr: true, wantCalls: 3, op: func(c *Client) error { return c.Post("thing", map[string]string{"key": "value"}) }},
+		{name: "GET succeeds with no failures", failCount: 0, retries: 2, wantCalls: 1, op: func(c *Client) error { return c.Get(context.Background(), "thing", nil) }},
+		{name: "GET succeeds after one transient 503", failCount: 1, retries: 2, wantCalls: 2, op: func(c *Client) error { return c.Get(context.Background(), "thing", nil) }},
+		{name: "GET exhausts retries into APIError", failCount: 5, retries: 2, wantErr: true, wantCalls: 3, wantStatus: http.StatusServiceUnavailable, op: func(c *Client) error { return c.Get(context.Background(), "thing", nil) }},
+		{name: "POST succeeds with no failures", failCount: 0, retries: 2, wantCalls: 1, op: func(c *Client) error { return c.Post(context.Background(), "thing", map[string]string{"key": "value"}) }},
+		{name: "POST succeeds after one transient 503", failCount: 1, retries: 2, wantCalls: 2, op: func(c *Client) error { return c.Post(context.Background(), "thing", map[string]string{"key": "value"}) }},
+		{name: "POST exhausts retries into APIError", failCount: 5, retries: 2, wantErr: true, wantCalls: 3, op: func(c *Client) error { return c.Post(context.Background(), "thing", map[string]string{"key": "value"}) }},
 	}
 
 	for _, tt := range tests {
@@ -324,7 +325,7 @@ func TestRetryDoesNotApplyTo4xx(t *testing.T) {
 	c.Retries = 3
 	c.sleep = func(time.Duration) {}
 
-	if err := c.Get("thing", nil); err == nil {
+	if err := c.Get(context.Background(), "thing", nil); err == nil {
 		t.Fatal("expected error, got nil")
 	}
 	if calls != 1 {
@@ -342,7 +343,7 @@ func TestRetryTransportError(t *testing.T) {
 	var sleeps int
 	c.sleep = func(time.Duration) { sleeps++ }
 
-	err := c.Get("thing", nil)
+	err := c.Get(context.Background(), "thing", nil)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

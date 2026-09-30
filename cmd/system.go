@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -198,27 +199,27 @@ func confirmSystemAction(prompt string) (bool, error) {
 	return line == "y" || line == "yes", nil
 }
 
-func fetchStatusReport(c *client.Client) statusReport {
+func fetchStatusReport(ctx context.Context, c *client.Client) statusReport {
 	var features featuresPayload
-	featuresErr := c.Get("features", &features)
+	featuresErr := c.Get(ctx, "features", &features)
 
 	var sysStatus systemStatusPayload
-	sysStatusErr := c.Get("systemStatus", &sysStatus)
+	sysStatusErr := c.Get(ctx, "systemStatus", &sysStatus)
 
 	var wifiStatus dashboardWifiStatus
-	wifiStatusErr := c.Get("wifiStatus", &wifiStatus)
+	wifiStatusErr := c.Get(ctx, "wifiStatus", &wifiStatus)
 
 	var apStatus dashboardApStatus
-	apStatusErr := c.Get("apStatus", &apStatus)
+	apStatusErr := c.Get(ctx, "apStatus", &apStatus)
 
 	var ntpStatus dashboardNtpStatus
-	ntpStatusErr := c.Get("ntpStatus", &ntpStatus)
+	ntpStatusErr := c.Get(ctx, "ntpStatus", &ntpStatus)
 
 	var settingsState dashboardSettingsState
-	settingsStateErr := c.Get("settingsState", &settingsState)
+	settingsStateErr := c.Get(ctx, "settingsState", &settingsState)
 
 	var clockSetupState dashboardClockSetupState
-	clockSetupStateErr := c.Get("clockSetupState", &clockSetupState)
+	clockSetupStateErr := c.Get(ctx, "clockSetupState", &clockSetupState)
 
 	report := statusReport{Errors: map[string]string{}}
 	if featuresErr == nil {
@@ -262,13 +263,13 @@ func fetchStatusReport(c *client.Client) statusReport {
 	return report
 }
 
-func printStatusReport(report statusReport) {
+func printStatusReport(report statusReport) error {
 	fmt.Println("Features")
 	if report.Features == nil {
 		fmt.Println("  unavailable")
 	} else {
 		f := report.Features
-		output.KV([][2]string{
+		if err := output.KV([][2]string{
 			{"Project", boolText(f.Project)},
 			{"NTP", boolText(f.Ntp)},
 			{"OTA", boolText(f.Ota)},
@@ -276,7 +277,9 @@ func printStatusReport(report statusReport) {
 			{"TickerBox", boolText(f.Tickerbox)},
 			{"Shopify", boolText(f.Shopify)},
 			{"Extra ETF", boolText(f.ExtraEtf)},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("\nSystem")
@@ -284,14 +287,16 @@ func printStatusReport(report statusReport) {
 		fmt.Println("  unavailable")
 	} else {
 		s := report.SystemStatus
-		output.KV([][2]string{
+		if err := output.KV([][2]string{
 			{"Platform", s.EspPlatform},
 			{"SDK Version", s.SdkVersion},
 			{"CPU Frequency", fmt.Sprintf("%d MHz", s.CPUFreqMHz)},
 			{"Free Heap", humanizeBytes(s.FreeHeap)},
 			{"Flash Chip Size", humanizeBytes(s.FlashChipSize)},
 			{"Filesystem", fmt.Sprintf("%s / %s used", humanizeBytes(s.FsUsed), humanizeBytes(s.FsTotal))},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("\nWi-Fi")
@@ -299,13 +304,15 @@ func printStatusReport(report statusReport) {
 		fmt.Println("  unavailable")
 	} else {
 		w := report.WifiStatus
-		output.KV([][2]string{
+		if err := output.KV([][2]string{
 			{"Status", wifiStatusText(w.Status)},
 			{"SSID", w.SSID},
 			{"IP Address", w.LocalIP},
 			{"RSSI", fmt.Sprintf("%d dBm", w.RSSI)},
 			{"Channel", fmt.Sprintf("%d", w.Channel)},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("\nAccess Point")
@@ -313,11 +320,13 @@ func printStatusReport(report statusReport) {
 		fmt.Println("  unavailable")
 	} else {
 		a := report.ApStatus
-		output.KV([][2]string{
+		if err := output.KV([][2]string{
 			{"Status", apStatusText(a.Status)},
 			{"IP Address", a.IPAddress},
 			{"Stations", fmt.Sprintf("%d", a.StationNum)},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("\nNTP")
@@ -325,11 +334,13 @@ func printStatusReport(report statusReport) {
 		fmt.Println("  unavailable")
 	} else {
 		n := report.NtpStatus
-		output.KV([][2]string{
+		if err := output.KV([][2]string{
 			{"Status", ntpStatusText(n.Status)},
 			{"Server", n.Server},
 			{"Local Time", n.LocalTime},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("\nDisplay")
@@ -337,11 +348,13 @@ func printStatusReport(report statusReport) {
 		fmt.Println("  unavailable")
 	} else {
 		d := report.SettingsState
-		output.KV([][2]string{
+		if err := output.KV([][2]string{
 			{"Brightness", fmt.Sprintf("%d", d.Brightness)},
 			{"Change Interval", fmt.Sprintf("%ds", d.ChangeInterval)},
 			{"Sleep", boolText(d.SleepEnabled)},
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("\nClock")
@@ -349,12 +362,15 @@ func printStatusReport(report statusReport) {
 		fmt.Println("  unavailable")
 	} else {
 		cl := report.ClockSetupState
-		output.KV([][2]string{
+		if err := output.KV([][2]string{
 			{"Enabled", boolText(cl.Enabled)},
 			{"12-Hour Format", boolText(cl.TwelveHourFormat)},
 			{"Timezone", cl.TzLabel},
-		})
+		}); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type deviceStatusReport struct {
@@ -363,27 +379,31 @@ type deviceStatusReport struct {
 	Report statusReport `json:"report"`
 }
 
-func collectDeviceStatuses(devices []config.Device) []deviceStatusReport {
+func collectDeviceStatuses(ctx context.Context, devices []config.Device) []deviceStatusReport {
 	reports := make([]deviceStatusReport, len(devices))
 	for i, d := range devices {
 		c := client.New(restBase(d.Host), timeoutFlag)
 		c.Retries = retryFlag
-		reports[i] = deviceStatusReport{Device: d.Name, Host: d.Host, Report: fetchStatusReport(c)}
+		reports[i] = deviceStatusReport{Device: d.Name, Host: d.Host, Report: fetchStatusReport(ctx, c)}
 	}
 	return reports
 }
 
-func runStatusAll() error {
+func runStatusAll(ctx context.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load device config: %w", err)
 	}
 	devices := cfg.List()
 	if len(devices) == 0 {
-		return fmt.Errorf("no devices configured in %s", config.Path())
+		path, pathErr := config.Path()
+		if pathErr != nil {
+			return fmt.Errorf("no devices configured: %w", pathErr)
+		}
+		return fmt.Errorf("no devices configured in %s", path)
 	}
 
-	reports := collectDeviceStatuses(devices)
+	reports := collectDeviceStatuses(ctx, devices)
 	if jsonOut() {
 		return output.EmitJSON(reports)
 	}
@@ -392,7 +412,9 @@ func runStatusAll() error {
 			fmt.Println()
 		}
 		fmt.Printf("=== %s (%s) ===\n", r.Device, r.Host)
-		printStatusReport(r.Report)
+		if err := printStatusReport(r.Report); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -407,15 +429,14 @@ var statusCmd = &cobra.Command{
 	Example: "  tickerbox status --all --json",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if statusAll {
-			return runStatusAll()
+			return runStatusAll(cmdContext(cmd))
 		}
 
-		report := fetchStatusReport(newClient())
+		report := fetchStatusReport(cmdContext(cmd), newClient())
 		if jsonOut() {
 			return output.EmitJSON(report)
 		}
-		printStatusReport(report)
-		return nil
+		return printStatusReport(report)
 	},
 }
 
@@ -431,13 +452,13 @@ var systemInfoCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := newClient()
 		var status systemStatusPayload
-		if err := c.Get("systemStatus", &status); err != nil {
+		if err := c.Get(cmdContext(cmd), "systemStatus", &status); err != nil {
 			return fmt.Errorf("get system status: %w", err)
 		}
 		if jsonOut() {
 			return output.EmitJSON(status)
 		}
-		output.KV([][2]string{
+		return output.KV([][2]string{
 			{"Platform", status.EspPlatform},
 			{"SDK Version", status.SdkVersion},
 			{"CPU Frequency", fmt.Sprintf("%d MHz", status.CPUFreqMHz)},
@@ -451,7 +472,6 @@ var systemInfoCmd = &cobra.Command{
 			{"Flash Chip Speed", fmt.Sprintf("%d MHz", status.FlashChipSpeed/hzPerMHz)},
 			{"Filesystem", fmt.Sprintf("%s / %s used", humanizeBytes(status.FsUsed), humanizeBytes(status.FsTotal))},
 		})
-		return nil
 	},
 }
 
@@ -462,13 +482,13 @@ var systemFeaturesCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := newClient()
 		var f featuresPayload
-		if err := c.Get("features", &f); err != nil {
+		if err := c.Get(cmdContext(cmd), "features", &f); err != nil {
 			return fmt.Errorf("get features: %w", err)
 		}
 		if jsonOut() {
 			return output.EmitJSON(f)
 		}
-		output.KV([][2]string{
+		return output.KV([][2]string{
 			{"Project", boolText(f.Project)},
 			{"NTP", boolText(f.Ntp)},
 			{"OTA", boolText(f.Ota)},
@@ -477,7 +497,6 @@ var systemFeaturesCmd = &cobra.Command{
 			{"Shopify", boolText(f.Shopify)},
 			{"Extra ETF", boolText(f.ExtraEtf)},
 		})
-		return nil
 	},
 }
 
@@ -499,7 +518,7 @@ var systemRestartCmd = &cobra.Command{
 				return nil
 			}
 		}
-		if err := newClient().Post("restart", nil); err != nil {
+		if err := newClient().Post(cmdContext(cmd), "restart", nil); err != nil {
 			return fmt.Errorf("restart device: %w", err)
 		}
 		fmt.Println("restart requested")
@@ -522,8 +541,8 @@ func backupFileName(t time.Time) string {
 	return backupFilePrefix + t.UTC().Format(backupTimeLayout) + backupFileExt
 }
 
-func writeBackup(c *client.Client) (string, error) {
-	snap, err := section.Capture(c, section.Sections, false)
+func writeBackup(ctx context.Context, c *client.Client) (string, error) {
+	snap, err := section.Capture(ctx, c, section.Sections, false)
 	if err != nil {
 		return "", fmt.Errorf("capture config for backup: %w", err)
 	}
@@ -564,14 +583,14 @@ var systemFactoryResetCmd = &cobra.Command{
 
 		c := newClient()
 		if systemFactoryResetBackupFirst {
-			name, err := writeBackup(c)
+			name, err := writeBackup(cmdContext(cmd), c)
 			if err != nil {
 				return fmt.Errorf("backup before factory reset: %w", err)
 			}
 			fmt.Printf("backed up config to %s\n", name)
 		}
 
-		if err := c.Post("factoryReset", nil); err != nil {
+		if err := c.Post(cmdContext(cmd), "factoryReset", nil); err != nil {
 			return fmt.Errorf("factory reset device: %w", err)
 		}
 		fmt.Println("factory reset requested")
@@ -611,7 +630,7 @@ var systemFirmwareUploadCmd = &cobra.Command{
 				return nil
 			}
 		}
-		if err := newClient().PostFile("uploadFirmware", "file", path); err != nil {
+		if err := newClient().PostFile(cmdContext(cmd), "uploadFirmware", "file", path); err != nil {
 			return fmt.Errorf("upload firmware %s: %w", path, err)
 		}
 		fmt.Println("firmware upload complete")

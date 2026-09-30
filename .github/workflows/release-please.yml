@@ -9,10 +9,11 @@ concurrency:
   cancel-in-progress: true
 jobs:
   release-please:
+    name: Release Please
     permissions:
-      contents: write
-      pull-requests: write
-      issues: write
+      contents: write # pushes the release commit and tag
+      pull-requests: write # opens and updates the release PR
+      issues: write # comments release links on issues the release closes
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

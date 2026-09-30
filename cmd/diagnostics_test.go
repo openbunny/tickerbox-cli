@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -177,7 +178,7 @@ func TestRunDoctorHealthyDevice(t *testing.T) {
 	})
 
 	c := client.New(srv.URL+"/rest/", time.Second)
-	report := runDoctor(c)
+	report := runDoctor(context.Background(), c)
 
 	if report.Verdict != severityWarn.String() {
 		t.Fatalf("Verdict = %q; want %q (secret-exposure warning always present)", report.Verdict, severityWarn.String())
@@ -199,7 +200,7 @@ func TestRunDoctorLowHeapIsCritical(t *testing.T) {
 	})
 
 	c := client.New(srv.URL+"/rest/", time.Second)
-	report := runDoctor(c)
+	report := runDoctor(context.Background(), c)
 
 	if report.Verdict != severityCritical.String() {
 		t.Fatalf("Verdict = %q; want %q", report.Verdict, severityCritical.String())
@@ -208,7 +209,7 @@ func TestRunDoctorLowHeapIsCritical(t *testing.T) {
 
 func TestRunDoctorUnreachableDeviceIsCritical(t *testing.T) {
 	c := client.New("http://127.0.0.1:1/rest/", 50*time.Millisecond)
-	report := runDoctor(c)
+	report := runDoctor(context.Background(), c)
 
 	if report.Verdict != severityCritical.String() {
 		t.Fatalf("Verdict = %q; want %q", report.Verdict, severityCritical.String())

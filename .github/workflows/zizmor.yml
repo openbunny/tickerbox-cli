@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   zizmor:
+    name: Zizmor
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -25,4 +26,4 @@ jobs:
       - name: zizmor
         run: |
           pipx install "zizmor==${ZIZMOR_VERSION}"
-          zizmor .github/workflows
+          zizmor --persona=pedantic .github/workflows

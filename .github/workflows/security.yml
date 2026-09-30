@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   gosec:
+    name: Gosec
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -42,6 +43,7 @@ jobs:
           gosec -confidence=medium -exclude=G204,G304 ./...
 
   govulncheck:
+    name: Govulncheck
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -71,6 +73,7 @@ jobs:
           govulncheck ./...
 
   go-licenses:
+    name: Go Licenses
     permissions:
       contents: read
     runs-on: ubuntu-24.04

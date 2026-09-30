@@ -52,7 +52,9 @@ func TestEmitJSONError(t *testing.T) {
 
 func TestKV(t *testing.T) {
 	got := captureStdout(t, func() {
-		KV([][2]string{{"name", "tickerbox"}, {"host", "tickerbox.local"}})
+		if err := KV([][2]string{{"name", "tickerbox"}, {"host", "tickerbox.local"}}); err != nil {
+			t.Fatalf("KV: %v", err)
+		}
 	})
 	for _, want := range []string{"name:", "tickerbox", "host:", "tickerbox.local"} {
 		if !strings.Contains(got, want) {
@@ -66,7 +68,11 @@ func TestKV(t *testing.T) {
 }
 
 func TestKVEmpty(t *testing.T) {
-	got := captureStdout(t, func() { KV(nil) })
+	got := captureStdout(t, func() {
+		if err := KV(nil); err != nil {
+			t.Fatalf("KV: %v", err)
+		}
+	})
 	if got != "" {
 		t.Errorf("got %q; want empty output", got)
 	}
@@ -74,7 +80,9 @@ func TestKVEmpty(t *testing.T) {
 
 func TestTable(t *testing.T) {
 	got := captureStdout(t, func() {
-		Table([]string{"NAME", "HOST"}, [][]string{{"a", "1.2.3.4"}, {"b", "tickerbox.local"}})
+		if err := Table([]string{"NAME", "HOST"}, [][]string{{"a", "1.2.3.4"}, {"b", "tickerbox.local"}}); err != nil {
+			t.Fatalf("Table: %v", err)
+		}
 	})
 	lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
 	if len(lines) != 3 {
@@ -90,7 +98,9 @@ func TestTable(t *testing.T) {
 
 func TestTableNoRows(t *testing.T) {
 	got := captureStdout(t, func() {
-		Table([]string{"NAME"}, nil)
+		if err := Table([]string{"NAME"}, nil); err != nil {
+			t.Fatalf("Table: %v", err)
+		}
 	})
 	if strings.TrimRight(got, "\n") != "NAME" {
 		t.Errorf("got %q; want header-only output", got)

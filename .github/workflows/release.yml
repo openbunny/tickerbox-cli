@@ -11,6 +11,7 @@ jobs:
   # Builds a snapshot with goreleaser on every PR, without publishing, so a
   # broken .goreleaser.yaml or build fails before it reaches a tag push.
   snapshot:
+    name: Snapshot
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -36,9 +37,10 @@ jobs:
           args: release --snapshot --clean
 
   release:
+    name: Release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
-      contents: write
+      contents: write # goreleaser creates the GitHub Release and uploads its artifacts
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

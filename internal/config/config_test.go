@@ -69,7 +69,10 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		t.Fatalf("Save() error = %v", err)
 	}
 
-	path := Path()
+	path, err := Path()
+	if err != nil {
+		t.Fatalf("Path() error = %v", err)
+	}
 	if !strings.HasPrefix(path, dir) {
 		t.Fatalf("Path() = %q, want under %q", path, dir)
 	}
@@ -115,7 +118,10 @@ func TestLoadWarnsOnGroupOrWorldReadablePermissions(t *testing.T) {
 			if err := cfg.Save(); err != nil {
 				t.Fatalf("Save() error = %v", err)
 			}
-			path := Path()
+			path, err := Path()
+			if err != nil {
+				t.Fatalf("Path() error = %v", err)
+			}
 			if err := os.Chmod(path, tt.perm); err != nil {
 				t.Fatalf("Chmod() error = %v", err)
 			}

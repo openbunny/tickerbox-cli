@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -17,9 +18,9 @@ import (
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
 
-func fetchTickerEntries(c *client.Client) ([]tickers.Entry, error) {
+func fetchTickerEntries(ctx context.Context, c *client.Client) ([]tickers.Entry, error) {
 	var state tickers.State
-	if err := c.Get("coinSetupState", &state); err != nil {
+	if err := c.Get(ctx, "coinSetupState", &state); err != nil {
 		return nil, fmt.Errorf("get coinSetupState: %w", err)
 	}
 	entries, err := tickers.Decode(state)
@@ -29,8 +30,8 @@ func fetchTickerEntries(c *client.Client) ([]tickers.Entry, error) {
 	return entries, nil
 }
 
-func postTickerEntries(c *client.Client, entries []tickers.Entry) error {
-	if err := c.Post("coinSetupState", tickers.Encode(entries)); err != nil {
+func postTickerEntries(ctx context.Context, c *client.Client, entries []tickers.Entry) error {
+	if err := c.Post(ctx, "coinSetupState", tickers.Encode(entries)); err != nil {
 		return fmt.Errorf("post coinSetupState: %w", err)
 	}
 	return nil
@@ -65,7 +66,7 @@ var tickersListCmd = &cobra.Command{
 	Short:   "List configured tickers",
 	Example: "  tickerbox tickers list",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		entries, err := fetchTickerEntries(newClient())
+		entries, err := fetchTickerEntries(cmdContext(cmd), newClient())
 		if err != nil {
 			return err
 		}
@@ -76,8 +77,7 @@ var tickersListCmd = &cobra.Command{
 		for i, e := range entries {
 			rows[i] = []string{strconv.Itoa(i), e.Type, e.Ticker, e.Time, e.Currency}
 		}
-		output.Table([]string{"#", "type", "ticker", "time", "currency"}, rows)
-		return nil
+		return output.Table([]string{"#", "type", "ticker", "time", "currency"}, rows)
 	},
 }
 
@@ -93,7 +93,7 @@ var tickersAddCmd = &cobra.Command{
 	Short: "Add a ticker",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := newClient()
-		entries, err := fetchTickerEntries(c)
+		entries, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ var tickersAddCmd = &cobra.Command{
 			Time:     tickersAddTime,
 			Currency: tickersAddCurrency,
 		})
-		if err := postTickerEntries(c, entries); err != nil {
+		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
 		}
 		if jsonOut() {
@@ -124,7 +124,7 @@ var tickersRemoveCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		selector := args[0]
 		c := newClient()
-		entries, err := fetchTickerEntries(c)
+		entries, err := fetchTickerEntries(cmdContext(cmd), c)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ var tickersRemoveCmd = &cobra.Command{
 		removed := entries[idx]
 		entries = append(entries[:idx], entries[idx+1:]...)
 
-		if err := postTickerEntries(c, entries); err != nil {
+		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
 		}
 		if jsonOut() {
@@ -158,7 +158,7 @@ var tickersClearCmd = &cobra.Command{
 		if !tickersClearYes && !confirm("Remove all tickers?") {
 			return fmt.Errorf("clear aborted")
 		}
-		if err := postTickerEntries(newClient(), nil); err != nil {
+		if err := postTickerEntries(cmdContext(cmd), newClient(), nil); err != nil {
 			return err
 		}
 		if jsonOut() {
@@ -176,7 +176,7 @@ var tickersExportCmd = &cobra.Command{
 	Short:   "Export tickers as JSON",
 	Example: "  tickerbox tickers export --output tickers.json",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		entries, err := fetchTickerEntries(newClient())
+		entries, err := fetchTickerEntries(cmdContext(cmd), newClient())
 		if err != nil {
 			return err
 		}
@@ -221,7 +221,7 @@ var tickersImportCmd = &cobra.Command{
 			return fmt.Errorf("import aborted")
 		}
 
-		if err := postTickerEntries(newClient(), entries); err != nil {
+		if err := postTickerEntries(cmdContext(cmd), newClient(), entries); err != nil {
 			return err
 		}
 		if jsonOut() {

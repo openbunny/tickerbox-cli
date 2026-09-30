@@ -3,6 +3,7 @@
 package section
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -51,11 +52,11 @@ type Snapshot struct {
 	Tickers []tickers.Entry `json:"tickers,omitempty"`
 }
 
-func Capture(c *client.Client, include []string, withSecrets bool) (*Snapshot, error) {
+func Capture(ctx context.Context, c *client.Client, include []string, withSecrets bool) (*Snapshot, error) {
 	s := &Snapshot{}
 	for _, name := range include {
 		if name == SectionTickers {
-			entries, err := getTickers(c)
+			entries, err := getTickers(ctx, c)
 			if err != nil {
 				return nil, err
 			}
@@ -66,7 +67,7 @@ func Capture(c *client.Client, include []string, withSecrets bool) (*Snapshot, e
 		if !ok {
 			return nil, fmt.Errorf("unknown section %q", name)
 		}
-		m, err := getMap(c, path)
+		m, err := getMap(ctx, c, path)
 		if err != nil {
 			return nil, err
 		}
@@ -78,10 +79,10 @@ func Capture(c *client.Client, include []string, withSecrets bool) (*Snapshot, e
 	return s, nil
 }
 
-func Apply(c *client.Client, s *Snapshot, include []string) error {
+func Apply(ctx context.Context, c *client.Client, s *Snapshot, include []string) error {
 	for _, name := range include {
 		if name == SectionTickers {
-			if err := postTickers(c, s.Tickers); err != nil {
+			if err := postTickers(ctx, c, s.Tickers); err != nil {
 				return err
 			}
 			continue
@@ -90,7 +91,7 @@ func Apply(c *client.Client, s *Snapshot, include []string) error {
 		if !ok {
 			return fmt.Errorf("unknown section %q", name)
 		}
-		if err := postMap(c, path, getSection(s, name)); err != nil {
+		if err := postMap(ctx, c, path, getSection(s, name)); err != nil {
 			return err
 		}
 	}
@@ -129,16 +130,16 @@ func getSection(s *Snapshot, name string) map[string]any {
 	}
 }
 
-func getMap(c *client.Client, path string) (map[string]any, error) {
+func getMap(ctx context.Context, c *client.Client, path string) (map[string]any, error) {
 	var m map[string]any
-	if err := c.Get(path, &m); err != nil {
+	if err := c.Get(ctx, path, &m); err != nil {
 		return nil, fmt.Errorf("get %s: %w", path, err)
 	}
 	return m, nil
 }
 
-func postMap(c *client.Client, path string, m map[string]any) error {
-	if err := c.Post(path, m); err != nil {
+func postMap(ctx context.Context, c *client.Client, path string, m map[string]any) error {
+	if err := c.Post(ctx, path, m); err != nil {
 		return fmt.Errorf("post %s: %w", path, err)
 	}
 	return nil
@@ -156,9 +157,9 @@ func stripSecrets(m map[string]any) map[string]any {
 	return out
 }
 
-func getTickers(c *client.Client) ([]tickers.Entry, error) {
+func getTickers(ctx context.Context, c *client.Client) ([]tickers.Entry, error) {
 	var state tickers.State
-	if err := c.Get(pathCoinSetupState, &state); err != nil {
+	if err := c.Get(ctx, pathCoinSetupState, &state); err != nil {
 		return nil, fmt.Errorf("get %s: %w", pathCoinSetupState, err)
 	}
 	entries, err := tickers.Decode(state)
@@ -168,8 +169,8 @@ func getTickers(c *client.Client) ([]tickers.Entry, error) {
 	return entries, nil
 }
 
-func postTickers(c *client.Client, entries []tickers.Entry) error {
-	if err := c.Post(pathCoinSetupState, tickers.Encode(entries)); err != nil {
+func postTickers(ctx context.Context, c *client.Client, entries []tickers.Entry) error {
+	if err := c.Post(ctx, pathCoinSetupState, tickers.Encode(entries)); err != nil {
 		return fmt.Errorf("post %s: %w", pathCoinSetupState, err)
 	}
 	return nil

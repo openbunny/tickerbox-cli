@@ -206,7 +206,7 @@ var configExportCmd = &cobra.Command{
 		"otherwise they're omitted from the file.",
 	Example: "  tickerbox config export --file backup.json",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		snap, err := section.Capture(newClient(), section.Sections, configExportShowSecrets)
+		snap, err := section.Capture(cmdContext(cmd), newClient(), section.Sections, configExportShowSecrets)
 		if err != nil {
 			return fmt.Errorf("capture device config: %w", err)
 		}
@@ -251,7 +251,7 @@ var configImportCmd = &cobra.Command{
 			return fmt.Errorf("import aborted")
 		}
 
-		if err := section.Apply(newClient(), snap, include); err != nil {
+		if err := section.Apply(cmdContext(cmd), newClient(), snap, include); err != nil {
 			return fmt.Errorf("apply config: %w", err)
 		}
 		fmt.Printf("applied %s\n", strings.Join(include, ", "))
@@ -277,7 +277,7 @@ var configDiffCmd = &cobra.Command{
 			saved = redactSnapshotSecrets(saved)
 		}
 
-		device, err := section.Capture(newClient(), section.Sections, configDiffShowSecrets)
+		device, err := section.Capture(cmdContext(cmd), newClient(), section.Sections, configDiffShowSecrets)
 		if err != nil {
 			return fmt.Errorf("capture device config: %w", err)
 		}
@@ -286,16 +286,9 @@ var configDiffCmd = &cobra.Command{
 		if jsonOut() {
 			return output.EmitJSON(diffs)
 		}
-		if len(diffs) == 0 {
-			fmt.Println("no differences")
-			return nil
-		}
-		rows := make([][]string, len(diffs))
-		for i, d := range diffs {
-			rows[i] = []string{d.Section, d.Field, configFormatDiffValue(d.Device), configFormatDiffValue(d.Saved)}
-		}
-		output.Table([]string{"SECTION", "FIELD", "DEVICE", "SAVED"}, rows)
-		return nil
+		return renderDiffTable(diffs, []string{"SECTION", "FIELD", "DEVICE", "SAVED"}, "no differences", func(d FieldDiff) []string {
+			return []string{d.Section, d.Field, configFormatDiffValue(d.Device), configFormatDiffValue(d.Saved)}
+		})
 	},
 }
 

@@ -24,23 +24,31 @@ const (
 	insecureReadBits = 0o044
 )
 
-func Dir() string {
+func Dir() (string, error) {
 	base, err := os.UserConfigDir()
 	if err != nil {
-		base = os.TempDir()
+		return "", fmt.Errorf("determine profiles directory: %w", err)
 	}
-	return filepath.Join(base, appDirName, profilesDir)
+	return filepath.Join(base, appDirName, profilesDir), nil
 }
 
 func path(name string) (string, error) {
 	if name == "" || name != filepath.Base(name) || strings.Contains(name, "..") {
 		return "", fmt.Errorf("invalid profile name %q", name)
 	}
-	return filepath.Join(Dir(), name+fileSuffix), nil
+	dir, err := Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, name+fileSuffix), nil
 }
 
 func List() ([]string, error) {
-	entries, err := os.ReadDir(Dir())
+	dir, err := Dir()
+	if err != nil {
+		return nil, err
+	}
+	entries, err := os.ReadDir(dir)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}
@@ -82,7 +90,11 @@ func Save(name string, s *section.Snapshot) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(Dir(), dirPerm); err != nil {
+	dir, err := Dir()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dir, dirPerm); err != nil {
 		return fmt.Errorf("create profiles directory: %w", err)
 	}
 	encoded, err := json.MarshalIndent(s, "", "  ")

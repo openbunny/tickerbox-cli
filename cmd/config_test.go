@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -269,7 +270,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 	defer deviceSrv.Close()
 
 	deviceClient := client.New(deviceSrv.URL+"/", 0)
-	captured, err := section.Capture(deviceClient, section.Sections, false)
+	captured, err := section.Capture(context.Background(), deviceClient, section.Sections, false)
 	if err != nil {
 		t.Fatalf("section.Capture: %v", err)
 	}
@@ -312,7 +313,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 	defer applySrv.Close()
 
 	applyClient := client.New(applySrv.URL+"/", 0)
-	if err := section.Apply(applyClient, loaded, include); err != nil {
+	if err := section.Apply(context.Background(), applyClient, loaded, include); err != nil {
 		t.Fatalf("section.Apply: %v", err)
 	}
 
@@ -342,7 +343,7 @@ func TestExportRedactsSecretsByDefault(t *testing.T) {
 
 	c := client.New(srv.URL+"/", 0)
 
-	snap, err := section.Capture(c, []string{section.SectionWifi, section.SectionAP}, configExportShowSecrets)
+	snap, err := section.Capture(context.Background(), c, []string{section.SectionWifi, section.SectionAP}, configExportShowSecrets)
 	if err != nil {
 		t.Fatalf("section.Capture: %v", err)
 	}

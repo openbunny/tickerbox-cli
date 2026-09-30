@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -150,37 +151,37 @@ func aggregateSeverity(checks []doctorCheck) severity {
 	return worst
 }
 
-func runDoctor(c *client.Client) doctorReport {
+func runDoctor(ctx context.Context, c *client.Client) doctorReport {
 	checks := []doctorCheck{secretExposureCheck()}
 
 	var features featuresPayload
-	if err := c.Get("features", &features); err != nil {
+	if err := c.Get(ctx, "features", &features); err != nil {
 		checks = append(checks, fetchFailureCheck("features", err))
 	}
 
 	var sys systemStatusPayload
-	if err := c.Get("systemStatus", &sys); err != nil {
+	if err := c.Get(ctx, "systemStatus", &sys); err != nil {
 		checks = append(checks, fetchFailureCheck("systemStatus", err))
 	} else {
 		checks = append(checks, evaluateFreeHeap(sys.FreeHeap), evaluateFsHeadroom(sys.FsTotal, sys.FsUsed))
 	}
 
 	var wifi dashboardWifiStatus
-	if err := c.Get("wifiStatus", &wifi); err != nil {
+	if err := c.Get(ctx, "wifiStatus", &wifi); err != nil {
 		checks = append(checks, fetchFailureCheck("wifiStatus", err))
 	} else {
 		checks = append(checks, evaluateWifi(wifi.Status))
 	}
 
 	var ap dashboardApStatus
-	if err := c.Get("apStatus", &ap); err != nil {
+	if err := c.Get(ctx, "apStatus", &ap); err != nil {
 		checks = append(checks, fetchFailureCheck("apStatus", err))
 	} else {
 		checks = append(checks, evaluateApExposure(ap.Status))
 	}
 
 	var ntp dashboardNtpStatus
-	if err := c.Get("ntpStatus", &ntp); err != nil {
+	if err := c.Get(ctx, "ntpStatus", &ntp); err != nil {
 		checks = append(checks, fetchFailureCheck("ntpStatus", err))
 	} else {
 		checks = append(checks, evaluateNtp(ntp.Status))
@@ -189,13 +190,13 @@ func runDoctor(c *client.Client) doctorReport {
 	return doctorReport{Verdict: aggregateSeverity(checks).String(), Checks: checks}
 }
 
-func printDoctorReport(r doctorReport) {
+func printDoctorReport(r doctorReport) error {
 	fmt.Printf("%s - %s\n", r.Device, strings.ToUpper(r.Verdict))
 	rows := make([][]string, len(r.Checks))
 	for i, c := range r.Checks {
 		rows[i] = []string{c.Name, c.Severity, c.Detail}
 	}
-	output.Table([]string{"CHECK", "SEVERITY", "DETAIL"}, rows)
+	return output.Table([]string{"CHECK", "SEVERITY", "DETAIL"}, rows)
 }
 
 var doctorAll bool
@@ -224,12 +225,12 @@ var doctorCmd = &cobra.Command{
 			for _, d := range devices {
 				c := client.New(restBase(d.Host), timeoutFlag)
 				c.Retries = retryFlag
-				report := runDoctor(c)
+				report := runDoctor(cmdContext(cmd), c)
 				report.Device = d.Name
 				reports = append(reports, report)
 			}
 		} else {
-			report := runDoctor(newClient())
+			report := runDoctor(cmdContext(cmd), newClient())
 			report.Device = resolvedHost
 			reports = append(reports, report)
 		}
@@ -243,7 +244,9 @@ var doctorCmd = &cobra.Command{
 				if i > 0 {
 					fmt.Println()
 				}
-				printDoctorReport(r)
+				if err := printDoctorReport(r); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -311,8 +314,9 @@ var watchCmd = &cobra.Command{
 			return err
 		}
 
-		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt)
+		ctx, stop := signal.NotifyContext(cmdContext(cmd), os.Interrupt)
 		defer stop()
+		target.SetContext(ctx)
 
 		ticker := time.NewTicker(watchInterval)
 		defer ticker.Stop()

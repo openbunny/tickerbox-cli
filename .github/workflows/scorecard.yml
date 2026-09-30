@@ -11,9 +11,10 @@ concurrency:
   cancel-in-progress: true
 jobs:
   scorecard:
+    name: Scorecard
     permissions:
       contents: read
-      id-token: write
+      id-token: write # mints the OIDC token scorecard-action uses to sign published results
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

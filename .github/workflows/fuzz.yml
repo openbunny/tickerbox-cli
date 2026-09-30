@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   discover:
+    name: Discover fuzz targets
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -39,6 +40,7 @@ jobs:
           echo "targets=$targets" >> "$GITHUB_OUTPUT"
 
   fuzz:
+    name: Fuzz
     needs: discover
     permissions:
       contents: read
@@ -59,4 +61,7 @@ jobs:
           go-version: stable
           cache: true
       - name: ${{ matrix.target.name }}
-        run: go test -run '^$' -fuzz=${{ matrix.target.name }} -fuzztime="${FUZZ_TIME}" ${{ matrix.target.pkg }}
+        env:
+          FUZZ_TARGET: ${{ matrix.target.name }}
+          FUZZ_PKG: ${{ matrix.target.pkg }}
+        run: go test -run '^$' -fuzz="${FUZZ_TARGET}" -fuzztime="${FUZZ_TIME}" "${FUZZ_PKG}"

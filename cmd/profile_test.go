@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -263,7 +264,7 @@ func TestSaveThenDiffDetectsDeviceDrift(t *testing.T) {
 	resolvedHost, timeoutFlag, retryFlag = srv.URL, time.Second, 0
 
 	include, withSecrets := resolveInclude("", false)
-	captured, err := section.Capture(newClient(), include, withSecrets)
+	captured, err := section.Capture(context.Background(), newClient(), include, withSecrets)
 	if err != nil {
 		t.Fatalf("Capture: %v", err)
 	}
@@ -278,7 +279,7 @@ func TestSaveThenDiffDetectsDeviceDrift(t *testing.T) {
 
 	bodies["settingsState"] = `{"brightness":150}`
 
-	deviceNow, err := section.Capture(newClient(), presentSections(prof), false)
+	deviceNow, err := section.Capture(context.Background(), newClient(), presentSections(prof), false)
 	if err != nil {
 		t.Fatalf("Capture after drift: %v", err)
 	}

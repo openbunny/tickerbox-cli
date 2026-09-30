@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -100,7 +101,7 @@ func TestProbeTickerbox(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			host := featuresServer(t, tt.status, tt.body)
-			if got := probeTickerbox(host, time.Second); got != tt.want {
+			if got := probeTickerbox(context.Background(), host, time.Second); got != tt.want {
 				t.Errorf("probeTickerbox() = %v, want %v", got, tt.want)
 			}
 		})
@@ -112,7 +113,7 @@ func TestProbeTickerboxUnreachable(t *testing.T) {
 	host := strings.TrimPrefix(srv.URL, "http://")
 	srv.Close()
 
-	if probeTickerbox(host, 200*time.Millisecond) {
+	if probeTickerbox(context.Background(), host, 200*time.Millisecond) {
 		t.Error("probeTickerbox() on closed server = true, want false")
 	}
 }
@@ -127,7 +128,7 @@ func TestScanSubnet(t *testing.T) {
 	closedSrv.Close()
 
 	hosts := []string{tickerbox1, tickerbox2, notTickerbox, closedHost}
-	got := scanSubnet(hosts, 500*time.Millisecond, 4)
+	got := scanSubnet(context.Background(), hosts, 500*time.Millisecond, 4)
 
 	gotHosts := make(map[string]bool, len(got))
 	for _, d := range got {
@@ -153,7 +154,7 @@ func TestPingDevice(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		r := pingDevice(config.Device{Name: "kitchen", Host: srv.URL})
+		r := pingDevice(context.Background(), config.Device{Name: "kitchen", Host: srv.URL})
 		if !r.Reachable {
 			t.Error("Reachable = false, want true")
 		}
@@ -170,7 +171,7 @@ func TestPingDevice(t *testing.T) {
 		url := srv.URL
 		srv.Close()
 
-		r := pingDevice(config.Device{Name: "office", Host: url})
+		r := pingDevice(context.Background(), config.Device{Name: "office", Host: url})
 		if r.Reachable {
 			t.Error("Reachable = true, want false")
 		}
@@ -182,7 +183,7 @@ func TestPingDevice(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		r := pingDevice(config.Device{Name: "garage", Host: srv.URL})
+		r := pingDevice(context.Background(), config.Device{Name: "garage", Host: srv.URL})
 		if r.Reachable {
 			t.Error("Reachable = true, want false")
 		}
@@ -260,14 +261,14 @@ func TestRunDevicePing(t *testing.T) {
 
 	t.Run("no name and no --all errors", func(t *testing.T) {
 		devicePingAll = false
-		if err := runDevicePing(nil, nil); err == nil {
+		if err := runDevicePing(devicePingCmd, nil); err == nil {
 			t.Error("runDevicePing() error = nil, want error")
 		}
 	})
 
 	t.Run("unknown device errors", func(t *testing.T) {
 		devicePingAll = false
-		if err := runDevicePing(nil, []string{"missing"}); err == nil {
+		if err := runDevicePing(devicePingCmd, []string{"missing"}); err == nil {
 			t.Error("runDevicePing(missing) error = nil, want error")
 		}
 	})
@@ -275,14 +276,14 @@ func TestRunDevicePing(t *testing.T) {
 	t.Run("--all with a name errors", func(t *testing.T) {
 		devicePingAll = true
 		defer func() { devicePingAll = false }()
-		if err := runDevicePing(nil, []string{"kitchen"}); err == nil {
+		if err := runDevicePing(devicePingCmd, []string{"kitchen"}); err == nil {
 			t.Error("runDevicePing(--all, kitchen) error = nil, want error")
 		}
 	})
 
 	t.Run("named device pings successfully", func(t *testing.T) {
 		devicePingAll = false
-		if err := runDevicePing(nil, []string{"kitchen"}); err != nil {
+		if err := runDevicePing(devicePingCmd, []string{"kitchen"}); err != nil {
 			t.Fatalf("runDevicePing(kitchen) error = %v", err)
 		}
 	})
@@ -290,7 +291,7 @@ func TestRunDevicePing(t *testing.T) {
 	t.Run("--all pings every configured device", func(t *testing.T) {
 		devicePingAll = true
 		defer func() { devicePingAll = false }()
-		if err := runDevicePing(nil, nil); err != nil {
+		if err := runDevicePing(devicePingCmd, nil); err != nil {
 			t.Fatalf("runDevicePing(--all) error = %v", err)
 		}
 	})

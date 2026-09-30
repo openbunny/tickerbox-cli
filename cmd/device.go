@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -144,8 +145,7 @@ func runDeviceList(cmd *cobra.Command, args []string) error {
 		}
 		rows[i] = []string{e.Name, e.Host, marker}
 	}
-	output.Table([]string{"NAME", "HOST", "DEFAULT"}, rows)
-	return nil
+	return output.Table([]string{"NAME", "HOST", "DEFAULT"}, rows)
 }
 
 func runDeviceAdd(cmd *cobra.Command, args []string) error {
@@ -193,10 +193,10 @@ func runDeviceUse(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func probeTickerbox(host string, timeout time.Duration) bool {
+func probeTickerbox(ctx context.Context, host string, timeout time.Duration) bool {
 	c := client.New(restBase(httpScheme+host), timeout)
 	var f featuresPayload
-	return c.Get("features", &f) == nil && f.Tickerbox
+	return c.Get(ctx, "features", &f) == nil && f.Tickerbox
 }
 
 func primaryIPv4() (net.IP, error) {
@@ -234,7 +234,7 @@ func subnetHosts(ip net.IP) []string {
 	return hosts
 }
 
-func scanSubnet(hosts []string, timeout time.Duration, workers int) []discoveredDevice {
+func scanSubnet(ctx context.Context, hosts []string, timeout time.Duration, workers int) []discoveredDevice {
 	jobs := make(chan string)
 	results := make(chan discoveredDevice)
 
@@ -244,7 +244,7 @@ func scanSubnet(hosts []string, timeout time.Duration, workers int) []discovered
 		go func() {
 			defer wg.Done()
 			for host := range jobs {
-				if probeTickerbox(host, timeout) {
+				if probeTickerbox(ctx, host, timeout) {
 					results <- discoveredDevice{Host: host}
 				}
 			}
@@ -290,7 +290,7 @@ func promptLine(prompt string) (string, error) {
 func runDeviceDiscover(cmd *cobra.Command, args []string) error {
 	var found []discoveredDevice
 
-	if probeTickerbox(discoverMDNSHost, discoverProbeTimeout) {
+	if probeTickerbox(cmdContext(cmd), discoverMDNSHost, discoverProbeTimeout) {
 		found = append(found, discoveredDevice{
 			Host:     discoverMDNSHost,
 			Hostname: strings.TrimSuffix(discoverMDNSHost, ".local"),
@@ -300,7 +300,7 @@ func runDeviceDiscover(cmd *cobra.Command, args []string) error {
 	if ip, err := primaryIPv4(); err != nil {
 		fmt.Printf("skipping subnet scan: %v\n", err)
 	} else {
-		found = append(found, scanSubnet(subnetHosts(ip), discoverProbeTimeout, discoverWorkers)...)
+		found = append(found, scanSubnet(cmdContext(cmd), subnetHosts(ip), discoverProbeTimeout, discoverWorkers)...)
 	}
 
 	for i, d := range found {
@@ -322,7 +322,9 @@ func runDeviceDiscover(cmd *cobra.Command, args []string) error {
 	for i, d := range found {
 		rows[i] = []string{d.Host, d.Hostname}
 	}
-	output.Table([]string{"HOST", "HOSTNAME"}, rows)
+	if err := output.Table([]string{"HOST", "HOSTNAME"}, rows); err != nil {
+		return err
+	}
 
 	for _, d := range found {
 		add, err := confirmSystemAction(fmt.Sprintf("Add %s as a device?", d.Host))
@@ -359,10 +361,10 @@ func runDeviceDiscover(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func pingDevice(d config.Device) pingResult {
+func pingDevice(ctx context.Context, d config.Device) pingResult {
 	c := client.New(restBase(d.Host), pingTimeout)
 	start := time.Now()
-	err := c.Get("features", nil)
+	err := c.Get(ctx, "features", nil)
 	return pingResult{
 		Name:      d.Name,
 		Host:      d.Host,
@@ -401,7 +403,7 @@ func runDevicePing(cmd *cobra.Command, args []string) error {
 
 	results := make([]pingResult, len(targets))
 	for i, d := range targets {
-		results[i] = pingDevice(d)
+		results[i] = pingDevice(cmdContext(cmd), d)
 	}
 
 	if jsonOut() {
@@ -418,6 +420,5 @@ func runDevicePing(cmd *cobra.Command, args []string) error {
 		}
 		rows[i] = []string{r.Name, r.Host, reachable, rtt}
 	}
-	output.Table([]string{"NAME", "HOST", "REACHABLE", "RTT"}, rows)
-	return nil
+	return output.Table([]string{"NAME", "HOST", "REACHABLE", "RTT"}, rows)
 }

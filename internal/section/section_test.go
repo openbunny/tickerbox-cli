@@ -3,6 +3,7 @@
 package section
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -42,7 +43,7 @@ func TestCaptureDefaultInclude(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	s, err := Capture(c, DefaultInclude, false)
+	s, err := Capture(context.Background(), c, DefaultInclude, false)
 	if err != nil {
 		t.Fatalf("Capture: %v", err)
 	}
@@ -95,7 +96,7 @@ func TestCaptureStripsSecrets(t *testing.T) {
 			defer srv.Close()
 
 			c := client.New(srv.URL+"/", 0)
-			s, err := Capture(c, []string{SectionWifi, SectionAP}, tt.withSecrets)
+			s, err := Capture(context.Background(), c, []string{SectionWifi, SectionAP}, tt.withSecrets)
 			if err != nil {
 				t.Fatalf("Capture: %v", err)
 			}
@@ -114,7 +115,7 @@ func TestCaptureUnknownSection(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	if _, err := Capture(c, []string{"bogus"}, false); err == nil {
+	if _, err := Capture(context.Background(), c, []string{"bogus"}, false); err == nil {
 		t.Fatal("expected error for unknown section, got nil")
 	}
 }
@@ -140,7 +141,7 @@ func TestApply(t *testing.T) {
 		},
 	}
 
-	if err := Apply(c, s, []string{SectionDisplay, SectionTickers}); err != nil {
+	if err := Apply(context.Background(), c, s, []string{SectionDisplay, SectionTickers}); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
@@ -167,7 +168,7 @@ func TestApplyUnknownSection(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	if err := Apply(c, &Snapshot{}, []string{"bogus"}); err == nil {
+	if err := Apply(context.Background(), c, &Snapshot{}, []string{"bogus"}); err == nil {
 		t.Fatal("expected error for unknown section, got nil")
 	}
 }
@@ -180,7 +181,7 @@ func TestCaptureTickersDecodeError(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL+"/", 0)
-	if _, err := Capture(c, []string{SectionTickers}, false); err == nil {
+	if _, err := Capture(context.Background(), c, []string{SectionTickers}, false); err == nil {
 		t.Fatal("expected error from a malformed coinSetupState response, got nil")
 	}
 }

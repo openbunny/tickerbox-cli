@@ -37,7 +37,7 @@ var profileSaveCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		include, withSecrets := resolveInclude(profileSaveInclude, profileSaveAll)
-		s, err := section.Capture(newClient(), include, withSecrets)
+		s, err := section.Capture(cmdContext(cmd), newClient(), include, withSecrets)
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ var profileApplyCmd = &cobra.Command{
 			return err
 		}
 		include := presentSections(s)
-		if err := section.Apply(newClient(), s, include); err != nil {
+		if err := section.Apply(cmdContext(cmd), newClient(), s, include); err != nil {
 			return err
 		}
 		fmt.Printf("Applied profile %s (%s)\n", args[0], strings.Join(include, ","))
@@ -141,7 +141,7 @@ var profileDiffCmd = &cobra.Command{
 			return err
 		}
 		include := presentSections(prof)
-		device, err := section.Capture(newClient(), include, profileDiffShowSecrets)
+		device, err := section.Capture(cmdContext(cmd), newClient(), include, profileDiffShowSecrets)
 		if err != nil {
 			return err
 		}
@@ -150,16 +150,9 @@ var profileDiffCmd = &cobra.Command{
 		if jsonOut() {
 			return output.EmitJSON(diffs)
 		}
-		if len(diffs) == 0 {
-			fmt.Println("No differences")
-			return nil
-		}
-		rows := make([][]string, len(diffs))
-		for i, d := range diffs {
-			rows[i] = []string{d.Section, d.Field, formatDiffValue(d.Device), formatDiffValue(d.Profile)}
-		}
-		output.Table([]string{"SECTION", "FIELD", "DEVICE", "PROFILE"}, rows)
-		return nil
+		return renderDiffTable(diffs, []string{"SECTION", "FIELD", "DEVICE", "PROFILE"}, "No differences", func(d fieldDiff) []string {
+			return []string{d.Section, d.Field, formatDiffValue(d.Device), formatDiffValue(d.Profile)}
+		})
 	},
 }
 

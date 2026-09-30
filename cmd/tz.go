@@ -46,8 +46,7 @@ var tzListCmd = &cobra.Command{
 		for _, label := range labels {
 			rows = append(rows, []string{label, filtered[label]})
 		}
-		output.Table([]string{"LABEL", "POSIX"}, rows)
-		return nil
+		return output.Table([]string{"LABEL", "POSIX"}, rows)
 	},
 }
 

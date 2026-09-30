@@ -4,6 +4,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,8 +77,8 @@ func (c *Client) url(path string) string {
 	return c.base + strings.TrimLeft(path, "/")
 }
 
-func (c *Client) Get(path string, out any) error {
-	body, status, err := c.GetRaw(path)
+func (c *Client) Get(ctx context.Context, path string, out any) error {
+	body, status, err := c.GetRaw(ctx, path)
 	if err != nil {
 		return &APIError{Path: path, Err: err}
 	}
@@ -92,12 +93,12 @@ func (c *Client) Get(path string, out any) error {
 	return nil
 }
 
-func (c *Client) GetRaw(path string) ([]byte, int, error) {
+func (c *Client) GetRaw(ctx context.Context, path string) ([]byte, int, error) {
 	var body []byte
 	var status int
 	var err error
 	for attempt := 0; attempt <= c.Retries; attempt++ {
-		body, status, err = c.getOnce(path)
+		body, status, err = c.getOnce(ctx, path)
 		if !shouldRetry(status, err) {
 			break
 		}
@@ -108,8 +109,12 @@ func (c *Client) GetRaw(path string) ([]byte, int, error) {
 	return body, status, err
 }
 
-func (c *Client) getOnce(path string) ([]byte, int, error) {
-	resp, err := c.http.Get(c.url(path))
+func (c *Client) getOnce(ctx context.Context, path string) ([]byte, int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url(path), nil)
+	if err != nil {
+		return nil, 0, fmt.Errorf("build request %s: %w", path, err)
+	}
+	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, 0, fmt.Errorf("request %s: %w", path, err)
 	}
@@ -122,7 +127,7 @@ func (c *Client) getOnce(path string) ([]byte, int, error) {
 	return body, resp.StatusCode, nil
 }
 
-func (c *Client) Post(path string, body any) error {
+func (c *Client) Post(ctx context.Context, path string, body any) error {
 	var encoded []byte
 	if body != nil {
 		var err error
@@ -135,7 +140,7 @@ func (c *Client) Post(path string, body any) error {
 	var status int
 	var err error
 	for attempt := 0; attempt <= c.Retries; attempt++ {
-		status, err = c.postOnce(path, encoded)
+		status, err = c.postOnce(ctx, path, encoded)
 		if !shouldRetry(status, err) {
 			break
 		}
@@ -153,13 +158,18 @@ func (c *Client) Post(path string, body any) error {
 	return nil
 }
 
-func (c *Client) postOnce(path string, encoded []byte) (int, error) {
+func (c *Client) postOnce(ctx context.Context, path string, encoded []byte) (int, error) {
 	var reader io.Reader
 	if encoded != nil {
 		reader = bytes.NewReader(encoded)
 	}
 
-	resp, err := c.http.Post(c.url(path), "application/json", reader)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url(path), reader)
+	if err != nil {
+		return 0, fmt.Errorf("build request %s: %w", path, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("request %s: %w", path, err)
 	}
@@ -167,7 +177,7 @@ func (c *Client) postOnce(path string, encoded []byte) (int, error) {
 	return resp.StatusCode, nil
 }
 
-func (c *Client) PostFile(path, field, filePath string) error {
+func (c *Client) PostFile(ctx context.Context, path, field, filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return &APIError{Path: path, Err: fmt.Errorf("open %s: %w", filePath, err)}
@@ -187,7 +197,7 @@ func (c *Client) PostFile(path, field, filePath string) error {
 		return &APIError{Path: path, Err: fmt.Errorf("close multipart form: %w", err)}
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.url(path), &buf)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url(path), &buf)
 	if err != nil {
 		return &APIError{Path: path, Err: fmt.Errorf("build request: %w", err)}
 	}

@@ -48,6 +48,20 @@ golangci-lint:
 
 lint: fmt-check staticcheck golangci-lint
 
+actions-lint:
+    actionlint
+
+pinact-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    shopt -s nullglob
+    files=(.github/workflows/*.yml .github/workflows/*.yaml)
+    if [ "${#files[@]}" -eq 0 ]; then
+        echo "pinact-check: no workflow files found in .github/workflows" >&2
+        exit 1
+    fi
+    pinact run --check --verify-comment "${files[@]}"
+
 coverage:
     go test ./... -coverprofile=coverage.out
     go tool cover -func=coverage.out

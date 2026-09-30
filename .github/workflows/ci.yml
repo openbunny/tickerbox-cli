@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
+    name: Test
     permissions:
       contents: read
     strategy:
@@ -30,6 +31,7 @@ jobs:
       - run: go test -race -coverprofile=coverage.out ./...
 
   lint:
+    name: Lint
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -67,6 +69,7 @@ jobs:
           version: v2.14.0
 
   coverage:
+    name: Coverage
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -84,3 +87,43 @@ jobs:
         uses: vladopajic/go-test-coverage@f94bcf0d6b9fa5fb8b783830b22648f6c17475e2 # v2.19.0
         with:
           config: ./.testcoverage.yml
+
+  actions:
+    name: Actions
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    env:
+      # renovate: datasource=go depName=github.com/rhysd/actionlint
+      ACTIONLINT_VERSION: v1.7.12
+      # renovate: datasource=go depName=github.com/suzuki-shunsuke/pinact/v5
+      PINACT_VERSION: v5.0.0
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-gobin-actionlint-${{ env.ACTIONLINT_VERSION }}-pinact-${{ env.PINACT_VERSION }}
+      - name: actionlint
+        run: |
+          go install "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
+          actionlint
+      - name: pinact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          go install "github.com/suzuki-shunsuke/pinact/v5/cmd/pinact@${PINACT_VERSION}"
+          shopt -s nullglob
+          files=(.github/workflows/*.yml .github/workflows/*.yaml)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "pinact: no workflow files found in .github/workflows" >&2
+            exit 1
+          fi
+          pinact run --check --verify-comment "${files[@]}"

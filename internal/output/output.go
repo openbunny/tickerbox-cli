@@ -22,35 +22,57 @@ func EmitJSON(v any) error {
 	if err != nil {
 		return fmt.Errorf("encode output: %w", err)
 	}
-	fmt.Println(string(encoded))
+	if _, err := fmt.Println(string(encoded)); err != nil {
+		return fmt.Errorf("write output: %w", err)
+	}
 	return nil
 }
 
-func KV(pairs [][2]string) {
+func KV(pairs [][2]string) error {
 	w := tabwriter.NewWriter(os.Stdout, tabMinWidth, tabWidth, tabPadding, tabPadChar, tabFlags)
 	for _, p := range pairs {
-		_, _ = fmt.Fprintf(w, "%s:\t%s\n", p[0], p[1])
+		if _, err := fmt.Fprintf(w, "%s:\t%s\n", p[0], p[1]); err != nil {
+			return fmt.Errorf("write output: %w", err)
+		}
 	}
-	_ = w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("flush output: %w", err)
+	}
+	return nil
 }
 
-func Table(headers []string, rows [][]string) {
+func Table(headers []string, rows [][]string) error {
 	w := tabwriter.NewWriter(os.Stdout, tabMinWidth, tabWidth, tabPadding, tabPadChar, tabFlags)
 	for i, h := range headers {
 		if i > 0 {
-			_, _ = fmt.Fprint(w, "\t")
+			if _, err := fmt.Fprint(w, "\t"); err != nil {
+				return fmt.Errorf("write output: %w", err)
+			}
 		}
-		_, _ = fmt.Fprint(w, h)
+		if _, err := fmt.Fprint(w, h); err != nil {
+			return fmt.Errorf("write output: %w", err)
+		}
 	}
-	_, _ = fmt.Fprintln(w)
+	if _, err := fmt.Fprintln(w); err != nil {
+		return fmt.Errorf("write output: %w", err)
+	}
 	for _, row := range rows {
 		for i, c := range row {
 			if i > 0 {
-				_, _ = fmt.Fprint(w, "\t")
+				if _, err := fmt.Fprint(w, "\t"); err != nil {
+					return fmt.Errorf("write output: %w", err)
+				}
 			}
-			_, _ = fmt.Fprint(w, c)
+			if _, err := fmt.Fprint(w, c); err != nil {
+				return fmt.Errorf("write output: %w", err)
+			}
 		}
-		_, _ = fmt.Fprintln(w)
+		if _, err := fmt.Fprintln(w); err != nil {
+			return fmt.Errorf("write output: %w", err)
+		}
 	}
-	_ = w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("flush output: %w", err)
+	}
+	return nil
 }
