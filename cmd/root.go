@@ -118,10 +118,6 @@ func init() {
 	deviceIndependentCommands[versionCmd] = true
 }
 
-func Execute() error {
-	return rootCmd.Execute()
-}
-
 func Root() *cobra.Command {
 	return rootCmd
 }

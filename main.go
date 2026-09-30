@@ -5,15 +5,16 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"os"
+
+	"charm.land/fang/v2"
 
 	"github.com/openbunny/tickerbox-cli/cmd"
 )
 
 func main() {
-	if err := cmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	if err := fang.Execute(context.Background(), cmd.Root()); err != nil {
 		os.Exit(1)
 	}
 }
