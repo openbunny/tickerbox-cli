@@ -1,8 +1,7 @@
 name: release-please
-# Manual only: opening the release PR needs the org setting "Allow GitHub
-# Actions to create and approve pull requests", which is currently off for the
-# openbunny org. Restore the push trigger once that setting is enabled.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
