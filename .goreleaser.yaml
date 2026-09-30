@@ -101,20 +101,15 @@ nfpms:
 release:
   draft: true
   prerelease: auto
-# Homebrew tap is added at public release.
-# brews:
-#   - repository:
-#       owner: openbunny
-#       name: homebrew-tap
-#     homepage: https://github.com/openbunny/tickerbox-cli
-#     description: Command-line client for a TickerBox device's REST API.
-#     license: MIT
-
-# Scoop bucket is added at public release.
-# scoops:
-#   - repository:
-#       owner: openbunny
-#       name: scoop-bucket
-#     homepage: https://github.com/openbunny/tickerbox-cli
-#     description: Command-line client for a TickerBox device's REST API.
-#     license: MIT
+brews:
+  - repository:
+      owner: openbunny
+      name: homebrew-tap
+      token: '{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}'
+    directory: Formula
+    homepage: https://github.com/openbunny/tickerbox-cli
+    description: Command-line client for a TickerBox device's REST API.
+    license: MIT
+    commit_author:
+      name: Robot
+      email: bot@fiona.sm
