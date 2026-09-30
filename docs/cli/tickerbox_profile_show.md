@@ -2,6 +2,10 @@
 
 Show a saved profile
 
+### Synopsis
+
+Password is masked as ******** unless --show-secrets is given.
+
 ```
 tickerbox profile show <name> [flags]
 ```
@@ -15,7 +19,8 @@ tickerbox profile show <name> [flags]
 ### Options
 
 ```
-  -h, --help   help for show
+  -h, --help           help for show
+      --show-secrets   reveal wifi/ap password fields instead of masking them
 ```
 
 ### Options inherited from parent commands

@@ -1,4 +1,4 @@
-Show a saved profile
+Password is masked as ******** unless --show-secrets is given.
 
 Usage:
   tickerbox profile show <name> [flags]
@@ -7,7 +7,8 @@ Examples:
   tickerbox profile show home
 
 Flags:
-  -h, --help   help for show
+  -h, --help           help for show
+      --show-secrets   reveal wifi/ap password fields instead of masking them
 
 Global Flags:
   -d, --device string      named device from the config file

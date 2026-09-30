@@ -95,15 +95,21 @@ type profileShowPayload struct {
 	*section.Snapshot
 }
 
+var profileShowShowSecrets bool
+
 var profileShowCmd = &cobra.Command{
 	Use:     "show <name>",
 	Short:   "Show a saved profile",
+	Long:    "Password is masked as ******** unless --show-secrets is given.",
 	Example: "  tickerbox profile show home",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		s, description, sourceDevice, err := profile.LoadDescribed(args[0])
 		if err != nil {
 			return err
+		}
+		if !profileShowShowSecrets {
+			s = maskSnapshotSecrets(s)
 		}
 		if jsonOut() {
 			return output.EmitJSON(profileShowPayload{Description: description, SourceDevice: sourceDevice, Snapshot: s})
@@ -121,6 +127,29 @@ var profileShowCmd = &cobra.Command{
 		}
 		return output.EmitJSON(s)
 	},
+}
+
+func maskSnapshotSecrets(s *section.Snapshot) *section.Snapshot {
+	masked := *s
+	masked.Wifi = maskSecretFields(s.Wifi)
+	masked.AP = maskSecretFields(s.AP)
+	return &masked
+}
+
+func maskSecretFields(m map[string]any) map[string]any {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		if !section.IsSecretField(k) {
+			out[k] = v
+			continue
+		}
+		str, _ := v.(string)
+		out[k] = maskSecret(str)
+	}
+	return out
 }
 
 var profileRmYes bool
@@ -223,6 +252,8 @@ func init() {
 	profileSaveCmd.Flags().StringVar(&profileSaveInclude, "include", "", "comma-separated sections to capture (default "+strings.Join(section.DefaultInclude, ",")+")")
 	profileSaveCmd.Flags().BoolVar(&profileSaveAll, "all", false, "also capture wifi and ap, including their secrets")
 	profileSaveCmd.Flags().StringVarP(&profileSaveDescription, "description", "D", "", "optional human-readable description to store with the profile")
+
+	profileShowCmd.Flags().BoolVar(&profileShowShowSecrets, "show-secrets", false, "reveal wifi/ap password fields instead of masking them")
 
 	profileRmCmd.Flags().BoolVarP(&profileRmYes, "yes", "y", false, "skip confirmation")
 
