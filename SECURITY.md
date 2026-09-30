@@ -26,3 +26,22 @@ this CLI; `tickerbox doctor` reports it.
 `--host`, `--device`, `$TICKERBOX_HOST`, or the default device set with
 `device use`. It never contacts any host outside that resolution, sends no
 telemetry, and does not check for updates on its own.
+
+## Verifying releases
+
+Release checksums are signed with cosign by the project release identity
+`bot@fiona.sm`, which also OpenPGP-signs every commit. Public key:
+
+```
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEO2QgVQB5kqIixdo9dkl8LDlmqqb2
+sSsTp/18FWNMfZQTVlYqQkNrurSX4J95mFYf40x7ht4hjs96wOWjt/7Erg==
+-----END PUBLIC KEY-----
+```
+
+Save the key as `cosign.pub`, then verify a downloaded release:
+
+```console
+cosign verify-blob --key cosign.pub --signature checksums.txt.sig checksums.txt
+sha256sum --check checksums.txt
+```
