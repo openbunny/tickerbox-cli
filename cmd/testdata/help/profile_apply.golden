@@ -1,14 +1,14 @@
-Applies only the sections present in the saved profile; sections it doesn't contain are left untouched on the device.
+Applies only the sections present in the saved profile; sections it doesn't contain are left untouched on the device. Prompts for confirmation unless --yes.
 
 Usage:
   tickerbox profile apply <name> [flags]
 
 Examples:
-  tickerbox profile apply home
+  tickerbox profile apply home --yes
 
 Flags:
   -h, --help   help for apply
-  -y, --yes    skip the source-device confirmation prompt
+  -y, --yes    skip confirmation
 
 Global Flags:
   -d, --device string      named device from the config file

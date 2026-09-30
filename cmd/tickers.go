@@ -132,10 +132,12 @@ var tickersAddCmd = &cobra.Command{
 	},
 }
 
+var tickersRemoveYes bool
+
 var tickersRemoveCmd = &cobra.Command{
 	Use:   "remove <index|ticker>",
 	Short: "Remove a ticker",
-	Long:  "Accepts either the 0-based index shown by `tickers list`, or a ticker symbol.",
+	Long:  "Accepts either the 0-based index shown by `tickers list`, or a ticker symbol. Prompts for confirmation unless --yes.",
 	Example: "  tickerbox tickers remove BTC\n" +
 		"  tickerbox tickers remove 0",
 	Args: cobra.ExactArgs(1),
@@ -153,6 +155,17 @@ var tickersRemoveCmd = &cobra.Command{
 		}
 		removed := entries[idx]
 		entries = append(entries[:idx], entries[idx+1:]...)
+
+		if !tickersRemoveYes {
+			ok, err := confirm(fmt.Sprintf("Remove ticker %s?", removed.Ticker))
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Println("aborted")
+				return nil
+			}
+		}
 
 		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
@@ -277,6 +290,8 @@ func init() {
 	_ = tickersAddCmd.MarkFlagRequired("time")
 
 	tickersClearCmd.Flags().BoolVarP(&tickersClearYes, "yes", "y", false, "skip confirmation")
+
+	tickersRemoveCmd.Flags().BoolVarP(&tickersRemoveYes, "yes", "y", false, "skip confirmation")
 
 	tickersExportCmd.Flags().StringVar(&tickersExportOutput, "output", "", "file to write; defaults to stdout")
 

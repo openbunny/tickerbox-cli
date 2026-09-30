@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
@@ -44,6 +45,64 @@ func writeTickersImportFile(t *testing.T, body string) string {
 		t.Fatalf("write %s: %v", path, err)
 	}
 	return path
+}
+
+func TestTickersRemoveConfirmation(t *testing.T) {
+	origHost, origTimeout, origRetry, origJSON := resolvedHost, timeoutFlag, retryFlag, jsonFlag
+	origYes, origStdin := tickersRemoveYes, confirmStdin
+	t.Cleanup(func() {
+		resolvedHost, timeoutFlag, retryFlag, jsonFlag = origHost, origTimeout, origRetry, origJSON
+		tickersRemoveYes, confirmStdin = origYes, origStdin
+	})
+	timeoutFlag, retryFlag, jsonFlag = time.Second, 0, false
+
+	getBody := `{"size":1,"types":"crypto","tickers":"BTC","times":"5min","currency":"USD"}`
+
+	t.Run("decline exits 0 without posting", func(t *testing.T) {
+		srv, posted := withTickersStub(t, getBody)
+		resolvedHost, tickersRemoveYes = srv.URL, false
+		confirmStdin = strings.NewReader("n\n")
+
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = tickersRemoveCmd.RunE(tickersRemoveCmd, []string{"BTC"})
+		})
+		if runErr != nil {
+			t.Fatalf("tickersRemoveCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "aborted") {
+			t.Errorf("stdout = %q; want it to contain %q", stdout, "aborted")
+		}
+		if len(*posted) != 0 {
+			t.Error("device was posted despite a declined confirmation")
+		}
+	})
+
+	t.Run("confirm proceeds", func(t *testing.T) {
+		srv, posted := withTickersStub(t, getBody)
+		resolvedHost, tickersRemoveYes = srv.URL, false
+		confirmStdin = strings.NewReader("y\n")
+
+		if err := tickersRemoveCmd.RunE(tickersRemoveCmd, []string{"BTC"}); err != nil {
+			t.Fatalf("tickersRemoveCmd.RunE() = %v", err)
+		}
+		if len(*posted) == 0 {
+			t.Error("device was never posted despite a confirmed removal")
+		}
+	})
+
+	t.Run("--yes skips the prompt", func(t *testing.T) {
+		srv, posted := withTickersStub(t, getBody)
+		resolvedHost, tickersRemoveYes = srv.URL, true
+		confirmStdin = strings.NewReader("")
+
+		if err := tickersRemoveCmd.RunE(tickersRemoveCmd, []string{"BTC"}); err != nil {
+			t.Fatalf("tickersRemoveCmd.RunE() = %v", err)
+		}
+		if len(*posted) == 0 {
+			t.Error("device was never posted despite --yes")
+		}
+	})
 }
 
 func TestTickersImportRejectsInvalidEntries(t *testing.T) {

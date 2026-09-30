@@ -260,6 +260,172 @@ func TestProfileSaveRecordsSourceDevice(t *testing.T) {
 	}
 }
 
+func TestProfileSaveConfirmsOnOverwrite(t *testing.T) {
+	withCmdTempHome(t)
+
+	bodies := map[string]string{
+		"coinSetupState":  `{"size":0,"types":"","tickers":"","times":"","currency":""}`,
+		"settingsState":   `{"brightness":200}`,
+		"clockSetupState": `{"enabled":true}`,
+		"ntpSettings":     `{"server":"pool.ntp.org"}`,
+	}
+	srv := newDeviceServer(t, bodies)
+
+	origHost, origTimeout, origRetry := resolvedHost, timeoutFlag, retryFlag
+	origInclude, origAll, origDesc, origYes, origStdin := profileSaveInclude, profileSaveAll, profileSaveDescription, profileSaveYes, confirmStdin
+	t.Cleanup(func() {
+		resolvedHost, timeoutFlag, retryFlag = origHost, origTimeout, origRetry
+		profileSaveInclude, profileSaveAll, profileSaveDescription, profileSaveYes, confirmStdin = origInclude, origAll, origDesc, origYes, origStdin
+	})
+	resolvedHost, timeoutFlag, retryFlag = srv.URL, time.Second, 0
+	profileSaveInclude, profileSaveAll, profileSaveDescription = "", false, ""
+
+	profileSaveYes = true
+	captureStdout(t, func() {
+		if err := profileSaveCmd.RunE(profileSaveCmd, []string{"overwrite-me"}); err != nil {
+			t.Fatalf("profileSaveCmd.RunE() first save = %v", err)
+		}
+	})
+
+	t.Run("first save needs no confirmation", func(t *testing.T) {
+		if _, err := profile.Load("overwrite-me"); err != nil {
+			t.Fatalf("profile.Load() = %v", err)
+		}
+	})
+
+	t.Run("decline exits 0 without overwriting", func(t *testing.T) {
+		profileSaveYes = false
+		confirmStdin = strings.NewReader("n\n")
+		description, err := profile.LoadDescription("overwrite-me")
+		if err != nil {
+			t.Fatalf("LoadDescription() = %v", err)
+		}
+
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = profileSaveCmd.RunE(profileSaveCmd, []string{"overwrite-me"})
+		})
+		if runErr != nil {
+			t.Fatalf("profileSaveCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "aborted") {
+			t.Errorf("stdout = %q; want it to contain %q", stdout, "aborted")
+		}
+		gotDescription, err := profile.LoadDescription("overwrite-me")
+		if err != nil {
+			t.Fatalf("LoadDescription() = %v", err)
+		}
+		if gotDescription != description {
+			t.Error("profile was overwritten despite a declined confirmation")
+		}
+	})
+
+	t.Run("confirm overwrites", func(t *testing.T) {
+		profileSaveYes = false
+		confirmStdin = strings.NewReader("y\n")
+
+		if err := profileSaveCmd.RunE(profileSaveCmd, []string{"overwrite-me"}); err != nil {
+			t.Fatalf("profileSaveCmd.RunE() = %v", err)
+		}
+	})
+
+	t.Run("--yes skips the prompt", func(t *testing.T) {
+		profileSaveYes = true
+		confirmStdin = strings.NewReader("")
+
+		if err := profileSaveCmd.RunE(profileSaveCmd, []string{"overwrite-me"}); err != nil {
+			t.Fatalf("profileSaveCmd.RunE() = %v", err)
+		}
+	})
+}
+
+func TestProfileApplyConfirmsWithoutMismatch(t *testing.T) {
+	withCmdTempHome(t)
+
+	if err := profile.SaveDescribed("plain", &section.Snapshot{Display: map[string]any{"brightness": float64(150)}}, "", ""); err != nil {
+		t.Fatalf("SaveDescribed: %v", err)
+	}
+
+	origHost, origTimeout, origRetry := resolvedHost, timeoutFlag, retryFlag
+	origDevice, origYes, origStdin := resolvedDeviceName, profileApplyYes, confirmStdin
+	t.Cleanup(func() {
+		resolvedHost, timeoutFlag, retryFlag = origHost, origTimeout, origRetry
+		resolvedDeviceName, profileApplyYes, confirmStdin = origDevice, origYes, origStdin
+	})
+	timeoutFlag, retryFlag = time.Second, 0
+	resolvedDeviceName = ""
+
+	t.Run("decline exits 0 without modifying the device", func(t *testing.T) {
+		var posted bool
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			posted = true
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		}))
+		t.Cleanup(srv.Close)
+		resolvedHost, profileApplyYes = srv.URL, false
+		confirmStdin = strings.NewReader("n\n")
+
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = profileApplyCmd.RunE(profileApplyCmd, []string{"plain"})
+		})
+		if runErr != nil {
+			t.Fatalf("profileApplyCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "aborted") {
+			t.Errorf("stdout = %q; want it to contain %q", stdout, "aborted")
+		}
+		if posted {
+			t.Error("device was modified despite a declined confirmation")
+		}
+	})
+
+	t.Run("confirm proceeds", func(t *testing.T) {
+		var posted map[string]any
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewDecoder(r.Body).Decode(&posted)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		}))
+		t.Cleanup(srv.Close)
+		resolvedHost, profileApplyYes = srv.URL, false
+		confirmStdin = strings.NewReader("y\n")
+
+		if err := profileApplyCmd.RunE(profileApplyCmd, []string{"plain"}); err != nil {
+			t.Fatalf("profileApplyCmd.RunE() = %v", err)
+		}
+		if posted["brightness"] != float64(150) {
+			t.Errorf("posted brightness = %v; want 150", posted["brightness"])
+		}
+	})
+
+	t.Run("--yes skips the prompt with no warning", func(t *testing.T) {
+		var posted map[string]any
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewDecoder(r.Body).Decode(&posted)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		}))
+		t.Cleanup(srv.Close)
+		resolvedHost, profileApplyYes = srv.URL, true
+
+		var runErr error
+		stderr := captureStderr(t, func() {
+			runErr = profileApplyCmd.RunE(profileApplyCmd, []string{"plain"})
+		})
+		if runErr != nil {
+			t.Fatalf("profileApplyCmd.RunE() = %v", runErr)
+		}
+		if stderr != "" {
+			t.Errorf("stderr = %q; want empty with no source-device mismatch", stderr)
+		}
+		if posted["brightness"] != float64(150) {
+			t.Errorf("posted brightness = %v; want 150", posted["brightness"])
+		}
+	})
+}
+
 func TestProfileApplyConfirmsOnSourceMismatch(t *testing.T) {
 	withCmdTempHome(t)
 

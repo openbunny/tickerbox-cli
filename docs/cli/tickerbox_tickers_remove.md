@@ -4,7 +4,7 @@ Remove a ticker
 
 ### Synopsis
 
-Accepts either the 0-based index shown by `tickers list`, or a ticker symbol.
+Accepts either the 0-based index shown by `tickers list`, or a ticker symbol. Prompts for confirmation unless --yes.
 
 ```
 tickerbox tickers remove <index|ticker> [flags]
@@ -21,6 +21,7 @@ tickerbox tickers remove <index|ticker> [flags]
 
 ```
   -h, --help   help for remove
+  -y, --yes    skip confirmation
 ```
 
 ### Options inherited from parent commands

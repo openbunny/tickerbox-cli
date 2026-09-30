@@ -1,4 +1,4 @@
-Accepts either the 0-based index shown by `tickers list`, or a ticker symbol.
+Accepts either the 0-based index shown by `tickers list`, or a ticker symbol. Prompts for confirmation unless --yes.
 
 Usage:
   tickerbox tickers remove <index|ticker> [flags]
@@ -9,6 +9,7 @@ Examples:
 
 Flags:
   -h, --help   help for remove
+  -y, --yes    skip confirmation
 
 Global Flags:
   -d, --device string      named device from the config file

@@ -88,12 +88,27 @@ var deviceAddCmd = &cobra.Command{
 	RunE:    runDeviceAdd,
 }
 
+var deviceRmYes bool
+
 var deviceRmCmd = &cobra.Command{
 	Use:     "rm <name>",
 	Short:   "Remove a configured device",
-	Example: "  tickerbox device rm desk",
+	Long:    "Removes a configured device. Prompts for confirmation unless --yes.",
+	Example: "  tickerbox device rm desk --yes",
 	Args:    cobra.ExactArgs(1),
-	RunE:    runDeviceRm,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if !deviceRmYes {
+			ok, err := confirm(fmt.Sprintf("Remove device %s?", args[0]))
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Println("aborted")
+				return nil
+			}
+		}
+		return runDeviceRm(cmd, args)
+	},
 }
 
 var deviceUseCmd = &cobra.Command{
@@ -139,6 +154,8 @@ var devicePingCmd = &cobra.Command{
 
 func init() {
 	devicePingCmd.Flags().BoolVar(&devicePingAll, "all", false, "ping every configured device")
+
+	deviceRmCmd.Flags().BoolVarP(&deviceRmYes, "yes", "y", false, "skip confirmation")
 
 	deviceCmd.AddCommand(deviceListCmd, deviceCurrentCmd, deviceAddCmd, deviceRmCmd, deviceUseCmd, deviceDiscoverCmd, devicePingCmd)
 	rootCmd.AddCommand(deviceCmd)

@@ -246,6 +246,97 @@ func TestRunDeviceAddRmUseList(t *testing.T) {
 	}
 }
 
+func TestDeviceRmConfirmation(t *testing.T) {
+	origYes, origStdin := deviceRmYes, confirmStdin
+	t.Cleanup(func() { deviceRmYes, confirmStdin = origYes, origStdin })
+
+	setup := func(t *testing.T) {
+		t.Helper()
+		useTempDeviceConfigDir(t)
+		if err := runDeviceAdd(nil, []string{"kitchen", "http://10.0.0.5"}); err != nil {
+			t.Fatalf("runDeviceAdd() error = %v", err)
+		}
+	}
+
+	t.Run("decline exits 0 without removing", func(t *testing.T) {
+		setup(t)
+		deviceRmYes = false
+		confirmStdin = strings.NewReader("n\n")
+
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = deviceRmCmd.RunE(deviceRmCmd, []string{"kitchen"})
+		})
+		if runErr != nil {
+			t.Fatalf("deviceRmCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "aborted") {
+			t.Errorf("stdout = %q; want it to contain %q", stdout, "aborted")
+		}
+		cfg, err := config.Load()
+		if err != nil {
+			t.Fatalf("config.Load() error = %v", err)
+		}
+		if _, ok := cfg.Devices["kitchen"]; !ok {
+			t.Error("device removed despite a declined confirmation")
+		}
+	})
+
+	t.Run("confirm proceeds", func(t *testing.T) {
+		setup(t)
+		deviceRmYes = false
+		confirmStdin = strings.NewReader("y\n")
+
+		if err := deviceRmCmd.RunE(deviceRmCmd, []string{"kitchen"}); err != nil {
+			t.Fatalf("deviceRmCmd.RunE() = %v", err)
+		}
+		cfg, err := config.Load()
+		if err != nil {
+			t.Fatalf("config.Load() error = %v", err)
+		}
+		if _, ok := cfg.Devices["kitchen"]; ok {
+			t.Error("device not removed despite a confirmed removal")
+		}
+	})
+
+	t.Run("--yes skips the prompt", func(t *testing.T) {
+		setup(t)
+		deviceRmYes = true
+		confirmStdin = strings.NewReader("")
+
+		if err := deviceRmCmd.RunE(deviceRmCmd, []string{"kitchen"}); err != nil {
+			t.Fatalf("deviceRmCmd.RunE() = %v", err)
+		}
+		cfg, err := config.Load()
+		if err != nil {
+			t.Fatalf("config.Load() error = %v", err)
+		}
+		if _, ok := cfg.Devices["kitchen"]; ok {
+			t.Error("device not removed despite --yes")
+		}
+	})
+}
+
+func TestDeviceAddUseStayConfirmationFree(t *testing.T) {
+	useTempDeviceConfigDir(t)
+	origStdin := confirmStdin
+	t.Cleanup(func() { confirmStdin = origStdin })
+	confirmStdin = strings.NewReader("")
+
+	if err := runDeviceAdd(nil, []string{"kitchen", "http://10.0.0.5"}); err != nil {
+		t.Fatalf("runDeviceAdd() (closed stdin) error = %v", err)
+	}
+	if err := runDeviceUse(nil, []string{"kitchen"}); err != nil {
+		t.Fatalf("runDeviceUse() (closed stdin) error = %v", err)
+	}
+	if deviceAddCmd.Flags().Lookup("yes") != nil {
+		t.Error("deviceAddCmd unexpectedly has a --yes flag")
+	}
+	if deviceUseCmd.Flags().Lookup("yes") != nil {
+		t.Error("deviceUseCmd unexpectedly has a --yes flag")
+	}
+}
+
 func TestRunDeviceAddRejectsSchemelessHost(t *testing.T) {
 	useTempDeviceConfigDir(t)
 

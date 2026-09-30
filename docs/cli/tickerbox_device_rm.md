@@ -2,6 +2,10 @@
 
 Remove a configured device
 
+### Synopsis
+
+Removes a configured device. Prompts for confirmation unless --yes.
+
 ```
 tickerbox device rm <name> [flags]
 ```
@@ -9,13 +13,14 @@ tickerbox device rm <name> [flags]
 ### Examples
 
 ```
-  tickerbox device rm desk
+  tickerbox device rm desk --yes
 ```
 
 ### Options
 
 ```
   -h, --help   help for rm
+  -y, --yes    skip confirmation
 ```
 
 ### Options inherited from parent commands

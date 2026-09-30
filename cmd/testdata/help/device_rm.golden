@@ -1,13 +1,14 @@
-Remove a configured device
+Removes a configured device. Prompts for confirmation unless --yes.
 
 Usage:
   tickerbox device rm <name> [flags]
 
 Examples:
-  tickerbox device rm desk
+  tickerbox device rm desk --yes
 
 Flags:
   -h, --help   help for rm
+  -y, --yes    skip confirmation
 
 Global Flags:
   -d, --device string      named device from the config file

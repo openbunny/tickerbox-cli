@@ -4,7 +4,7 @@ Apply a saved profile to the device
 
 ### Synopsis
 
-Applies only the sections present in the saved profile; sections it doesn't contain are left untouched on the device.
+Applies only the sections present in the saved profile; sections it doesn't contain are left untouched on the device. Prompts for confirmation unless --yes.
 
 ```
 tickerbox profile apply <name> [flags]
@@ -13,14 +13,14 @@ tickerbox profile apply <name> [flags]
 ### Examples
 
 ```
-  tickerbox profile apply home
+  tickerbox profile apply home --yes
 ```
 
 ### Options
 
 ```
   -h, --help   help for apply
-  -y, --yes    skip the source-device confirmation prompt
+  -y, --yes    skip confirmation
 ```
 
 ### Options inherited from parent commands

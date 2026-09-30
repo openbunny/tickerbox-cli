@@ -1,4 +1,4 @@
-Captures tickers, display, clock, and ntp by default. --include selects specific sections by name. --all also captures wifi and ap, including their passwords.
+Captures tickers, display, clock, and ntp by default. --include selects specific sections by name. --all also captures wifi and ap, including their passwords. Prompts for confirmation if name is already saved, unless --yes.
 
 Usage:
   tickerbox profile save <name> [flags]
@@ -12,6 +12,7 @@ Flags:
   -D, --description string   optional human-readable description to store with the profile
   -h, --help                 help for save
       --include string       comma-separated sections to capture (default tickers,display,clock,ntp)
+  -y, --yes                  skip confirmation
 
 Global Flags:
   -d, --device string      named device from the config file

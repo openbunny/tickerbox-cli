@@ -155,6 +155,23 @@ func warnIfGroupOrWorldReadable(path string) {
 	}
 }
 
+// Exists reports whether a profile named name is already saved.
+func Exists(name string) (bool, error) {
+	p, err := path(name)
+	if err != nil {
+		return false, err
+	}
+	_, err = os.Stat(p)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		return false, nil
+	case err != nil:
+		return false, fmt.Errorf("stat profile %s: %w", name, err)
+	default:
+		return true, nil
+	}
+}
+
 func Remove(name string) error {
 	p, err := path(name)
 	if err != nil {

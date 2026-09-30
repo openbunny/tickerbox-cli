@@ -29,13 +29,15 @@ var (
 	profileSaveInclude     string
 	profileSaveAll         bool
 	profileSaveDescription string
+	profileSaveYes         bool
 )
 
 var profileSaveCmd = &cobra.Command{
 	Use:   "save <name>",
 	Short: "Capture the device's current config as a named profile",
 	Long: "Captures tickers, display, clock, and ntp by default. --include selects specific sections by " +
-		"name. --all also captures wifi and ap, including their passwords.",
+		"name. --all also captures wifi and ap, including their passwords. Prompts for confirmation if " +
+		"name is already saved, unless --yes.",
 	Example: "  tickerbox profile save home\n" +
 		"  tickerbox profile save full --all",
 	Args: cobra.ExactArgs(1),
@@ -44,6 +46,22 @@ var profileSaveCmd = &cobra.Command{
 		s, err := section.Capture(cmdContext(cmd), newClient(), include, withSecrets)
 		if err != nil {
 			return err
+		}
+		if !profileSaveYes {
+			exists, err := profile.Exists(args[0])
+			if err != nil {
+				return err
+			}
+			if exists {
+				ok, err := confirm(fmt.Sprintf("Overwrite profile %s?", args[0]))
+				if err != nil {
+					return err
+				}
+				if !ok {
+					fmt.Println("aborted")
+					return nil
+				}
+			}
 		}
 		if err := profile.SaveDescribed(args[0], s, profileSaveDescription, resolvedDeviceName); err != nil {
 			return err
@@ -185,8 +203,8 @@ var profileApplyCmd = &cobra.Command{
 	Use:   "apply <name>",
 	Short: "Apply a saved profile to the device",
 	Long: "Applies only the sections present in the saved profile; sections it doesn't contain are left " +
-		"untouched on the device.",
-	Example: "  tickerbox profile apply home",
+		"untouched on the device. Prompts for confirmation unless --yes.",
+	Example: "  tickerbox profile apply home --yes",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		s, sourceDevice, err := profile.LoadWithSource(args[0])
@@ -194,22 +212,28 @@ var profileApplyCmd = &cobra.Command{
 			return err
 		}
 
-		if sourceDevice != "" && resolvedDeviceName != "" && sourceDevice != resolvedDeviceName {
-			if profileApplyYes {
+		include := presentSections(s)
+		mismatch := sourceDevice != "" && resolvedDeviceName != "" && sourceDevice != resolvedDeviceName
+		prompt := fmt.Sprintf("Apply %s from profile %s to the device?", strings.Join(include, ", "), args[0])
+		if mismatch {
+			prompt = fmt.Sprintf("Profile %q was saved from device %q; the current target is %q. %s", args[0], sourceDevice, resolvedDeviceName, prompt)
+		}
+
+		if profileApplyYes {
+			if mismatch {
 				fmt.Fprintf(os.Stderr, "warning: applying profile %q (saved from device %q) to %q\n", args[0], sourceDevice, resolvedDeviceName)
-			} else {
-				ok, err := confirm(fmt.Sprintf("Profile %q was saved from device %q; the current target is %q. Apply anyway?", args[0], sourceDevice, resolvedDeviceName))
-				if err != nil {
-					return err
-				}
-				if !ok {
-					fmt.Println("aborted")
-					return nil
-				}
+			}
+		} else {
+			ok, err := confirm(prompt)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Println("aborted")
+				return nil
 			}
 		}
 
-		include := presentSections(s)
 		if err := section.Apply(cmdContext(cmd), newClient(), s, include); err != nil {
 			return err
 		}
@@ -252,12 +276,13 @@ func init() {
 	profileSaveCmd.Flags().StringVar(&profileSaveInclude, "include", "", "comma-separated sections to capture (default "+strings.Join(section.DefaultInclude, ",")+")")
 	profileSaveCmd.Flags().BoolVar(&profileSaveAll, "all", false, "also capture wifi and ap, including their secrets")
 	profileSaveCmd.Flags().StringVarP(&profileSaveDescription, "description", "D", "", "optional human-readable description to store with the profile")
+	profileSaveCmd.Flags().BoolVarP(&profileSaveYes, "yes", "y", false, "skip confirmation")
 
 	profileShowCmd.Flags().BoolVar(&profileShowShowSecrets, "show-secrets", false, "reveal wifi/ap password fields instead of masking them")
 
 	profileRmCmd.Flags().BoolVarP(&profileRmYes, "yes", "y", false, "skip confirmation")
 
-	profileApplyCmd.Flags().BoolVarP(&profileApplyYes, "yes", "y", false, "skip the source-device confirmation prompt")
+	profileApplyCmd.Flags().BoolVarP(&profileApplyYes, "yes", "y", false, "skip confirmation")
 
 	profileDiffCmd.Flags().BoolVar(&profileDiffShowSecrets, "show-secrets", false, "reveal wifi/ap password fields instead of masking them")
 

@@ -4,7 +4,7 @@ Capture the device's current config as a named profile
 
 ### Synopsis
 
-Captures tickers, display, clock, and ntp by default. --include selects specific sections by name. --all also captures wifi and ap, including their passwords.
+Captures tickers, display, clock, and ntp by default. --include selects specific sections by name. --all also captures wifi and ap, including their passwords. Prompts for confirmation if name is already saved, unless --yes.
 
 ```
 tickerbox profile save <name> [flags]
@@ -24,6 +24,7 @@ tickerbox profile save <name> [flags]
   -D, --description string   optional human-readable description to store with the profile
   -h, --help                 help for save
       --include string       comma-separated sections to capture (default tickers,display,clock,ntp)
+  -y, --yes                  skip confirmation
 ```
 
 ### Options inherited from parent commands
