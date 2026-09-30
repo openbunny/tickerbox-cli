@@ -67,3 +67,19 @@ cli-docs:
 
 release-dry-run:
     goreleaser release --snapshot --clean
+
+demo:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v vhs >/dev/null || { echo "demo: vhs not installed; see https://github.com/charmbracelet/vhs#installation" >&2; exit 1; }
+    dir=$(mktemp -d)
+    trap 'kill "${mock_pid:-0}" 2>/dev/null || true; rm -rf "$dir"' EXIT
+    go build -o "$dir/tickerbox" .
+    go run demo/mock.go &
+    mock_pid=$!
+    for _ in $(seq 1 50); do
+        curl -sf http://127.0.0.1:8765/rest/features >/dev/null 2>&1 && break
+        sleep 0.1
+    done
+    PATH="$dir:$PATH" TICKERBOX_HOST="http://127.0.0.1:8765" vhs demo/tickerbox.tape
+    ls -lh demo/tickerbox.gif
