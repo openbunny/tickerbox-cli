@@ -42,6 +42,7 @@ secrets, per below.
 
 ```toml
 Default = "kitchen"
+FMPAPIKey = "abc123"
 
 [Devices.kitchen]
 Name = "kitchen"
@@ -52,12 +53,13 @@ Name = "office"
 Host = "http://tickerbox-office.local"
 ```
 
-| Field                 | TOML type | Go type             | Meaning                                                                                                                                          |
-| --------------------- | --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Default`             | string    | `string`            | Device name used when no `--host`/`--device` flag and no `$TICKERBOX_HOST` are set. Empty string means no default.                               |
-| `Devices`             | table     | `map[string]Device` | Keyed by device name; the key and `Devices.<key>.Name` are kept equal by every write path (`Config.Add`).                                        |
-| `Devices.<name>.Name` | string    | `string`            | Same value as the table key.                                                                                                                     |
-| `Devices.<name>.Host` | string    | `string`            | Base URL the CLI sends `/rest/...` requests against, e.g. `http://192.168.1.10` or a `.local` mDNS name. Not validated as a URL by `Config.Add`. |
+| Field                 | TOML type | Go type             | Meaning                                                                                                                                                                                                                                             |
+| --------------------- | --------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Default`             | string    | `string`            | Device name used when no `--host`/`--device` flag and no `$TICKERBOX_HOST` are set. Empty string means no default.                                                                                                                                  |
+| `Devices`             | table     | `map[string]Device` | Keyed by device name; the key and `Devices.<key>.Name` are kept equal by every write path (`Config.Add`).                                                                                                                                           |
+| `Devices.<name>.Name` | string    | `string`            | Same value as the table key.                                                                                                                                                                                                                        |
+| `Devices.<name>.Host` | string    | `string`            | Base URL the CLI sends `/rest/...` requests against, e.g. `http://192.168.1.10` or a `.local` mDNS name. Not validated as a URL by `Config.Add`.                                                                                                    |
+| `FMPAPIKey`           | string    | `string`            | Financial Modeling Prep API key, set by `tickerbox fmp set-key` and used to verify a ticker symbol on `tickers add`. Omitted from the file when empty. `$TICKERBOX_FMP_API_KEY` takes precedence when set; see [Secret handling](#secret-handling). |
 
 `device add` does not add a scheme for you: `Config.Add` and the request
 path (`cmd.newClient()` → `restBase(host)`) both use the host exactly as
@@ -89,7 +91,16 @@ command through `cmd.newClient()`, picks the first of:
 
 ## Secret handling
 
-`config.toml` never holds a device credential. By default,
+`config.toml` never holds a device credential. It does hold one CLI-level
+secret: `FMPAPIKey`, set by `tickerbox fmp set-key` and read by `tickers add`'s
+Financial Modeling Prep symbol verification. It has no device-facing use — the
+device never sees it — and is not a wifi/ap password, so it falls outside
+`internal/section`'s password/secret field stripping described below.
+`$TICKERBOX_FMP_API_KEY`, when set, is used instead of the stored value without
+changing it. No command prints `FMPAPIKey` in the clear; wherever it appears in
+output it is masked the same way a wifi/ap password is.
+
+By default,
 `internal/section.Capture` strips any wifi or ap field whose key contains
 `password` or `secret` (case-insensitive substring, not a fixed field list)
 before it reaches a Snapshot, so no command writes a device secret to a

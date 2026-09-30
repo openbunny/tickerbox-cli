@@ -14,6 +14,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openbunny/tickerbox-cli/internal/client"
+	"github.com/openbunny/tickerbox-cli/internal/config"
 	"github.com/openbunny/tickerbox-cli/internal/template"
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
@@ -325,10 +327,13 @@ func TestTickersAddBulkAcceptsValidEntries(t *testing.T) {
 	withTickersCmdTarget(t, srv.URL)
 
 	origType, origTime, origCurrency := tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency
+	origNoVerify := tickersAddBulkNoVerify
 	t.Cleanup(func() {
 		tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = origType, origTime, origCurrency
+		tickersAddBulkNoVerify = origNoVerify
 	})
 	tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = "crypto", "5min", "USD"
+	tickersAddBulkNoVerify = true
 
 	if err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"BTC"}); err != nil {
 		t.Fatalf("tickersAddBulkCmd.RunE() = %v", err)
@@ -339,6 +344,50 @@ func TestTickersAddBulkAcceptsValidEntries(t *testing.T) {
 	}
 	if gotState.Tickers != "BTC" {
 		t.Errorf("posted tickers = %q; want %q", gotState.Tickers, "BTC")
+	}
+}
+
+// TestTickersAddBulkStaysConfirmationFree proves no confirm() read was inserted
+// into the add path: with stdin closed, a valid add still succeeds.
+func TestTickersAddBulkStaysConfirmationFree(t *testing.T) {
+	srv, posted := withTickersStub(t, `{"size":0}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origType, origTime, origCurrency, origNoVerify, origStdin := tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency, tickersAddBulkNoVerify, confirmStdin
+	t.Cleanup(func() {
+		tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = origType, origTime, origCurrency
+		tickersAddBulkNoVerify, confirmStdin = origNoVerify, origStdin
+	})
+	tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = "crypto", "5min", "USD"
+	tickersAddBulkNoVerify = true
+	confirmStdin = strings.NewReader("")
+
+	if err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"BTC"}); err != nil {
+		t.Fatalf("tickersAddBulkCmd.RunE() (closed stdin) = %v", err)
+	}
+	if len(*posted) == 0 {
+		t.Error("device was never posted despite a valid add")
+	}
+}
+
+// TestTickersMoveStaysConfirmationFree guards requirement C's scope: an additive
+// command (move) must gain neither a confirm() call nor a --yes flag.
+func TestTickersMoveStaysConfirmationFree(t *testing.T) {
+	srv, posted := withTickersStub(t, `{"size":2,"types":"crypto,stocks","tickers":"BTC,AAPL","times":"5min,1min","currency":"USD,USD"}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origStdin := confirmStdin
+	t.Cleanup(func() { confirmStdin = origStdin })
+	confirmStdin = strings.NewReader("")
+
+	if err := tickersMoveCmd.RunE(tickersMoveCmd, []string{"0", "1"}); err != nil {
+		t.Fatalf("tickersMoveCmd.RunE() (closed stdin) = %v", err)
+	}
+	if len(*posted) == 0 {
+		t.Error("device was never posted despite a valid move")
+	}
+	if tickersMoveCmd.Flags().Lookup("yes") != nil {
+		t.Error("tickersMoveCmd unexpectedly has a --yes flag")
 	}
 }
 
@@ -357,6 +406,181 @@ func TestTickersAddBulkRejectsCommaInTicker(t *testing.T) {
 	}
 	if len(*posted) != 0 {
 		t.Error("device was posted despite the comma-corrupted ticker")
+	}
+}
+
+func withFMPStub(t *testing.T, status int, body string) (*httptest.Server, *int) {
+	t.Helper()
+	var requests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+	origBase := client.FMPBaseURL
+	t.Cleanup(func() { client.FMPBaseURL = origBase })
+	client.FMPBaseURL = srv.URL + "/"
+	return srv, &requests
+}
+
+func tickersAddBulkVerifyFixture(t *testing.T) (*[]byte, func()) {
+	t.Helper()
+	deviceSrv, posted := withTickersStub(t, `{"size":0}`)
+	withTickersCmdTarget(t, deviceSrv.URL)
+
+	origType, origTime, origCurrency, origNoVerify := tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency, tickersAddBulkNoVerify
+	tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency, tickersAddBulkNoVerify = "crypto", "5min", "USD", false
+	cleanup := func() {
+		tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency, tickersAddBulkNoVerify = origType, origTime, origCurrency, origNoVerify
+	}
+	return posted, cleanup
+}
+
+func TestTickersAddBulkVerifyValid(t *testing.T) {
+	posted, cleanup := tickersAddBulkVerifyFixture(t)
+	defer cleanup()
+	_, fmpRequests := withFMPStub(t, http.StatusOK, `[{"symbol":"AAPL"}]`)
+	t.Setenv(config.EnvFMPAPIKey, "test-key")
+
+	if err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"AAPL"}); err != nil {
+		t.Fatalf("tickersAddBulkCmd.RunE() = %v", err)
+	}
+	if len(*posted) == 0 {
+		t.Error("device was never posted despite a verified symbol")
+	}
+	if *fmpRequests != 1 {
+		t.Errorf("FMP requests = %d, want 1", *fmpRequests)
+	}
+}
+
+func TestTickersAddBulkVerifyUnknownSymbol(t *testing.T) {
+	posted, cleanup := tickersAddBulkVerifyFixture(t)
+	defer cleanup()
+	withFMPStub(t, http.StatusOK, `[]`)
+	t.Setenv(config.EnvFMPAPIKey, "test-key")
+
+	err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"ZZZZINVALIDTICKER123"})
+	if err == nil {
+		t.Fatal("tickersAddBulkCmd.RunE() = nil error; want error for an unknown symbol")
+	}
+	want := `ticker "ZZZZINVALIDTICKER123": not found on Financial Modeling Prep — check the symbol (e.g. AAPL, BTC, EURUSD) or pass --no-verify to add it unchecked`
+	if err.Error() != want {
+		t.Errorf("error = %q; want %q", err.Error(), want)
+	}
+	if len(*posted) != 0 {
+		t.Error("device was posted despite an unknown symbol")
+	}
+}
+
+func TestTickersAddBulkVerifyNoVerifySkipsFMP(t *testing.T) {
+	posted, cleanup := tickersAddBulkVerifyFixture(t)
+	defer cleanup()
+	tickersAddBulkNoVerify = true
+	// No FMP stub is started; client.FMPBaseURL still points at the real host, but a
+	// request there would fail the sandboxed test run if one were ever attempted.
+
+	if err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"AAPL"}); err != nil {
+		t.Fatalf("tickersAddBulkCmd.RunE() = %v", err)
+	}
+	if len(*posted) == 0 {
+		t.Error("device was never posted despite --no-verify")
+	}
+}
+
+func TestTickersAddBulkVerifyUnreachable(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(t *testing.T)
+	}{
+		{
+			name: "HTTP 500",
+			setup: func(t *testing.T) {
+				withFMPStub(t, http.StatusInternalServerError, `boom`)
+			},
+		},
+		{
+			name: "HTTP 401",
+			setup: func(t *testing.T) {
+				withFMPStub(t, http.StatusUnauthorized, `{"error":"invalid key"}`)
+			},
+		},
+		{
+			name: "connection refused",
+			setup: func(t *testing.T) {
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+				url := srv.URL
+				srv.Close()
+				origBase := client.FMPBaseURL
+				t.Cleanup(func() { client.FMPBaseURL = origBase })
+				client.FMPBaseURL = url + "/"
+			},
+		},
+		{
+			name: "timeout",
+			setup: func(t *testing.T) {
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					time.Sleep(200 * time.Millisecond)
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`[{"symbol":"AAPL"}]`))
+				}))
+				t.Cleanup(srv.Close)
+				origBase := client.FMPBaseURL
+				t.Cleanup(func() { client.FMPBaseURL = origBase })
+				client.FMPBaseURL = srv.URL + "/"
+
+				origTimeout := fmpVerifyTimeout
+				t.Cleanup(func() { fmpVerifyTimeout = origTimeout })
+				fmpVerifyTimeout = 20 * time.Millisecond
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			posted, cleanup := tickersAddBulkVerifyFixture(t)
+			defer cleanup()
+			t.Setenv(config.EnvFMPAPIKey, "test-key")
+			tt.setup(t)
+
+			err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"AAPL"})
+			if err == nil {
+				t.Fatal("tickersAddBulkCmd.RunE() = nil error; want error for an unreachable FMP")
+			}
+			if !strings.Contains(err.Error(), "Financial Modeling Prep unreachable") {
+				t.Errorf("error = %q; want it to name FMP as unreachable", err.Error())
+			}
+			if strings.Contains(err.Error(), "not found on Financial Modeling Prep") {
+				t.Errorf("error = %q; unreachable must never read as unknown-symbol", err.Error())
+			}
+			if len(*posted) != 0 {
+				t.Error("device was posted despite an unreachable FMP")
+			}
+		})
+	}
+}
+
+func TestTickersAddBulkVerifyMissingAPIKey(t *testing.T) {
+	posted, cleanup := tickersAddBulkVerifyFixture(t)
+	defer cleanup()
+	_, fmpRequests := withFMPStub(t, http.StatusOK, `[{"symbol":"AAPL"}]`)
+	t.Setenv(config.EnvFMPAPIKey, "")
+	withCmdTempHome(t)
+
+	err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"AAPL"})
+	if err == nil {
+		t.Fatal("tickersAddBulkCmd.RunE() = nil error; want error for a missing API key")
+	}
+	want := `verify ticker "AAPL": no Financial Modeling Prep API key configured — set TICKERBOX_FMP_API_KEY, or pass --no-verify to add without verification`
+	if err.Error() != want {
+		t.Errorf("error = %q; want %q", err.Error(), want)
+	}
+	if *fmpRequests != 0 {
+		t.Errorf("FMP requests = %d, want 0 before any request is sent", *fmpRequests)
+	}
+	if len(*posted) != 0 {
+		t.Error("device was posted despite a missing API key")
 	}
 }
 
@@ -394,9 +618,10 @@ func TestTickersEditAcceptsValidTime(t *testing.T) {
 	srv, posted := withTickersStub(t, `{"size":1,"types":"crypto","tickers":"BTC","times":"5min","currency":"USD"}`)
 	withTickersCmdTarget(t, srv.URL)
 
-	origTime := tickersEditTime
-	t.Cleanup(func() { tickersEditTime = origTime })
+	origTime, origYes := tickersEditTime, tickersEditYes
+	t.Cleanup(func() { tickersEditTime, tickersEditYes = origTime, origYes })
 	tickersEditTime = "1min"
+	tickersEditYes = true
 
 	c := tickersEditCmdFixture()
 	if err := c.Flags().Set("time", "1min"); err != nil {
@@ -413,6 +638,50 @@ func TestTickersEditAcceptsValidTime(t *testing.T) {
 	if gotState.Times != "1min" {
 		t.Errorf("posted times = %q; want %q", gotState.Times, "1min")
 	}
+}
+
+func TestTickersEditConfirmation(t *testing.T) {
+	origYes, origStdin := tickersEditYes, confirmStdin
+	t.Cleanup(func() { tickersEditYes, confirmStdin = origYes, origStdin })
+
+	getBody := `{"size":1,"types":"crypto","tickers":"BTC","times":"5min","currency":"USD"}`
+
+	t.Run("decline exits 0 without posting", func(t *testing.T) {
+		srv, posted := withTickersStub(t, getBody)
+		withTickersCmdTarget(t, srv.URL)
+		tickersEditYes = false
+		confirmStdin = strings.NewReader("n\n")
+
+		c := tickersEditCmdFixture()
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = tickersEditCmd.RunE(c, []string{"BTC"})
+		})
+		if runErr != nil {
+			t.Fatalf("tickersEditCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "aborted") {
+			t.Errorf("stdout = %q; want it to contain %q", stdout, "aborted")
+		}
+		if len(*posted) != 0 {
+			t.Error("device was posted despite a declined confirmation")
+		}
+	})
+
+	t.Run("confirm proceeds", func(t *testing.T) {
+		srv, posted := withTickersStub(t, getBody)
+		withTickersCmdTarget(t, srv.URL)
+		tickersEditYes = false
+		confirmStdin = strings.NewReader("y\n")
+
+		c := tickersEditCmdFixture()
+		if err := tickersEditCmd.RunE(c, []string{"BTC"}); err != nil {
+			t.Fatalf("tickersEditCmd.RunE() = %v", err)
+		}
+		if len(*posted) == 0 {
+			t.Error("device was never posted despite a confirmed edit")
+		}
+	})
 }
 
 func TestTickersTemplateApplyRejectsWhenExistingEntryInvalid(t *testing.T) {
@@ -443,14 +712,87 @@ func TestTickersTemplateApplyAcceptsValidReplace(t *testing.T) {
 	srv, posted := withTickersStub(t, `{"size":0}`)
 	withTickersCmdTarget(t, srv.URL)
 
-	origReplace := tickersTemplateReplace
-	t.Cleanup(func() { tickersTemplateReplace = origReplace })
+	origReplace, origYes := tickersTemplateReplace, tickersTemplateApplyYes
+	t.Cleanup(func() { tickersTemplateReplace, tickersTemplateApplyYes = origReplace, origYes })
 	tickersTemplateReplace = true
+	tickersTemplateApplyYes = true
 
 	if err := tickersTemplateApplyCmd.RunE(tickersTemplateApplyCmd, []string{names[0]}); err != nil {
 		t.Fatalf("tickersTemplateApplyCmd.RunE() = %v", err)
 	}
 	if len(*posted) == 0 {
 		t.Error("device was never posted")
+	}
+}
+
+func TestTickersTemplateApplyReplaceConfirmation(t *testing.T) {
+	names := template.List()
+	if len(names) == 0 {
+		t.Skip("no templates registered")
+	}
+
+	origReplace, origYes, origStdin := tickersTemplateReplace, tickersTemplateApplyYes, confirmStdin
+	t.Cleanup(func() {
+		tickersTemplateReplace, tickersTemplateApplyYes, confirmStdin = origReplace, origYes, origStdin
+	})
+	tickersTemplateReplace = true
+
+	t.Run("decline exits 0 without posting", func(t *testing.T) {
+		srv, posted := withTickersStub(t, `{"size":0}`)
+		withTickersCmdTarget(t, srv.URL)
+		tickersTemplateApplyYes = false
+		confirmStdin = strings.NewReader("n\n")
+
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = tickersTemplateApplyCmd.RunE(tickersTemplateApplyCmd, []string{names[0]})
+		})
+		if runErr != nil {
+			t.Fatalf("tickersTemplateApplyCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "aborted") {
+			t.Errorf("stdout = %q; want it to contain %q", stdout, "aborted")
+		}
+		if len(*posted) != 0 {
+			t.Error("device was posted despite a declined confirmation")
+		}
+	})
+
+	t.Run("confirm proceeds", func(t *testing.T) {
+		srv, posted := withTickersStub(t, `{"size":0}`)
+		withTickersCmdTarget(t, srv.URL)
+		tickersTemplateApplyYes = false
+		confirmStdin = strings.NewReader("y\n")
+
+		if err := tickersTemplateApplyCmd.RunE(tickersTemplateApplyCmd, []string{names[0]}); err != nil {
+			t.Fatalf("tickersTemplateApplyCmd.RunE() = %v", err)
+		}
+		if len(*posted) == 0 {
+			t.Error("device was never posted despite a confirmed replace")
+		}
+	})
+}
+
+func TestTickersTemplateApplyAppendStaysConfirmationFree(t *testing.T) {
+	names := template.List()
+	if len(names) == 0 {
+		t.Skip("no templates registered")
+	}
+	srv, posted := withTickersStub(t, `{"size":0}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origReplace, origYes, origStdin := tickersTemplateReplace, tickersTemplateApplyYes, confirmStdin
+	t.Cleanup(func() {
+		tickersTemplateReplace, tickersTemplateApplyYes, confirmStdin = origReplace, origYes, origStdin
+	})
+	tickersTemplateReplace = false
+	tickersTemplateApplyYes = false
+	confirmStdin = strings.NewReader("")
+
+	if err := tickersTemplateApplyCmd.RunE(tickersTemplateApplyCmd, []string{names[0]}); err != nil {
+		t.Fatalf("tickersTemplateApplyCmd.RunE() (append, closed stdin) = %v", err)
+	}
+	if len(*posted) == 0 {
+		t.Error("device was never posted despite a valid append")
 	}
 }

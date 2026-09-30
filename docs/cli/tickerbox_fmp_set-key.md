@@ -1,26 +1,25 @@
-## tickerbox tickers edit
+## tickerbox fmp set-key
 
-Change fields of one ticker entry in place
+Store a Financial Modeling Prep API key in the config file
+
+### Synopsis
+
+Persists KEY to config.toml. $TICKERBOX_FMP_API_KEY, when set, overrides the stored key without changing it.
 
 ```
-tickerbox tickers edit <index|sym> [flags]
+tickerbox fmp set-key <key> [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox tickers edit BTC --time 1min
+  tickerbox fmp set-key abc123
 ```
 
 ### Options
 
 ```
-      --currency string   USD|EUR|GBP|CAD|AUD|JPY
-  -h, --help              help for edit
-      --ticker string     new ticker symbol
-      --time string       1min|5min|15min
-      --type string       crypto|stocks|forex
-  -y, --yes               skip confirmation
+  -h, --help   help for set-key
 ```
 
 ### Options inherited from parent commands
@@ -35,5 +34,5 @@ tickerbox tickers edit <index|sym> [flags]
 
 ### SEE ALSO
 
-* [tickerbox tickers](tickerbox_tickers.md)	 - Ticker / asset list
+* [tickerbox fmp](tickerbox_fmp.md)	 - Financial Modeling Prep API key, used to verify ticker symbols on add
 

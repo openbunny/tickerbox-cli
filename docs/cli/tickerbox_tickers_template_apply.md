@@ -22,6 +22,7 @@ tickerbox tickers template apply <name> [flags]
       --append    append to the current list, skipping duplicates (default) (default true)
   -h, --help      help for apply
       --replace   replace the current list instead of appending
+  -y, --yes       skip confirmation
 ```
 
 ### Options inherited from parent commands

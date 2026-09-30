@@ -35,6 +35,7 @@ tickerbox talks to a TickerBox ESP32 device's REST API over HTTP. Target a devic
 * [tickerbox device](tickerbox_device.md)	 - Manage configured devices
 * [tickerbox display](tickerbox_display.md)	 - Display brightness / rotation / sleep
 * [tickerbox doctor](tickerbox_doctor.md)	 - Read-only health check
+* [tickerbox fmp](tickerbox_fmp.md)	 - Financial Modeling Prep API key, used to verify ticker symbols on add
 * [tickerbox ntp](tickerbox_ntp.md)	 - NTP / time sync
 * [tickerbox open](tickerbox_open.md)	 - Open the device's web UI in the default browser
 * [tickerbox profile](tickerbox_profile.md)	 - Named, device-agnostic device configurations

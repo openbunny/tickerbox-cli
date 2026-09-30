@@ -1,18 +1,13 @@
-Change fields of one ticker entry in place
+Persists KEY to config.toml. $TICKERBOX_FMP_API_KEY, when set, overrides the stored key without changing it.
 
 Usage:
-  tickerbox tickers edit <index|sym> [flags]
+  tickerbox fmp set-key <key> [flags]
 
 Examples:
-  tickerbox tickers edit BTC --time 1min
+  tickerbox fmp set-key abc123
 
 Flags:
-      --currency string   USD|EUR|GBP|CAD|AUD|JPY
-  -h, --help              help for edit
-      --ticker string     new ticker symbol
-      --time string       1min|5min|15min
-      --type string       crypto|stocks|forex
-  -y, --yes               skip confirmation
+  -h, --help   help for set-key
 
 Global Flags:
   -d, --device string      named device from the config file

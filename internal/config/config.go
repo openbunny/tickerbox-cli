@@ -32,8 +32,9 @@ type Device struct {
 }
 
 type Config struct {
-	Default string
-	Devices map[string]Device
+	Default   string
+	Devices   map[string]Device
+	FMPAPIKey string `toml:",omitempty"`
 }
 
 func Path() (string, error) {

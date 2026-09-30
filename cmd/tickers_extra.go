@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strconv"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openbunny/tickerbox-cli/internal/client"
+	"github.com/openbunny/tickerbox-cli/internal/config"
 	"github.com/openbunny/tickerbox-cli/internal/output"
 	"github.com/openbunny/tickerbox-cli/internal/template"
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
@@ -106,13 +109,47 @@ func rejectInvalidEntries(entries []tickers.Entry) error {
 func rejectInvalidEditFlags(cmd *cobra.Command, typ, tm, currency string) error {
 	flags := cmd.Flags()
 	if flags.Changed("type") && !tickers.ValidType(typ) {
-		return fmt.Errorf("invalid --type %q", typ)
+		return fmt.Errorf("invalid --type %q: expected one of %s", typ, tickers.ExpectedTypes())
 	}
 	if flags.Changed("time") && !tickers.ValidTime(tm) {
-		return fmt.Errorf("invalid --time %q", tm)
+		return fmt.Errorf("invalid --time %q: expected one of %s", tm, tickers.ExpectedTimes())
 	}
 	if flags.Changed("currency") && !tickers.ValidCurrency(currency) {
-		return fmt.Errorf("invalid --currency %q", currency)
+		return fmt.Errorf("invalid --currency %q: expected one of %s", currency, tickers.ExpectedCurrencies())
+	}
+	return nil
+}
+
+// fmpVerifyTimeout is the FMP request timeout, fixed at defaultTimeout (not the
+// device's --timeout flag) since verification targets an unrelated host. A test
+// override needs a var rather than defaultTimeout's const.
+var fmpVerifyTimeout = defaultTimeout
+
+// verifyNewTickers checks each entry's ticker against Financial Modeling Prep before
+// it reaches the device. A verification failure (missing key, unreachable API) is
+// never treated as an unknown symbol — the two are reported with distinct error
+// text so a transient FMP outage can't silently reject a real ticker.
+func verifyNewTickers(ctx context.Context, entries []tickers.Entry) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+	apiKey, ok := cfg.ResolveFMPAPIKey()
+	if !ok {
+		return fmt.Errorf("verify ticker %q: no Financial Modeling Prep API key configured — set %s, or pass --no-verify to add without verification",
+			tickers.NormalizeTicker(entries[0].Ticker), config.EnvFMPAPIKey)
+	}
+
+	fmp := client.NewFMP(fmpVerifyTimeout)
+	for _, e := range entries {
+		symbol := tickers.NormalizeTicker(e.Ticker)
+		known, err := fmp.Verify(ctx, symbol, apiKey)
+		if err != nil {
+			return fmt.Errorf("verify ticker %q: Financial Modeling Prep unreachable: %w — retry, or pass --no-verify to add without verification", symbol, err)
+		}
+		if !known {
+			return fmt.Errorf("ticker %q: not found on Financial Modeling Prep — check the symbol (e.g. AAPL, BTC, EURUSD) or pass --no-verify to add it unchecked", symbol)
+		}
 	}
 	return nil
 }
@@ -146,6 +183,7 @@ var (
 	tickersAddBulkType     string
 	tickersAddBulkTime     string
 	tickersAddBulkCurrency string
+	tickersAddBulkNoVerify bool
 )
 
 var tickersAddBulkCmd = &cobra.Command{
@@ -159,6 +197,11 @@ var tickersAddBulkCmd = &cobra.Command{
 		newEntries := buildBulkEntries(args, tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency)
 		if err := rejectInvalidEntries(newEntries); err != nil {
 			return err
+		}
+		if !tickersAddBulkNoVerify {
+			if err := verifyNewTickers(cmdContext(cmd), newEntries); err != nil {
+				return err
+			}
 		}
 		c := newClient()
 		entries, err := fetchTickerEntries(cmdContext(cmd), c)
@@ -185,6 +228,7 @@ var (
 	tickersEditType     string
 	tickersEditTime     string
 	tickersEditCurrency string
+	tickersEditYes      bool
 )
 
 var tickersEditCmd = &cobra.Command{
@@ -205,6 +249,7 @@ var tickersEditCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		original := entries[idx]
 		entries[idx] = applyEdit(entries[idx], editFields{
 			ticker:      tickersEditTicker,
 			tickerSet:   cmd.Flags().Changed("ticker"),
@@ -217,6 +262,16 @@ var tickersEditCmd = &cobra.Command{
 		})
 		if err := rejectInvalidEntries(entries); err != nil {
 			return err
+		}
+		if !tickersEditYes {
+			ok, err := confirm(fmt.Sprintf("Overwrite ticker %s with the new fields?", original.Ticker))
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Println("aborted")
+				return nil
+			}
 		}
 		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
@@ -350,7 +405,10 @@ var tickersTemplateShowCmd = &cobra.Command{
 	},
 }
 
-var tickersTemplateReplace bool
+var (
+	tickersTemplateReplace  bool
+	tickersTemplateApplyYes bool
+)
 
 var tickersTemplateApplyCmd = &cobra.Command{
 	Use:   "apply <name>",
@@ -376,6 +434,16 @@ var tickersTemplateApplyCmd = &cobra.Command{
 		if err := rejectInvalidEntries(merged); err != nil {
 			return err
 		}
+		if tickersTemplateReplace && !tickersTemplateApplyYes {
+			ok, err := confirm(fmt.Sprintf("Replace the current list with %d entries from preset %s?", len(preset), args[0]))
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Println("aborted")
+				return nil
+			}
+		}
 		if err := postTickerEntries(cmdContext(cmd), c, merged); err != nil {
 			return err
 		}
@@ -391,6 +459,7 @@ func init() {
 	tickersAddBulkCmd.Flags().StringVar(&tickersAddBulkType, "type", "", "crypto|stocks|forex")
 	tickersAddBulkCmd.Flags().StringVar(&tickersAddBulkTime, "time", "", "1min|5min|15min")
 	tickersAddBulkCmd.Flags().StringVar(&tickersAddBulkCurrency, "currency", tickers.CurrencyUSD, "USD|EUR|GBP|CAD|AUD|JPY")
+	tickersAddBulkCmd.Flags().BoolVar(&tickersAddBulkNoVerify, "no-verify", false, "skip Financial Modeling Prep symbol verification, add the entry unchecked")
 	_ = tickersAddBulkCmd.MarkFlagRequired("type")
 	_ = tickersAddBulkCmd.MarkFlagRequired("time")
 
@@ -398,11 +467,13 @@ func init() {
 	tickersEditCmd.Flags().StringVar(&tickersEditType, "type", "", "crypto|stocks|forex")
 	tickersEditCmd.Flags().StringVar(&tickersEditTime, "time", "", "1min|5min|15min")
 	tickersEditCmd.Flags().StringVar(&tickersEditCurrency, "currency", "", "USD|EUR|GBP|CAD|AUD|JPY")
+	tickersEditCmd.Flags().BoolVarP(&tickersEditYes, "yes", "y", false, "skip confirmation")
 
 	tickersTemplateApplyCmd.Flags().BoolVar(&tickersTemplateReplace, "replace", false, "replace the current list instead of appending")
 	var tickersTemplateAppendFlag bool
 	tickersTemplateApplyCmd.Flags().BoolVar(&tickersTemplateAppendFlag, "append", true, "append to the current list, skipping duplicates (default)")
 	tickersTemplateApplyCmd.MarkFlagsMutuallyExclusive("append", "replace")
+	tickersTemplateApplyCmd.Flags().BoolVarP(&tickersTemplateApplyYes, "yes", "y", false, "skip confirmation")
 
 	tickersTemplateCmd.AddCommand(tickersTemplateListCmd, tickersTemplateShowCmd, tickersTemplateApplyCmd)
 

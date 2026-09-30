@@ -21,6 +21,7 @@ tickerbox tickers add <sym>... [flags]
 ```
       --currency string   USD|EUR|GBP|CAD|AUD|JPY (default "USD")
   -h, --help              help for add
+      --no-verify         skip Financial Modeling Prep symbol verification, add the entry unchecked
       --time string       1min|5min|15min
       --type string       crypto|stocks|forex
 ```

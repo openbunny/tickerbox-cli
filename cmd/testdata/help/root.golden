@@ -17,6 +17,7 @@ Available Commands:
   device      Manage configured devices
   display     Display brightness / rotation / sleep
   doctor      Read-only health check
+  fmp         Financial Modeling Prep API key, used to verify ticker symbols on add
   help        Help about any command
   ntp         NTP / time sync
   open        Open the device's web UI in the default browser

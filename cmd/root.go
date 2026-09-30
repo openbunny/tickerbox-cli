@@ -110,6 +110,7 @@ func init() {
 	rootCmd.SilenceUsage = true
 
 	deviceIndependentCommands[deviceCmd] = true
+	deviceIndependentCommands[fmpCmd] = true
 	deviceIndependentCommands[tzListCmd] = true
 	deviceIndependentCommands[profileListCmd] = true
 	deviceIndependentCommands[profileShowCmd] = true
