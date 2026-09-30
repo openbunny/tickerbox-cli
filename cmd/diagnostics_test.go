@@ -7,8 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"runtime/debug"
 	"strings"
 	"testing"
@@ -295,6 +297,58 @@ func TestResolveWatchTarget(t *testing.T) {
 				t.Errorf("resolveWatchTarget(%v) = %s; want %s", tt.args, got.Name(), tt.want.Name())
 			}
 		})
+	}
+}
+
+func TestTerminalStdoutFalseWhenRedirected(t *testing.T) {
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() error = %v", err)
+	}
+	os.Stdout = w
+	t.Cleanup(func() {
+		os.Stdout = old
+		_ = w.Close()
+		_ = r.Close()
+	})
+
+	if terminalStdout() {
+		t.Error("terminalStdout() = true for a redirected pipe; want false")
+	}
+}
+
+func TestWatchDoesNotClearScreenWhenStdoutRedirected(t *testing.T) {
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() error = %v", err)
+	}
+	os.Stdout = w
+	t.Cleanup(func() { os.Stdout = oldStdout })
+
+	origHost, origInterval := resolvedHost, watchInterval
+	t.Cleanup(func() { resolvedHost, watchInterval = origHost, origInterval })
+	resolvedHost, watchInterval = "", time.Millisecond
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	fixture := &cobra.Command{}
+	fixture.SetContext(ctx)
+
+	if err := watchCmd.RunE(fixture, nil); err != nil {
+		t.Fatalf("watchCmd.RunE() = %v", err)
+	}
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("close pipe writer: %v", err)
+	}
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("read captured stdout: %v", err)
+	}
+	if strings.Contains(string(out), ansiClearScreen) {
+		t.Error("watch wrote the clear-screen escape to a redirected stdout")
 	}
 }
 

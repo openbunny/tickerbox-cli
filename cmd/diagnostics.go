@@ -287,6 +287,14 @@ const defaultWatchInterval = 2 * time.Second
 
 const ansiClearScreen = "\x1b[H\x1b[2J"
 
+func terminalStdout() bool {
+	info, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
+}
+
 var watchAllowed = map[*cobra.Command]bool{
 	statusCmd:          true,
 	systemInfoCmd:      true,
@@ -345,8 +353,11 @@ var watchCmd = &cobra.Command{
 		ticker := time.NewTicker(watchInterval)
 		defer ticker.Stop()
 
+		clearScreen := terminalStdout()
 		for {
-			fmt.Print(ansiClearScreen)
+			if clearScreen {
+				fmt.Print(ansiClearScreen)
+			}
 			if err := target.RunE(target, nil); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
