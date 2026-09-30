@@ -100,7 +100,7 @@ func commandTargetsDevice(cmd *cobra.Command) bool {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&hostFlag, "host", "", "TickerBox base URL (default "+client.DefaultHost+", or $TICKERBOX_HOST)")
+	rootCmd.PersistentFlags().StringVar(&hostFlag, "host", "", "TickerBox base URL ($TICKERBOX_HOST, or the default device; error if neither is set)")
 	rootCmd.PersistentFlags().StringVarP(&deviceFlag, "device", "d", "", "named device from the config file")
 	rootCmd.PersistentFlags().BoolVarP(&jsonFlag, "json", "j", false, "emit raw device JSON instead of a decoded table")
 	rootCmd.PersistentFlags().IntVar(&retryFlag, "retry", defaultRetries, "retry an idempotent request this many times on a transient failure")

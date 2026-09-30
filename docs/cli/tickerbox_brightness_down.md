@@ -26,7 +26,7 @@ tickerbox brightness down [step] [flags]
 
 ```
   -d, --device string      named device from the config file
-      --host string        TickerBox base URL (default http://tickerbox.local, or $TICKERBOX_HOST)
+      --host string        TickerBox base URL ($TICKERBOX_HOST, or the default device; error if neither is set)
   -j, --json               emit raw device JSON instead of a decoded table
       --retry int          retry an idempotent request this many times on a transient failure (default 2)
       --timeout duration   per-request timeout (default 10s)
