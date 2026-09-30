@@ -4,9 +4,13 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -190,4 +194,226 @@ func TestSaveThenDiffDetectsDeviceDrift(t *testing.T) {
 	if len(noDrift) != 0 {
 		t.Errorf("diff against the just-saved state = %+v; want none", noDrift)
 	}
+}
+
+func TestProfileSaveRecordsSourceDevice(t *testing.T) {
+	withCmdTempHome(t)
+
+	bodies := map[string]string{
+		"coinSetupState":  `{"size":0,"types":"","tickers":"","times":"","currency":""}`,
+		"settingsState":   `{"brightness":200}`,
+		"clockSetupState": `{"enabled":true}`,
+		"ntpSettings":     `{"server":"pool.ntp.org"}`,
+	}
+	srv := newDeviceServer(t, bodies)
+
+	origHost, origTimeout, origRetry := resolvedHost, timeoutFlag, retryFlag
+	origDevice, origInclude, origAll, origDesc := resolvedDeviceName, profileSaveInclude, profileSaveAll, profileSaveDescription
+	t.Cleanup(func() {
+		resolvedHost, timeoutFlag, retryFlag = origHost, origTimeout, origRetry
+		resolvedDeviceName, profileSaveInclude, profileSaveAll, profileSaveDescription = origDevice, origInclude, origAll, origDesc
+	})
+	resolvedHost, timeoutFlag, retryFlag = srv.URL, time.Second, 0
+	profileSaveInclude, profileSaveAll, profileSaveDescription = "", false, ""
+
+	tests := []struct {
+		name        string
+		deviceName  string
+		profileName string
+		wantSource  string
+	}{
+		{name: "records the resolved device name", deviceName: "kitchen", profileName: "src-named", wantSource: "kitchen"},
+		{name: "omitted when saved via --host with no named device", deviceName: "", profileName: "src-hostonly", wantSource: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolvedDeviceName = tt.deviceName
+			captureStdout(t, func() {
+				if err := profileSaveCmd.RunE(profileSaveCmd, []string{tt.profileName}); err != nil {
+					t.Fatalf("profileSaveCmd.RunE() = %v", err)
+				}
+			})
+
+			_, gotSource, err := profile.LoadWithSource(tt.profileName)
+			if err != nil {
+				t.Fatalf("LoadWithSource(%q) = %v", tt.profileName, err)
+			}
+			if gotSource != tt.wantSource {
+				t.Errorf("source_device = %q; want %q", gotSource, tt.wantSource)
+			}
+
+			dir, err := profile.Dir()
+			if err != nil {
+				t.Fatalf("profile.Dir() = %v", err)
+			}
+			raw, err := os.ReadFile(filepath.Join(dir, tt.profileName+".json"))
+			if err != nil {
+				t.Fatalf("read profile file: %v", err)
+			}
+			gotKey := strings.Contains(string(raw), "source_device")
+			wantKey := tt.wantSource != ""
+			if gotKey != wantKey {
+				t.Errorf("profile file contains %q key = %v; want %v", "source_device", gotKey, wantKey)
+			}
+		})
+	}
+}
+
+func TestProfileApplyConfirmsOnSourceMismatch(t *testing.T) {
+	withCmdTempHome(t)
+
+	if err := profile.SaveDescribed("mismatch", &section.Snapshot{Display: map[string]any{"brightness": float64(200)}}, "", "kitchen"); err != nil {
+		t.Fatalf("SaveDescribed: %v", err)
+	}
+
+	origHost, origTimeout, origRetry := resolvedHost, timeoutFlag, retryFlag
+	origDevice, origYes, origStdin := resolvedDeviceName, profileApplyYes, confirmStdin
+	t.Cleanup(func() {
+		resolvedHost, timeoutFlag, retryFlag = origHost, origTimeout, origRetry
+		resolvedDeviceName, profileApplyYes, confirmStdin = origDevice, origYes, origStdin
+	})
+	timeoutFlag, retryFlag = time.Second, 0
+
+	t.Run("decline exits 0 without modifying the device", func(t *testing.T) {
+		var posted bool
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			posted = true
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		}))
+		t.Cleanup(srv.Close)
+		resolvedHost, resolvedDeviceName, profileApplyYes = srv.URL, "office", false
+		confirmStdin = strings.NewReader("n\n")
+
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = profileApplyCmd.RunE(profileApplyCmd, []string{"mismatch"})
+		})
+		if runErr != nil {
+			t.Fatalf("profileApplyCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "aborted") {
+			t.Errorf("stdout = %q; want it to contain %q", stdout, "aborted")
+		}
+		if posted {
+			t.Error("device was modified despite a declined confirmation")
+		}
+	})
+
+	t.Run("confirm proceeds", func(t *testing.T) {
+		var posted map[string]any
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewDecoder(r.Body).Decode(&posted)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		}))
+		t.Cleanup(srv.Close)
+		resolvedHost, resolvedDeviceName, profileApplyYes = srv.URL, "office", false
+		confirmStdin = strings.NewReader("y\n")
+
+		if err := profileApplyCmd.RunE(profileApplyCmd, []string{"mismatch"}); err != nil {
+			t.Fatalf("profileApplyCmd.RunE() = %v", err)
+		}
+		if posted["brightness"] != float64(200) {
+			t.Errorf("posted brightness = %v; want 200", posted["brightness"])
+		}
+	})
+
+	t.Run("--yes warns and skips the prompt", func(t *testing.T) {
+		var posted map[string]any
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewDecoder(r.Body).Decode(&posted)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		}))
+		t.Cleanup(srv.Close)
+		resolvedHost, resolvedDeviceName, profileApplyYes = srv.URL, "office", true
+
+		var runErr error
+		stderr := captureStderr(t, func() {
+			runErr = profileApplyCmd.RunE(profileApplyCmd, []string{"mismatch"})
+		})
+		if runErr != nil {
+			t.Fatalf("profileApplyCmd.RunE() = %v", runErr)
+		}
+		wantWarning := `warning: applying profile "mismatch" (saved from device "kitchen") to "office"`
+		if !strings.Contains(stderr, wantWarning) {
+			t.Errorf("stderr = %q; want it to contain %q", stderr, wantWarning)
+		}
+		if posted["brightness"] != float64(200) {
+			t.Errorf("posted brightness = %v; want 200", posted["brightness"])
+		}
+	})
+}
+
+func TestProfileShowDisplaysSourceDevice(t *testing.T) {
+	withCmdTempHome(t)
+
+	if err := profile.SaveDescribed("shown", &section.Snapshot{
+		Wifi: map[string]any{"ssid": "home", "password": "hunter2"},
+	}, "notes", "kitchen"); err != nil {
+		t.Fatalf("SaveDescribed: %v", err)
+	}
+
+	origJSON, origShowSecrets := jsonFlag, profileShowShowSecrets
+	t.Cleanup(func() { jsonFlag, profileShowShowSecrets = origJSON, origShowSecrets })
+
+	t.Run("table output masks the password and shows the source device", func(t *testing.T) {
+		jsonFlag, profileShowShowSecrets = false, false
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = profileShowCmd.RunE(profileShowCmd, []string{"shown"})
+		})
+		if runErr != nil {
+			t.Fatalf("profileShowCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "source_device:") || !strings.Contains(stdout, "kitchen") {
+			t.Errorf("stdout = %q; want it to show source_device kitchen", stdout)
+		}
+		if strings.Contains(stdout, "hunter2") {
+			t.Errorf("stdout = %q; want the wifi password masked", stdout)
+		}
+		if !strings.Contains(stdout, "********") {
+			t.Errorf("stdout = %q; want the masked placeholder", stdout)
+		}
+	})
+
+	t.Run("json output includes source_device and masks the password unless --show-secrets", func(t *testing.T) {
+		jsonFlag, profileShowShowSecrets = true, false
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = profileShowCmd.RunE(profileShowCmd, []string{"shown"})
+		})
+		if runErr != nil {
+			t.Fatalf("profileShowCmd.RunE() = %v", runErr)
+		}
+		var got struct {
+			SourceDevice string         `json:"source_device"`
+			Wifi         map[string]any `json:"wifi"`
+		}
+		if err := json.Unmarshal([]byte(stdout), &got); err != nil {
+			t.Fatalf("unmarshal %q: %v", stdout, err)
+		}
+		if got.SourceDevice != "kitchen" {
+			t.Errorf("source_device = %q; want %q", got.SourceDevice, "kitchen")
+		}
+		if got.Wifi["password"] != "********" {
+			t.Errorf("wifi.password = %v; want masked", got.Wifi["password"])
+		}
+	})
+
+	t.Run("--show-secrets reveals the real password", func(t *testing.T) {
+		jsonFlag, profileShowShowSecrets = true, true
+		var runErr error
+		stdout := captureStdout(t, func() {
+			runErr = profileShowCmd.RunE(profileShowCmd, []string{"shown"})
+		})
+		if runErr != nil {
+			t.Fatalf("profileShowCmd.RunE() = %v", runErr)
+		}
+		if !strings.Contains(stdout, "hunter2") {
+			t.Errorf("stdout = %q; want the real password with --show-secrets", stdout)
+		}
+	})
 }
