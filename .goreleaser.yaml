@@ -101,15 +101,13 @@ nfpms:
 release:
   draft: true
   prerelease: auto
-brews:
+homebrew_casks:
   - repository:
       owner: openbunny
       name: homebrew-tap
       token: '{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}'
-    directory: Formula
     homepage: https://github.com/openbunny/tickerbox-cli
     description: Command-line client for a TickerBox device's REST API.
-    license: MIT
     commit_author:
       name: Robot
       email: bot@fiona.sm
