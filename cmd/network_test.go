@@ -257,10 +257,12 @@ func apSetServer(t *testing.T, posted *map[string]any) *httptest.Server {
 func resetApSetFlags(t *testing.T) {
 	t.Helper()
 	fs := apSetCmd.Flags()
-	for _, name := range []string{"password", "password-stdin", "yes", "hidden", "no-hidden"} {
-		if err := fs.Set(name, fs.Lookup(name).DefValue); err != nil {
+	for _, name := range []string{"password", "password-stdin", "yes", "hidden", "no-hidden", "local-ip", "gateway-ip", "subnet-mask"} {
+		f := fs.Lookup(name)
+		if err := fs.Set(name, f.DefValue); err != nil {
 			t.Fatalf("reset %s: %v", name, err)
 		}
+		f.Changed = false
 	}
 }
 
@@ -437,5 +439,68 @@ func TestApSetCmdPasswordRejectsInvalidLength(t *testing.T) {
 
 	if err := apSetCmd.RunE(apSetCmd, nil); err == nil {
 		t.Fatal("apSetCmd.RunE() = nil error; want error for a too-short --password")
+	}
+}
+
+func TestApSetCmdRejectsInvalidStaticIPFields(t *testing.T) {
+	tests := []struct {
+		name  string
+		flag  string
+		value string
+	}{
+		{name: "malformed local-ip", flag: "local-ip", value: "not-an-ip"},
+		{name: "malformed gateway-ip", flag: "gateway-ip", value: "192.168.1.1x"},
+		{name: "malformed subnet-mask", flag: "subnet-mask", value: "255.0.255.0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetApSetFlags(t)
+			var posted bool
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodGet {
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(apSettingsPayload{})
+					return
+				}
+				posted = true
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{})
+			}))
+			t.Cleanup(srv.Close)
+			withCmdTarget(t, srv.URL)
+
+			if err := apSetCmd.Flags().Set(tt.flag, tt.value); err != nil {
+				t.Fatalf("set %s: %v", tt.flag, err)
+			}
+
+			if err := apSetCmd.RunE(apSetCmd, nil); err == nil {
+				t.Fatalf("apSetCmd.RunE() with --%s %q = nil error; want error", tt.flag, tt.value)
+			}
+			if posted {
+				t.Errorf("device was posted despite an invalid --%s", tt.flag)
+			}
+		})
+	}
+}
+
+func TestApSetCmdAcceptsValidStaticIPFields(t *testing.T) {
+	resetApSetFlags(t)
+	var posted map[string]any
+	srv := apSetServer(t, &posted)
+	withCmdTarget(t, srv.URL)
+
+	for flag, value := range map[string]string{
+		"local-ip": "192.168.4.1", "gateway-ip": "192.168.4.1", "subnet-mask": "255.255.255.0",
+	} {
+		if err := apSetCmd.Flags().Set(flag, value); err != nil {
+			t.Fatalf("set %s: %v", flag, err)
+		}
+	}
+
+	if err := apSetCmd.RunE(apSetCmd, nil); err != nil {
+		t.Fatalf("apSetCmd.RunE() = %v", err)
+	}
+	if posted["subnet_mask"] != "255.255.255.0" {
+		t.Errorf("posted subnet_mask = %v; want %q", posted["subnet_mask"], "255.255.255.0")
 	}
 }

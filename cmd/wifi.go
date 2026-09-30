@@ -17,6 +17,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openbunny/tickerbox-cli/internal/netfield"
 	"github.com/openbunny/tickerbox-cli/internal/output"
 )
 
@@ -250,22 +251,37 @@ func runWifiSet(cmd *cobra.Command, args []string) error {
 	}
 	if flags.Changed("local-ip") {
 		localIP, _ := flags.GetString("local-ip")
+		if err := netfield.IP("--local-ip", localIP); err != nil {
+			return err
+		}
 		settings["local_ip"] = localIP
 	}
 	if flags.Changed("gateway-ip") {
 		gatewayIP, _ := flags.GetString("gateway-ip")
+		if err := netfield.IP("--gateway-ip", gatewayIP); err != nil {
+			return err
+		}
 		settings["gateway_ip"] = gatewayIP
 	}
 	if flags.Changed("subnet-mask") {
 		subnetMask, _ := flags.GetString("subnet-mask")
+		if err := netfield.Netmask("--subnet-mask", subnetMask); err != nil {
+			return err
+		}
 		settings["subnet_mask"] = subnetMask
 	}
 	if flags.Changed("dns1") {
 		dns1, _ := flags.GetString("dns1")
+		if err := netfield.IP("--dns1", dns1); err != nil {
+			return err
+		}
 		settings["dns_ip_1"] = dns1
 	}
 	if flags.Changed("dns2") {
 		dns2, _ := flags.GetString("dns2")
+		if err := netfield.IP("--dns2", dns2); err != nil {
+			return err
+		}
 		settings["dns_ip_2"] = dns2
 	}
 

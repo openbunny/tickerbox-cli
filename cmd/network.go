@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openbunny/tickerbox-cli/internal/netfield"
 	"github.com/openbunny/tickerbox-cli/internal/output"
 	"github.com/openbunny/tickerbox-cli/internal/tz"
 )
@@ -266,12 +267,21 @@ func init() {
 			cur.MaxClients = maxClients
 		}
 		if flags.Changed("local-ip") {
+			if err := netfield.IP("--local-ip", localIP); err != nil {
+				return err
+			}
 			cur.LocalIP = localIP
 		}
 		if flags.Changed("gateway-ip") {
+			if err := netfield.IP("--gateway-ip", gatewayIP); err != nil {
+				return err
+			}
 			cur.GatewayIP = gatewayIP
 		}
 		if flags.Changed("subnet-mask") {
+			if err := netfield.Netmask("--subnet-mask", subnetMask); err != nil {
+				return err
+			}
 			cur.SubnetMask = subnetMask
 		}
 

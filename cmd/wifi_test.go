@@ -162,6 +162,82 @@ func TestRunWifiSetAppliesChangedFieldsOnly(t *testing.T) {
 	}
 }
 
+func TestRunWifiSetRejectsInvalidStaticIPFields(t *testing.T) {
+	tests := []struct {
+		name  string
+		flag  string
+		value string
+	}{
+		{name: "malformed local-ip", flag: "local-ip", value: "192.168.1.1x"},
+		{name: "malformed gateway-ip", flag: "gateway-ip", value: "not-an-ip"},
+		{name: "malformed subnet-mask", flag: "subnet-mask", value: "255.0.255.0"},
+		{name: "malformed dns1", flag: "dns1", value: "bad-dns"},
+		{name: "malformed dns2", flag: "dns2", value: "bad-dns"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var posted bool
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodGet {
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(map[string]any{})
+					return
+				}
+				posted = true
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{})
+			}))
+			t.Cleanup(srv.Close)
+			withCmdTarget(t, srv.URL)
+
+			c := wifiSetCmdFixture()
+			if err := c.Flags().Set(tt.flag, tt.value); err != nil {
+				t.Fatalf("set %s: %v", tt.flag, err)
+			}
+
+			if err := runWifiSet(c, nil); err == nil {
+				t.Fatalf("runWifiSet() with --%s %q = nil error; want error", tt.flag, tt.value)
+			}
+			if posted {
+				t.Errorf("device was posted despite an invalid --%s", tt.flag)
+			}
+		})
+	}
+}
+
+func TestRunWifiSetAcceptsValidStaticIPFields(t *testing.T) {
+	var posted map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+			return
+		}
+		_ = json.NewDecoder(r.Body).Decode(&posted)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{})
+	}))
+	t.Cleanup(srv.Close)
+	withCmdTarget(t, srv.URL)
+
+	c := wifiSetCmdFixture()
+	for flag, value := range map[string]string{
+		"local-ip": "192.168.1.50", "gateway-ip": "192.168.1.1",
+		"subnet-mask": "255.255.255.0", "dns1": "8.8.8.8", "dns2": "1.1.1.1",
+	} {
+		if err := c.Flags().Set(flag, value); err != nil {
+			t.Fatalf("set %s: %v", flag, err)
+		}
+	}
+
+	if err := runWifiSet(c, nil); err != nil {
+		t.Fatalf("runWifiSet() = %v", err)
+	}
+	if posted["subnet_mask"] != "255.255.255.0" {
+		t.Errorf("posted subnet_mask = %v; want %q", posted["subnet_mask"], "255.255.255.0")
+	}
+}
+
 func TestRunWifiScanSortsByRSSIDescending(t *testing.T) {
 	scanned := false
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
