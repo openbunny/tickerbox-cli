@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -95,6 +96,9 @@ func Save(name string, s *section.Snapshot) error {
 }
 
 func warnIfGroupOrWorldReadable(path string) {
+	if runtime.GOOS == "windows" {
+		return
+	}
 	info, err := os.Stat(path)
 	if err != nil {
 		return

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -86,12 +87,14 @@ func TestWriteBackup(t *testing.T) {
 		t.Errorf("backup wifi ssid = %v; want home", snap.Wifi["ssid"])
 	}
 
-	info, err := os.Stat(name)
-	if err != nil {
-		t.Fatalf("stat backup file: %v", err)
-	}
-	if perm := info.Mode().Perm(); perm != backupFilePerm {
-		t.Errorf("backup file perm = %o; want %o", perm, backupFilePerm)
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(name)
+		if err != nil {
+			t.Fatalf("stat backup file: %v", err)
+		}
+		if perm := info.Mode().Perm(); perm != backupFilePerm {
+			t.Errorf("backup file perm = %o; want %o", perm, backupFilePerm)
+		}
 	}
 }
 

@@ -5,6 +5,7 @@ package config
 import (
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -73,12 +74,14 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	if !strings.HasPrefix(path, dir) {
 		t.Fatalf("Path() = %q, want under %q", path, dir)
 	}
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatalf("stat saved config: %v", err)
-	}
-	if perm := info.Mode().Perm(); perm != configFilePerm {
-		t.Errorf("file perm = %o, want %o", perm, configFilePerm)
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("stat saved config: %v", err)
+		}
+		if perm := info.Mode().Perm(); perm != configFilePerm {
+			t.Errorf("file perm = %o, want %o", perm, configFilePerm)
+		}
 	}
 
 	got, err := Load()
@@ -95,6 +98,9 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 }
 
 func TestLoadWarnsOnGroupOrWorldReadablePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not carry Unix permission bits")
+	}
 	tests := []struct {
 		name     string
 		perm     os.FileMode
