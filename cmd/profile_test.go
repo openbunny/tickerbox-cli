@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openbunny/tickerbox-cli/internal/diff"
 	"github.com/openbunny/tickerbox-cli/internal/profile"
 	"github.com/openbunny/tickerbox-cli/internal/section"
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
@@ -128,111 +129,6 @@ func TestPresentSections(t *testing.T) {
 	}
 }
 
-func TestDiffMap(t *testing.T) {
-	tests := []struct {
-		name        string
-		device      map[string]any
-		profile     map[string]any
-		showSecrets bool
-		want        []fieldDiff
-	}{
-		{
-			name:    "identical maps produce no diffs",
-			device:  map[string]any{"brightness": float64(200)},
-			profile: map[string]any{"brightness": float64(200)},
-			want:    nil,
-		},
-		{
-			name:    "a changed field is reported with both values",
-			device:  map[string]any{"brightness": float64(150)},
-			profile: map[string]any{"brightness": float64(200)},
-			want:    []fieldDiff{{Section: section.SectionDisplay, Field: "brightness", Device: float64(150), Profile: float64(200)}},
-		},
-		{
-			name:    "a field missing on one side reports the other as nil",
-			device:  map[string]any{"brightness": float64(150)},
-			profile: map[string]any{"brightness": float64(150), "changeInterval": float64(30)},
-			want:    []fieldDiff{{Section: section.SectionDisplay, Field: "changeInterval", Device: nil, Profile: float64(30)}},
-		},
-		{
-			name:        "a changed password field is masked by default",
-			device:      map[string]any{"ssid": "home", "password": "old-pass"},
-			profile:     map[string]any{"ssid": "home", "password": "new-pass"},
-			showSecrets: false,
-			want:        []fieldDiff{{Section: section.SectionWifi, Field: "password", Device: "********", Profile: "********"}},
-		},
-		{
-			name:        "show-secrets reveals the real values",
-			device:      map[string]any{"password": "old-pass"},
-			profile:     map[string]any{"password": "new-pass"},
-			showSecrets: true,
-			want:        []fieldDiff{{Section: section.SectionWifi, Field: "password", Device: "old-pass", Profile: "new-pass"}},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sectionName := section.SectionWifi
-			if _, ok := tt.device["brightness"]; ok {
-				sectionName = section.SectionDisplay
-			}
-			if _, ok := tt.profile["changeInterval"]; ok {
-				sectionName = section.SectionDisplay
-			}
-			got := diffMap(sectionName, tt.device, tt.profile, tt.showSecrets)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("diffMap() = %+v; want %+v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestDiffTickers(t *testing.T) {
-	stocksAAPL := tickers.Entry{Type: tickers.TypeStocks, Ticker: "AAPL", Time: tickers.Time15Min, Currency: tickers.CurrencyUSD}
-	cryptoBTC := tickers.Entry{Type: tickers.TypeCrypto, Ticker: "BTC", Time: tickers.Time1Min, Currency: tickers.CurrencyUSD}
-
-	tests := []struct {
-		name    string
-		device  []tickers.Entry
-		profile []tickers.Entry
-		want    []fieldDiff
-	}{
-		{
-			name:    "identical lists produce no diffs",
-			device:  []tickers.Entry{stocksAAPL},
-			profile: []tickers.Entry{stocksAAPL},
-			want:    nil,
-		},
-		{
-			name:    "a changed entry is reported by index",
-			device:  []tickers.Entry{stocksAAPL},
-			profile: []tickers.Entry{cryptoBTC},
-			want:    []fieldDiff{{Section: section.SectionTickers, Field: "[0]", Device: stocksAAPL, Profile: cryptoBTC}},
-		},
-		{
-			name:    "an extra device entry reports a nil profile side",
-			device:  []tickers.Entry{stocksAAPL, cryptoBTC},
-			profile: []tickers.Entry{stocksAAPL},
-			want:    []fieldDiff{{Section: section.SectionTickers, Field: "[1]", Device: cryptoBTC, Profile: nil}},
-		},
-		{
-			name:    "an extra profile entry reports a nil device side",
-			device:  []tickers.Entry{stocksAAPL},
-			profile: []tickers.Entry{stocksAAPL, cryptoBTC},
-			want:    []fieldDiff{{Section: section.SectionTickers, Field: "[1]", Device: nil, Profile: cryptoBTC}},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := diffTickers(tt.device, tt.profile)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("diffTickers() = %+v; want %+v", got, tt.want)
-			}
-		})
-	}
-}
-
 func newDeviceServer(t *testing.T, bodies map[string]string) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -268,8 +164,8 @@ func TestSaveThenDiffDetectsDeviceDrift(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Capture: %v", err)
 	}
-	if err := profile.Save("office", captured); err != nil {
-		t.Fatalf("Save: %v", err)
+	if err := profile.SaveDescribed("office", captured, "", ""); err != nil {
+		t.Fatalf("SaveDescribed: %v", err)
 	}
 
 	prof, err := profile.Load("office")
@@ -279,39 +175,19 @@ func TestSaveThenDiffDetectsDeviceDrift(t *testing.T) {
 
 	bodies["settingsState"] = `{"brightness":150}`
 
-	deviceNow, err := section.Capture(context.Background(), newClient(), presentSections(prof), false)
+	deviceNow, err := section.Capture(context.Background(), newClient(), presentSections(prof), true)
 	if err != nil {
 		t.Fatalf("Capture after drift: %v", err)
 	}
 
-	diffs := diffSnapshots(deviceNow, prof, presentSections(prof), false)
-	want := []fieldDiff{{Section: section.SectionDisplay, Field: "brightness", Device: float64(150), Profile: float64(200)}}
+	diffs := diff.Diff(deviceNow, prof, presentSections(prof), false)
+	want := []diff.FieldDiff{{Section: section.SectionDisplay, Field: "brightness", Device: float64(150), Saved: float64(200)}}
 	if !reflect.DeepEqual(diffs, want) {
 		t.Errorf("diffs = %+v; want %+v", diffs, want)
 	}
 
-	noDrift := diffSnapshots(captured, prof, presentSections(prof), false)
+	noDrift := diff.Diff(captured, prof, presentSections(prof), false)
 	if len(noDrift) != 0 {
 		t.Errorf("diff against the just-saved state = %+v; want none", noDrift)
-	}
-}
-
-func TestFormatDiffValue(t *testing.T) {
-	tests := []struct {
-		name string
-		in   any
-		want string
-	}{
-		{name: "nil renders as a dash", in: nil, want: "-"},
-		{name: "a string renders as itself", in: "home", want: "home"},
-		{name: "a float renders without quotes", in: float64(200), want: "200"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := formatDiffValue(tt.in); got != tt.want {
-				t.Errorf("formatDiffValue(%v) = %q; want %q", tt.in, got, tt.want)
-			}
-		})
 	}
 }

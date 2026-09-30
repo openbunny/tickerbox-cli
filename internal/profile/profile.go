@@ -25,7 +25,8 @@ const (
 )
 
 type record struct {
-	Description string `json:"description,omitempty"`
+	Description  string `json:"description,omitempty"`
+	SourceDevice string `json:"source_device,omitempty"`
 	section.Snapshot
 }
 
@@ -98,12 +99,20 @@ func Load(name string) (*section.Snapshot, error) {
 	return &r.Snapshot, nil
 }
 
-func LoadDescribed(name string) (*section.Snapshot, string, error) {
+func LoadDescribed(name string) (*section.Snapshot, string, string, error) {
+	r, err := loadRecord(name)
+	if err != nil {
+		return nil, "", "", err
+	}
+	return &r.Snapshot, r.Description, r.SourceDevice, nil
+}
+
+func LoadWithSource(name string) (*section.Snapshot, string, error) {
 	r, err := loadRecord(name)
 	if err != nil {
 		return nil, "", err
 	}
-	return &r.Snapshot, r.Description, nil
+	return &r.Snapshot, r.SourceDevice, nil
 }
 
 func LoadDescription(name string) (string, error) {
@@ -114,11 +123,7 @@ func LoadDescription(name string) (string, error) {
 	return r.Description, nil
 }
 
-func Save(name string, s *section.Snapshot) error {
-	return SaveDescribed(name, s, "")
-}
-
-func SaveDescribed(name string, s *section.Snapshot, description string) error {
+func SaveDescribed(name string, s *section.Snapshot, description, sourceDevice string) error {
 	p, err := path(name)
 	if err != nil {
 		return err
@@ -130,7 +135,7 @@ func SaveDescribed(name string, s *section.Snapshot, description string) error {
 	if err := os.MkdirAll(dir, dirPerm); err != nil {
 		return fmt.Errorf("create profiles directory: %w", err)
 	}
-	encoded, err := json.MarshalIndent(record{Description: description, Snapshot: *s}, "", "  ")
+	encoded, err := json.MarshalIndent(record{Description: description, SourceDevice: sourceDevice, Snapshot: *s}, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode profile %s: %w", name, err)
 	}

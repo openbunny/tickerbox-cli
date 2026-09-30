@@ -41,6 +41,10 @@ func captureStderr(t *testing.T, f func()) string {
 	return string(out)
 }
 
+func save(name string, s *section.Snapshot) error {
+	return SaveDescribed(name, s, "", "")
+}
+
 func testSnapshot() *section.Snapshot {
 	return &section.Snapshot{
 		Display: map[string]any{"brightness": float64(200)},
@@ -54,7 +58,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	withTempHome(t)
 
 	want := testSnapshot()
-	if err := Save("office", want); err != nil {
+	if err := save("office", want); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 
@@ -71,11 +75,11 @@ func TestSaveDescribedLoadDescribedRoundTrip(t *testing.T) {
 	withTempHome(t)
 
 	want := testSnapshot()
-	if err := SaveDescribed("office", want, "the upstairs office"); err != nil {
+	if err := SaveDescribed("office", want, "the upstairs office", "kitchen"); err != nil {
 		t.Fatalf("SaveDescribed: %v", err)
 	}
 
-	got, description, err := LoadDescribed("office")
+	got, description, sourceDevice, err := LoadDescribed("office")
 	if err != nil {
 		t.Fatalf("LoadDescribed: %v", err)
 	}
@@ -85,21 +89,27 @@ func TestSaveDescribedLoadDescribedRoundTrip(t *testing.T) {
 	if description != "the upstairs office" {
 		t.Errorf("LoadDescribed() description = %q; want %q", description, "the upstairs office")
 	}
+	if sourceDevice != "kitchen" {
+		t.Errorf("LoadDescribed() sourceDevice = %q; want %q", sourceDevice, "kitchen")
+	}
 }
 
 func TestSaveWithoutDescriptionLoadsAsEmpty(t *testing.T) {
 	withTempHome(t)
 
-	if err := Save("office", testSnapshot()); err != nil {
+	if err := save("office", testSnapshot()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 
-	_, description, err := LoadDescribed("office")
+	_, description, sourceDevice, err := LoadDescribed("office")
 	if err != nil {
 		t.Fatalf("LoadDescribed: %v", err)
 	}
 	if description != "" {
 		t.Errorf("LoadDescribed() description = %q; want empty", description)
+	}
+	if sourceDevice != "" {
+		t.Errorf("LoadDescribed() sourceDevice = %q; want empty", sourceDevice)
 	}
 }
 
@@ -134,7 +144,7 @@ func TestLoadDescriptionlessProfileStillApplies(t *testing.T) {
 		t.Errorf("Load() = %+v; want %+v", got, want)
 	}
 
-	gotSnapshot, description, err := LoadDescribed("legacy")
+	gotSnapshot, description, sourceDevice, err := LoadDescribed("legacy")
 	if err != nil {
 		t.Fatalf("LoadDescribed: %v", err)
 	}
@@ -144,12 +154,23 @@ func TestLoadDescriptionlessProfileStillApplies(t *testing.T) {
 	if description != "" {
 		t.Errorf("LoadDescribed() description = %q; want empty", description)
 	}
+	if sourceDevice != "" {
+		t.Errorf("LoadDescribed() sourceDevice = %q; want empty (old-format file has no source_device key)", sourceDevice)
+	}
+
+	_, gotSource, err := LoadWithSource("legacy")
+	if err != nil {
+		t.Fatalf("LoadWithSource: %v", err)
+	}
+	if gotSource != "" {
+		t.Errorf("LoadWithSource() sourceDevice = %q; want empty (old-format file has no source_device key)", gotSource)
+	}
 }
 
 func TestSaveWritesOwnerOnlyPermissions(t *testing.T) {
 	withTempHome(t)
 
-	if err := Save("secure", testSnapshot()); err != nil {
+	if err := save("secure", testSnapshot()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 	p, err := path("secure")
@@ -179,7 +200,7 @@ func TestLoadWarnsOnGroupOrWorldReadablePermissions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			withTempHome(t)
 
-			if err := Save("office", testSnapshot()); err != nil {
+			if err := save("office", testSnapshot()); err != nil {
 				t.Fatalf("Save: %v", err)
 			}
 			p, err := path("office")
@@ -215,8 +236,8 @@ func TestList(t *testing.T) {
 	}
 
 	for _, name := range []string{"beta", "alpha"} {
-		if err := Save(name, testSnapshot()); err != nil {
-			t.Fatalf("Save(%s): %v", name, err)
+		if err := save(name, testSnapshot()); err != nil {
+			t.Fatalf("save(%s): %v", name, err)
 		}
 	}
 
@@ -233,7 +254,7 @@ func TestList(t *testing.T) {
 func TestRemove(t *testing.T) {
 	withTempHome(t)
 
-	if err := Save("temp", testSnapshot()); err != nil {
+	if err := save("temp", testSnapshot()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 	if err := Remove("temp"); err != nil {
@@ -267,8 +288,8 @@ func TestRejectsUnsafeNames(t *testing.T) {
 		if _, err := Load(name); err == nil {
 			t.Errorf("Load(%q): expected error, got nil", name)
 		}
-		if err := Save(name, testSnapshot()); err == nil {
-			t.Errorf("Save(%q): expected error, got nil", name)
+		if err := save(name, testSnapshot()); err == nil {
+			t.Errorf("save(%q): expected error, got nil", name)
 		}
 		if err := Remove(name); err == nil {
 			t.Errorf("Remove(%q): expected error, got nil", name)

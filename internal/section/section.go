@@ -167,11 +167,15 @@ func postMap(ctx context.Context, c *client.Client, path string, m map[string]an
 	return nil
 }
 
+func IsSecretField(field string) bool {
+	lower := strings.ToLower(field)
+	return strings.Contains(lower, "password") || strings.Contains(lower, "secret")
+}
+
 func stripSecrets(m map[string]any) map[string]any {
 	out := make(map[string]any, len(m))
 	for k, v := range m {
-		lower := strings.ToLower(k)
-		if strings.Contains(lower, "password") || strings.Contains(lower, "secret") {
+		if IsSecretField(k) {
 			continue
 		}
 		out[k] = v

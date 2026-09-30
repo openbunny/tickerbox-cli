@@ -12,201 +12,32 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/openbunny/tickerbox-cli/internal/client"
+	"github.com/openbunny/tickerbox-cli/internal/diff"
 	"github.com/openbunny/tickerbox-cli/internal/section"
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
 
-func TestConfigIsSecretField(t *testing.T) {
-	tests := []struct {
-		field string
-		want  bool
-	}{
-		{"password", true},
-		{"Password", true},
-		{"secretKey", true},
-		{"SECRET", true},
-		{"ssid", false},
-		{"channel", false},
-		{"", false},
+func captureStdout(t *testing.T, f func()) string {
+	t.Helper()
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() error = %v", err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.field, func(t *testing.T) {
-			if got := configIsSecretField(tt.field); got != tt.want {
-				t.Errorf("configIsSecretField(%q) = %v; want %v", tt.field, got, tt.want)
-			}
-		})
+	os.Stdout = w
+	defer func() { os.Stdout = old }()
+	f()
+	if err := w.Close(); err != nil {
+		t.Fatalf("close pipe writer: %v", err)
 	}
-}
-
-func TestConfigDiffMapSection(t *testing.T) {
-	tests := []struct {
-		name   string
-		device map[string]any
-		saved  map[string]any
-		want   []FieldDiff
-	}{
-		{
-			name:   "identical maps produce no diffs",
-			device: map[string]any{"a": 1.0, "b": "x"},
-			saved:  map[string]any{"a": 1.0, "b": "x"},
-			want:   nil,
-		},
-		{
-			name:   "changed value",
-			device: map[string]any{"brightness": 200.0},
-			saved:  map[string]any{"brightness": 150.0},
-			want:   []FieldDiff{{Section: "display", Field: "brightness", Device: 200.0, Saved: 150.0}},
-		},
-		{
-			name:   "key only on device",
-			device: map[string]any{"a": 1.0, "b": 2.0},
-			saved:  map[string]any{"a": 1.0},
-			want:   []FieldDiff{{Section: "display", Field: "b", Device: 2.0, Saved: nil}},
-		},
-		{
-			name:   "key only on saved",
-			device: map[string]any{"a": 1.0},
-			saved:  map[string]any{"a": 1.0, "b": 2.0},
-			want:   []FieldDiff{{Section: "display", Field: "b", Device: nil, Saved: 2.0}},
-		},
-		{
-			name:   "both nil",
-			device: nil,
-			saved:  nil,
-			want:   nil,
-		},
-		{
-			name:   "results sorted by field name",
-			device: map[string]any{"z": 1.0, "a": 1.0},
-			saved:  map[string]any{"z": 2.0, "a": 2.0},
-			want: []FieldDiff{
-				{Section: "display", Field: "a", Device: 1.0, Saved: 2.0},
-				{Section: "display", Field: "z", Device: 1.0, Saved: 2.0},
-			},
-		},
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("read captured stdout: %v", err)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := diffMapSection("display", tt.device, tt.saved)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("diffMapSection() = %+v; want %+v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestConfigDiffTickers(t *testing.T) {
-	tests := []struct {
-		name   string
-		device []tickers.Entry
-		saved  []tickers.Entry
-		want   []FieldDiff
-	}{
-		{
-			name:   "identical lists produce no diffs",
-			device: []tickers.Entry{{Type: "crypto", Ticker: "BTC", Time: "5min", Currency: "USD"}},
-			saved:  []tickers.Entry{{Type: "crypto", Ticker: "BTC", Time: "5min", Currency: "USD"}},
-			want:   nil,
-		},
-		{
-			name:   "one field changed at index 0",
-			device: []tickers.Entry{{Type: "crypto", Ticker: "BTC", Time: "5min", Currency: "USD"}},
-			saved:  []tickers.Entry{{Type: "crypto", Ticker: "BTC", Time: "1min", Currency: "USD"}},
-			want:   []FieldDiff{{Section: section.SectionTickers, Field: "tickers[0].time", Device: "5min", Saved: "1min"}},
-		},
-		{
-			name:   "device has an extra entry",
-			device: []tickers.Entry{{Type: "crypto", Ticker: "BTC", Time: "5min", Currency: "USD"}},
-			saved:  nil,
-			want: []FieldDiff{
-				{Section: section.SectionTickers, Field: "tickers[0].type", Device: "crypto", Saved: nil},
-				{Section: section.SectionTickers, Field: "tickers[0].ticker", Device: "BTC", Saved: nil},
-				{Section: section.SectionTickers, Field: "tickers[0].time", Device: "5min", Saved: nil},
-				{Section: section.SectionTickers, Field: "tickers[0].currency", Device: "USD", Saved: nil},
-			},
-		},
-		{
-			name:   "both empty",
-			device: nil,
-			saved:  nil,
-			want:   nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := configDiffTickers(tt.device, tt.saved)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("configDiffTickers() = %+v; want %+v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestConfigDiffSnapshotsOrdersBySectionThenField(t *testing.T) {
-	device := &section.Snapshot{
-		Display: map[string]any{"brightness": 200.0},
-		Wifi:    map[string]any{"ssid": "home"},
-	}
-	saved := &section.Snapshot{
-		Display: map[string]any{"brightness": 150.0},
-		Wifi:    map[string]any{"ssid": "office"},
-	}
-
-	got := configDiffSnapshots(device, saved)
-	want := []FieldDiff{
-		{Section: section.SectionDisplay, Field: "brightness", Device: 200.0, Saved: 150.0},
-		{Section: section.SectionWifi, Field: "ssid", Device: "home", Saved: "office"},
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("configDiffSnapshots() = %+v; want %+v", got, want)
-	}
-}
-
-func TestConfigFormatDiffValue(t *testing.T) {
-	tests := []struct {
-		name string
-		in   any
-		want string
-	}{
-		{"nil is unset", nil, unsetFieldDisplay},
-		{"string passes through", "home", "home"},
-		{"float formats without decoration", 200.0, "200"},
-		{"bool formats", true, "true"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := configFormatDiffValue(tt.in); got != tt.want {
-				t.Errorf("configFormatDiffValue(%v) = %q; want %q", tt.in, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRedactSnapshotSecrets(t *testing.T) {
-	original := &section.Snapshot{
-		Wifi: map[string]any{"ssid": "home", "password": "hunter2"},
-		AP:   map[string]any{"ssid": "box-ap", "secretKey": "topsecret"},
-		NTP:  map[string]any{"server": "pool.ntp.org"},
-	}
-
-	got := redactSnapshotSecrets(original)
-
-	if !reflect.DeepEqual(got.Wifi, map[string]any{"ssid": "home"}) {
-		t.Errorf("redacted wifi = %v; want ssid only", got.Wifi)
-	}
-	if !reflect.DeepEqual(got.AP, map[string]any{"ssid": "box-ap"}) {
-		t.Errorf("redacted ap = %v; want ssid only", got.AP)
-	}
-	if !reflect.DeepEqual(got.NTP, map[string]any{"server": "pool.ntp.org"}) {
-		t.Errorf("ntp section changed by redaction: %v", got.NTP)
-	}
-	if original.Wifi["password"] != "hunter2" {
-		t.Error("redactSnapshotSecrets mutated the original snapshot's wifi map")
-	}
+	return string(out)
 }
 
 func TestConfigPresentSections(t *testing.T) {
@@ -352,6 +183,70 @@ func TestExportRedactsSecretsByDefault(t *testing.T) {
 	}
 	if _, ok := snap.AP["secretKey"]; ok {
 		t.Error("default export exposes the ap secret key")
+	}
+}
+
+func TestConfigDiffCmdMasksChangedSecret(t *testing.T) {
+	bodies := map[string]string{
+		"coinSetupState":  `{"size":0,"types":"","tickers":"","times":"","currency":""}`,
+		"settingsState":   `{}`,
+		"clockSetupState": `{}`,
+		"ntpSettings":     `{}`,
+		"wifiSettings":    `{"ssid":"home","password":"device-pass"}`,
+		"apSettings":      `{}`,
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, ok := bodies[r.URL.Path[len("/rest/"):]]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+
+	origHost, origTimeout, origRetry, origJSON := resolvedHost, timeoutFlag, retryFlag, jsonFlag
+	t.Cleanup(func() { resolvedHost, timeoutFlag, retryFlag, jsonFlag = origHost, origTimeout, origRetry, origJSON })
+	resolvedHost, timeoutFlag, retryFlag, jsonFlag = srv.URL, time.Second, 0, true
+
+	path := filepath.Join(t.TempDir(), "saved.json")
+	saved := &section.Snapshot{Wifi: map[string]any{"ssid": "home", "password": "saved-pass"}}
+	encoded, err := json.Marshal(saved)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if err := os.WriteFile(path, encoded, 0o600); err != nil {
+		t.Fatalf("write saved snapshot: %v", err)
+	}
+
+	origShowSecrets := configDiffShowSecrets
+	t.Cleanup(func() { configDiffShowSecrets = origShowSecrets })
+	configDiffShowSecrets = false
+
+	var runErr error
+	stdout := captureStdout(t, func() {
+		runErr = configDiffCmd.RunE(configDiffCmd, []string{path})
+	})
+	if runErr != nil {
+		t.Fatalf("configDiffCmd.RunE() = %v", runErr)
+	}
+
+	var got []diff.FieldDiff
+	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
+		t.Fatalf("unmarshal diff output %q: %v", stdout, err)
+	}
+	found := false
+	for _, d := range got {
+		if d.Field != "password" {
+			continue
+		}
+		found = true
+		if d.Device != "********" || d.Saved != "********" {
+			t.Errorf("password diff = %+v; want masked device/saved values", d)
+		}
+	}
+	if !found {
+		t.Errorf("diff output %+v: want a row for the differing, masked password field (not silently dropped)", got)
 	}
 }
 
