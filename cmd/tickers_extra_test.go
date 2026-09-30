@@ -3,9 +3,17 @@
 package cmd
 
 import (
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/spf13/cobra"
+
+	"github.com/openbunny/tickerbox-cli/internal/template"
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
 
@@ -242,4 +250,182 @@ func TestApplyTemplatePreset(t *testing.T) {
 			t.Errorf("applyTemplatePreset(replace) = %v; want %v", got, preset)
 		}
 	})
+}
+
+func withTickersCmdTarget(t *testing.T, host string) {
+	t.Helper()
+	origHost, origTimeout, origRetry, origJSON := resolvedHost, timeoutFlag, retryFlag, jsonFlag
+	t.Cleanup(func() {
+		resolvedHost, timeoutFlag, retryFlag, jsonFlag = origHost, origTimeout, origRetry, origJSON
+	})
+	resolvedHost, timeoutFlag, retryFlag, jsonFlag = host, time.Second, 0, false
+}
+
+func withTickersStub(t *testing.T, getBody string) (*httptest.Server, *[]byte) {
+	t.Helper()
+	var posted []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost {
+			posted, _ = io.ReadAll(r.Body)
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+			return
+		}
+		_, _ = w.Write([]byte(getBody))
+	}))
+	t.Cleanup(srv.Close)
+	return srv, &posted
+}
+
+func TestTickersAddBulkRejectsInvalidType(t *testing.T) {
+	srv, posted := withTickersStub(t, `{"size":0}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origType, origTime, origCurrency := tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency
+	t.Cleanup(func() {
+		tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = origType, origTime, origCurrency
+	})
+	tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = "bogus", "5min", "USD"
+
+	if err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"BTC"}); err == nil {
+		t.Fatal("tickersAddBulkCmd.RunE() = nil error; want error for invalid type")
+	}
+	if len(*posted) != 0 {
+		t.Error("device was posted despite invalid type")
+	}
+}
+
+func TestTickersAddBulkAcceptsValidEntries(t *testing.T) {
+	srv, posted := withTickersStub(t, `{"size":0}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origType, origTime, origCurrency := tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency
+	t.Cleanup(func() {
+		tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = origType, origTime, origCurrency
+	})
+	tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = "crypto", "5min", "USD"
+
+	if err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"BTC"}); err != nil {
+		t.Fatalf("tickersAddBulkCmd.RunE() = %v", err)
+	}
+	var gotState tickers.State
+	if err := json.Unmarshal(*posted, &gotState); err != nil {
+		t.Fatalf("decode posted state: %v", err)
+	}
+	if gotState.Tickers != "BTC" {
+		t.Errorf("posted tickers = %q; want %q", gotState.Tickers, "BTC")
+	}
+}
+
+func TestTickersAddBulkRejectsCommaInTicker(t *testing.T) {
+	srv, posted := withTickersStub(t, `{"size":0}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origType, origTime, origCurrency := tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency
+	t.Cleanup(func() {
+		tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = origType, origTime, origCurrency
+	})
+	tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency = "crypto", "5min", "USD"
+
+	if err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"BT,C"}); err == nil {
+		t.Fatal("tickersAddBulkCmd.RunE() = nil error; want error for a comma in the ticker")
+	}
+	if len(*posted) != 0 {
+		t.Error("device was posted despite the comma-corrupted ticker")
+	}
+}
+
+func tickersEditCmdFixture() *cobra.Command {
+	c := &cobra.Command{Use: "edit"}
+	c.Flags().String("ticker", "", "")
+	c.Flags().String("type", "", "")
+	c.Flags().String("time", "", "")
+	c.Flags().String("currency", "", "")
+	return c
+}
+
+func TestTickersEditRejectsInvalidTime(t *testing.T) {
+	srv, posted := withTickersStub(t, `{"size":1,"types":"crypto","tickers":"BTC","times":"5min","currency":"USD"}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origTime := tickersEditTime
+	t.Cleanup(func() { tickersEditTime = origTime })
+	tickersEditTime = "bogus"
+
+	c := tickersEditCmdFixture()
+	if err := c.Flags().Set("time", "bogus"); err != nil {
+		t.Fatalf("set time flag: %v", err)
+	}
+
+	if err := tickersEditCmd.RunE(c, []string{"BTC"}); err == nil {
+		t.Fatal("tickersEditCmd.RunE() = nil error; want error for invalid time")
+	}
+	if len(*posted) != 0 {
+		t.Error("device was posted despite invalid time")
+	}
+}
+
+func TestTickersEditAcceptsValidTime(t *testing.T) {
+	srv, posted := withTickersStub(t, `{"size":1,"types":"crypto","tickers":"BTC","times":"5min","currency":"USD"}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origTime := tickersEditTime
+	t.Cleanup(func() { tickersEditTime = origTime })
+	tickersEditTime = "1min"
+
+	c := tickersEditCmdFixture()
+	if err := c.Flags().Set("time", "1min"); err != nil {
+		t.Fatalf("set time flag: %v", err)
+	}
+
+	if err := tickersEditCmd.RunE(c, []string{"BTC"}); err != nil {
+		t.Fatalf("tickersEditCmd.RunE() = %v", err)
+	}
+	var gotState tickers.State
+	if err := json.Unmarshal(*posted, &gotState); err != nil {
+		t.Fatalf("decode posted state: %v", err)
+	}
+	if gotState.Times != "1min" {
+		t.Errorf("posted times = %q; want %q", gotState.Times, "1min")
+	}
+}
+
+func TestTickersTemplateApplyRejectsWhenExistingEntryInvalid(t *testing.T) {
+	names := template.List()
+	if len(names) == 0 {
+		t.Skip("no templates registered")
+	}
+	srv, posted := withTickersStub(t, `{"size":1,"types":"bogus","tickers":"XYZ","times":"5min","currency":"USD"}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origReplace := tickersTemplateReplace
+	t.Cleanup(func() { tickersTemplateReplace = origReplace })
+	tickersTemplateReplace = false
+
+	if err := tickersTemplateApplyCmd.RunE(tickersTemplateApplyCmd, []string{names[0]}); err == nil {
+		t.Fatal("tickersTemplateApplyCmd.RunE() = nil error; want error for the pre-existing invalid entry")
+	}
+	if len(*posted) != 0 {
+		t.Error("device was posted despite an invalid existing entry")
+	}
+}
+
+func TestTickersTemplateApplyAcceptsValidReplace(t *testing.T) {
+	names := template.List()
+	if len(names) == 0 {
+		t.Skip("no templates registered")
+	}
+	srv, posted := withTickersStub(t, `{"size":0}`)
+	withTickersCmdTarget(t, srv.URL)
+
+	origReplace := tickersTemplateReplace
+	t.Cleanup(func() { tickersTemplateReplace = origReplace })
+	tickersTemplateReplace = true
+
+	if err := tickersTemplateApplyCmd.RunE(tickersTemplateApplyCmd, []string{names[0]}); err != nil {
+		t.Fatalf("tickersTemplateApplyCmd.RunE() = %v", err)
+	}
+	if len(*posted) == 0 {
+		t.Error("device was never posted")
+	}
 }

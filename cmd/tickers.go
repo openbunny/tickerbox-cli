@@ -33,7 +33,11 @@ func fetchTickerEntries(ctx context.Context, c *client.Client) ([]tickers.Entry,
 }
 
 func postTickerEntries(ctx context.Context, c *client.Client, entries []tickers.Entry) error {
-	if err := c.Post(ctx, "coinSetupState", tickers.Encode(entries)); err != nil {
+	encoded, err := tickers.Encode(entries)
+	if err != nil {
+		return fmt.Errorf("encode ticker entries: %w", err)
+	}
+	if err := c.Post(ctx, "coinSetupState", encoded); err != nil {
 		return fmt.Errorf("post coinSetupState: %w", err)
 	}
 	return nil
@@ -110,6 +114,9 @@ var tickersAddCmd = &cobra.Command{
 			Time:     tickersAddTime,
 			Currency: tickersAddCurrency,
 		})
+		if err := rejectInvalidEntries(entries); err != nil {
+			return err
+		}
 		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
 		}
@@ -229,6 +236,9 @@ var tickersImportCmd = &cobra.Command{
 		var entries []tickers.Entry
 		if err := json.Unmarshal(raw, &entries); err != nil {
 			return fmt.Errorf("%s is not a valid JSON array of ticker entries: %w", tickersImportInput, err)
+		}
+		if err := rejectInvalidEntries(entries); err != nil {
+			return fmt.Errorf("%s: %w", tickersImportInput, err)
 		}
 
 		if !tickersImportYes {

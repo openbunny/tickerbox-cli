@@ -165,7 +165,10 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Decode: %v", err)
 			}
-			got := Encode(entries)
+			got, err := Encode(entries)
+			if err != nil {
+				t.Fatalf("Encode: %v", err)
+			}
 			want := map[string]any{
 				"size":     tt.state.Size,
 				"types":    tt.state.Types,
@@ -205,7 +208,10 @@ func TestEncodeForcesUSDForNonCrypto(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Encode([]Entry{tt.entry})
+			got, err := Encode([]Entry{tt.entry})
+			if err != nil {
+				t.Fatalf("Encode: %v", err)
+			}
 			if got["currency"] != tt.wantCurrency {
 				t.Errorf("got currency %v; want %q", got["currency"], tt.wantCurrency)
 			}
@@ -213,16 +219,27 @@ func TestEncodeForcesUSDForNonCrypto(t *testing.T) {
 	}
 }
 
-func TestEncodeDropsEmptyTickers(t *testing.T) {
+func TestEncodeRejectsEmptyTicker(t *testing.T) {
 	entries := []Entry{
 		{Type: "crypto", Ticker: "btc", Currency: "USD"},
 		{Type: "crypto", Ticker: "  ", Currency: "USD"},
-		{Type: "crypto", Ticker: "", Currency: "USD"},
+	}
+
+	if _, err := Encode(entries); err == nil {
+		t.Fatal("Encode() with a whitespace-only ticker = nil error; want error naming the entry")
+	}
+}
+
+func TestEncodeAcceptsValidEntries(t *testing.T) {
+	entries := []Entry{
+		{Type: "crypto", Ticker: "btc", Currency: "USD"},
 		{Type: "stocks", Ticker: "aapl", Currency: "USD"},
 	}
 
-	got := Encode(entries)
-
+	got, err := Encode(entries)
+	if err != nil {
+		t.Fatalf("Encode: %v", err)
+	}
 	want := map[string]any{
 		"size":     2,
 		"types":    "crypto,stocks",
@@ -232,6 +249,25 @@ func TestEncodeDropsEmptyTickers(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %#v; want %#v", got, want)
+	}
+}
+
+func TestEncodeRejectsCommaInField(t *testing.T) {
+	tests := []struct {
+		name  string
+		entry Entry
+	}{
+		{name: "comma in type", entry: Entry{Type: "cry,pto", Ticker: "BTC", Time: "5min", Currency: "USD"}},
+		{name: "comma in ticker", entry: Entry{Type: "crypto", Ticker: "BT,C", Time: "5min", Currency: "USD"}},
+		{name: "comma in time", entry: Entry{Type: "crypto", Ticker: "BTC", Time: "5,min", Currency: "USD"}},
+		{name: "comma in currency", entry: Entry{Type: "crypto", Ticker: "BTC", Time: "5min", Currency: "US,D"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := Encode([]Entry{tt.entry}); err == nil {
+				t.Fatalf("Encode(%+v) = nil error; want error rejecting the comma", tt.entry)
+			}
+		})
 	}
 }
 
@@ -308,6 +344,8 @@ func FuzzDecode(f *testing.F) {
 		if len(entries) != size {
 			t.Fatalf("Decode returned %d entries; want size %d", len(entries), size)
 		}
-		Encode(entries)
+		if _, err := Encode(entries); err != nil {
+			return
+		}
 	})
 }

@@ -89,20 +89,30 @@ func Decode(state State) ([]Entry, error) {
 	return entries, nil
 }
 
-func Encode(entries []Entry) map[string]any {
+func Encode(entries []Entry) (map[string]any, error) {
 	types := make([]string, 0, len(entries))
 	tickers := make([]string, 0, len(entries))
 	times := make([]string, 0, len(entries))
 	currencies := make([]string, 0, len(entries))
 
-	for _, e := range entries {
+	for i, e := range entries {
 		ticker := NormalizeTicker(e.Ticker)
 		if ticker == "" {
-			continue
+			return nil, fmt.Errorf("entry %d: ticker %q normalizes to empty", i, e.Ticker)
 		}
 		currency := e.Currency
 		if e.Type != TypeCrypto {
 			currency = CurrencyUSD
+		}
+		switch {
+		case strings.Contains(e.Type, ","):
+			return nil, fmt.Errorf("entry %d (%s): type %q contains a comma, which would corrupt every entry's encoding", i, ticker, e.Type)
+		case strings.Contains(ticker, ","):
+			return nil, fmt.Errorf("entry %d: ticker %q contains a comma, which would corrupt every entry's encoding", i, ticker)
+		case strings.Contains(e.Time, ","):
+			return nil, fmt.Errorf("entry %d (%s): time %q contains a comma, which would corrupt every entry's encoding", i, ticker, e.Time)
+		case strings.Contains(currency, ","):
+			return nil, fmt.Errorf("entry %d (%s): currency %q contains a comma, which would corrupt every entry's encoding", i, ticker, currency)
 		}
 		types = append(types, e.Type)
 		tickers = append(tickers, ticker)
@@ -116,7 +126,7 @@ func Encode(entries []Entry) map[string]any {
 		"tickers":  strings.Join(tickers, ","),
 		"times":    strings.Join(times, ","),
 		"currency": strings.Join(currencies, ","),
-	}
+	}, nil
 }
 
 func NormalizeTicker(ticker string) string {
@@ -133,4 +143,27 @@ func ValidTime(t string) bool {
 
 func ValidCurrency(c string) bool {
 	return slices.Contains(Currencies, c)
+}
+
+func Validate(entries []Entry) []string {
+	var problems []string
+	seen := make(map[string]int, len(entries))
+	for i, e := range entries {
+		if !ValidType(e.Type) {
+			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid type %q", i, e.Ticker, e.Type))
+		}
+		if !ValidTime(e.Time) {
+			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid time %q", i, e.Ticker, e.Time))
+		}
+		if !ValidCurrency(e.Currency) {
+			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid currency %q", i, e.Ticker, e.Currency))
+		}
+		norm := NormalizeTicker(e.Ticker)
+		if first, ok := seen[norm]; ok {
+			problems = append(problems, fmt.Sprintf("entry %d (%s): duplicate of entry %d", i, e.Ticker, first))
+			continue
+		}
+		seen[norm] = i
+	}
+	return problems
 }

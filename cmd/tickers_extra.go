@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -91,26 +92,15 @@ func reorder(entries []tickers.Entry, from, to int) ([]tickers.Entry, error) {
 }
 
 func validateEntries(entries []tickers.Entry) []string {
-	var problems []string
-	seen := make(map[string]int, len(entries))
-	for i, e := range entries {
-		if !tickers.ValidType(e.Type) {
-			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid type %q", i, e.Ticker, e.Type))
-		}
-		if !tickers.ValidTime(e.Time) {
-			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid time %q", i, e.Ticker, e.Time))
-		}
-		if !tickers.ValidCurrency(e.Currency) {
-			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid currency %q", i, e.Ticker, e.Currency))
-		}
-		norm := tickers.NormalizeTicker(e.Ticker)
-		if first, ok := seen[norm]; ok {
-			problems = append(problems, fmt.Sprintf("entry %d (%s): duplicate of entry %d", i, e.Ticker, first))
-			continue
-		}
-		seen[norm] = i
+	return tickers.Validate(entries)
+}
+
+func rejectInvalidEntries(entries []tickers.Entry) error {
+	problems := validateEntries(entries)
+	if len(problems) == 0 {
+		return nil
 	}
-	return problems
+	return fmt.Errorf("invalid ticker entries:\n%s", strings.Join(problems, "\n"))
 }
 
 func applyTemplatePreset(existing, preset []tickers.Entry, replace bool) []tickers.Entry {
@@ -158,6 +148,9 @@ var tickersAddBulkCmd = &cobra.Command{
 			return err
 		}
 		entries = append(entries, buildBulkEntries(args, tickersAddBulkType, tickersAddBulkTime, tickersAddBulkCurrency)...)
+		if err := rejectInvalidEntries(entries); err != nil {
+			return err
+		}
 		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
 		}
@@ -201,6 +194,9 @@ var tickersEditCmd = &cobra.Command{
 			currency:    tickersEditCurrency,
 			currencySet: cmd.Flags().Changed("currency"),
 		})
+		if err := rejectInvalidEntries(entries); err != nil {
+			return err
+		}
 		if err := postTickerEntries(cmdContext(cmd), c, entries); err != nil {
 			return err
 		}
@@ -353,6 +349,9 @@ var tickersTemplateApplyCmd = &cobra.Command{
 			return err
 		}
 		merged := applyTemplatePreset(existing, preset, tickersTemplateReplace)
+		if err := rejectInvalidEntries(merged); err != nil {
+			return err
+		}
 		if err := postTickerEntries(cmdContext(cmd), c, merged); err != nil {
 			return err
 		}
