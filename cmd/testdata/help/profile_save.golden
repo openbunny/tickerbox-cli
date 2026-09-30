@@ -8,9 +8,10 @@ Examples:
   tickerbox profile save full --all
 
 Flags:
-      --all              also capture wifi and ap, including their secrets
-  -h, --help             help for save
-      --include string   comma-separated sections to capture (default tickers,display,clock,ntp)
+      --all                  also capture wifi and ap, including their secrets
+  -D, --description string   optional human-readable description to store with the profile
+  -h, --help                 help for save
+      --include string       comma-separated sections to capture (default tickers,display,clock,ntp)
 
 Global Flags:
   -d, --device string      named device from the config file

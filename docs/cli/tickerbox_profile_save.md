@@ -20,9 +20,10 @@ tickerbox profile save <name> [flags]
 ### Options
 
 ```
-      --all              also capture wifi and ap, including their secrets
-  -h, --help             help for save
-      --include string   comma-separated sections to capture (default tickers,display,clock,ntp)
+      --all                  also capture wifi and ap, including their secrets
+  -D, --description string   optional human-readable description to store with the profile
+  -h, --help                 help for save
+      --include string       comma-separated sections to capture (default tickers,display,clock,ntp)
 ```
 
 ### Options inherited from parent commands
