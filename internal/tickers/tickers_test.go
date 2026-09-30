@@ -4,6 +4,7 @@ package tickers
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -321,6 +322,45 @@ func TestValidators(t *testing.T) {
 				t.Errorf("got %v; want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestErrorMessagesNameExpectedSet(t *testing.T) {
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{name: "TypeError", got: TypeError("crytpo"), want: `invalid type "crytpo": expected one of crypto, stocks, forex`},
+		{name: "TimeError", got: TimeError("1hour"), want: `invalid time "1hour": expected one of 1min, 5min, 15min`},
+		{name: "CurrencyError", got: CurrencyError("usd"), want: `invalid currency "usd": expected one of USD, EUR, GBP, CAD, AUD, JPY`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("got %q; want %q", tt.got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidateNamesExpectedSet(t *testing.T) {
+	problems := Validate([]Entry{{Type: "bonds", Ticker: "X", Time: "1hour", Currency: "XYZ"}})
+	for _, want := range []string{
+		`expected one of ` + ExpectedTypes(),
+		`expected one of ` + ExpectedTimes(),
+		`expected one of ` + ExpectedCurrencies(),
+	} {
+		found := false
+		for _, p := range problems {
+			if strings.Contains(p, want) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Validate() problems = %v; want one containing %q", problems, want)
+		}
 	}
 }
 

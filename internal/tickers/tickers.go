@@ -145,18 +145,37 @@ func ValidCurrency(c string) bool {
 	return slices.Contains(Currencies, c)
 }
 
+// ExpectedTypes, ExpectedTimes, and ExpectedCurrencies render Types/Times/Currencies
+// for an error message, so a message naming the expected set can't drift from the
+// constants it describes.
+func ExpectedTypes() string      { return strings.Join(Types, ", ") }
+func ExpectedTimes() string      { return strings.Join(Times, ", ") }
+func ExpectedCurrencies() string { return strings.Join(Currencies, ", ") }
+
+func TypeError(t string) string {
+	return fmt.Sprintf("invalid type %q: expected one of %s", t, ExpectedTypes())
+}
+
+func TimeError(t string) string {
+	return fmt.Sprintf("invalid time %q: expected one of %s", t, ExpectedTimes())
+}
+
+func CurrencyError(c string) string {
+	return fmt.Sprintf("invalid currency %q: expected one of %s", c, ExpectedCurrencies())
+}
+
 func Validate(entries []Entry) []string {
 	var problems []string
 	seen := make(map[string]int, len(entries))
 	for i, e := range entries {
 		if !ValidType(e.Type) {
-			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid type %q", i, e.Ticker, e.Type))
+			problems = append(problems, fmt.Sprintf("entry %d (%s): %s", i, e.Ticker, TypeError(e.Type)))
 		}
 		if !ValidTime(e.Time) {
-			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid time %q", i, e.Ticker, e.Time))
+			problems = append(problems, fmt.Sprintf("entry %d (%s): %s", i, e.Ticker, TimeError(e.Time)))
 		}
 		if !ValidCurrency(e.Currency) {
-			problems = append(problems, fmt.Sprintf("entry %d (%s): invalid currency %q", i, e.Ticker, e.Currency))
+			problems = append(problems, fmt.Sprintf("entry %d (%s): %s", i, e.Ticker, CurrencyError(e.Currency)))
 		}
 		norm := NormalizeTicker(e.Ticker)
 		if first, ok := seen[norm]; ok {
