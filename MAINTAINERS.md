@@ -3,13 +3,9 @@
 Who reviews and merges changes to `tickerbox-cli`, and who takes over if they
 cannot.
 
-| GitHub       | Role       |
-| ------------ | ---------- |
-| `@openbunny` | Maintainer |
-
-`@openbunny` is a placeholder for the org account; replace it with a specific
-maintainer's GitHub handle once one is assigned, and update
-[`.github/CODEOWNERS`](.github/CODEOWNERS) to match.
+| GitHub | Role       |
+| ------ | ---------- |
+| `@OA`  | Maintainer |
 
 ## Succession
 
