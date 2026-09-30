@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/openbunny/tickerbox-cli/docs/schema/snapshot.schema.json",
   "title": "TickerBox snapshot",
-  "description": "internal/section.Snapshot, as written by `tickerbox config export` and `tickerbox profile save`, and read back by `tickerbox config import`, `tickerbox config diff`, `tickerbox profile apply` and `tickerbox profile diff`.",
+  "description": "internal/section.Snapshot, as written by `tickerbox config export` and read back by `tickerbox config import`/`config diff`. A profile file written by `tickerbox profile save` and read back by `profile apply`/`profile diff` is the wider `$defs/profileRecord` shape below, not this bare object.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -17,6 +17,30 @@
     }
   },
   "$defs": {
+    "profileRecord": {
+      "type": "object",
+      "description": "internal/profile.record: the file `profile save` writes and `profile apply`/`profile diff` read, a superset of the bare snapshot above.",
+      "additionalProperties": false,
+      "properties": {
+        "wifi": { "$ref": "#/$defs/deviceSection" },
+        "ap": { "$ref": "#/$defs/deviceSection" },
+        "ntp": { "$ref": "#/$defs/deviceSection" },
+        "display": { "$ref": "#/$defs/deviceSection" },
+        "clock": { "$ref": "#/$defs/deviceSection" },
+        "tickers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/tickerEntry" }
+        },
+        "description": {
+          "type": "string",
+          "description": "Set by `profile save --description`; omitted when empty."
+        },
+        "source_device": {
+          "type": "string",
+          "description": "The device name a profile was saved from; omitted when empty."
+        }
+      }
+    },
     "deviceSection": {
       "type": "object",
       "description": "Passed through from the device's REST response as-is; the CLI does not constrain its fields beyond stripping secrets. Present only when the snapshot includes this section.",

@@ -52,9 +52,9 @@ License Agreement; the DCO is the only requirement.
 ## Security-sensitive changes
 
 Any `--verbose` or `--debug` flag added in the future must redact password
-fields (Wi-Fi and access-point credentials) before they reach a log or the
-console; see [SECURITY.md](SECURITY.md) for the reporting process if you find
-a case that does not.
+fields (Wi-Fi and access-point credentials) and the Financial Modeling Prep
+API key before they reach a log or the console; see [SECURITY.md](SECURITY.md)
+for the reporting process if you find a case that does not.
 
 ## Reporting bugs
 

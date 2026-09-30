@@ -22,10 +22,15 @@ this CLI; `tickerbox doctor` reports it.
 
 ## Network behaviour
 
-`tickerbox` makes network calls only to the device host resolved from
-`--host`, `--device`, `$TICKERBOX_HOST`, or the default device set with
-`device use`. It never contacts any host outside that resolution, sends no
-telemetry, and does not check for updates on its own.
+`tickerbox` makes network calls to the device host resolved from `--host`,
+`--device`, `$TICKERBOX_HOST`, or the default device set with `device use`,
+and to one additional host: `ticker add`, unless `--no-verify` is given,
+calls the Financial Modeling Prep API to verify each symbol. It sends no
+telemetry and does not check for updates on its own.
+
+The Financial Modeling Prep API key set with `fmp set-key` is stored in
+config.toml (0600) alongside device credentials; treat it as a secret for the
+same reason.
 
 ## Verifying releases
 
