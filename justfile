@@ -85,17 +85,33 @@ release-dry-run:
 demo:
     #!/usr/bin/env bash
     set -euo pipefail
-    command -v vhs >/dev/null || { echo "demo: vhs not installed; see https://github.com/charmbracelet/vhs#installation" >&2; exit 1; }
+    command -v docker >/dev/null || { echo "demo: docker not installed; see https://docs.docker.com/get-docker/" >&2; exit 1; }
+    port=8765
+    lsof -ti ":$port" | xargs -r kill -9 2>/dev/null || true
     dir=$(mktemp -d)
-    trap 'kill "${mock_pid:-0}" 2>/dev/null || true; rm -rf "$dir"' EXIT
-    go build -o "$dir/tickerbox" .
+    # go run execs the compiled mock as a child, so killing its own pid leaves
+    # that child bound to the port; killing by port reaches the real listener
+    trap 'lsof -ti ":$port" | xargs -r kill -9 2>/dev/null || true; rm -rf "$dir"' EXIT
+    case "$(uname -m)" in
+        arm64 | aarch64) goarch=arm64 ;;
+        x86_64 | amd64) goarch=amd64 ;;
+        *)
+            echo "demo: unsupported host arch $(uname -m)" >&2
+            exit 1
+            ;;
+    esac
+    # vhs runs inside the linux container below (not the host's Chrome), so the
+    # binary it shells out to must be built for linux on the container's arch,
+    # which docker run below defaults to matching the host's
+    GOOS=linux GOARCH="$goarch" go build -o "$dir/tickerbox" .
     go run demo/mock.go &
-    mock_pid=$!
     retries=50
     interval=0.1
     for _ in $(seq 1 "$retries"); do
-        curl -sf http://127.0.0.1:8765/rest/features >/dev/null 2>&1 && break
+        curl -sf "http://127.0.0.1:$port/rest/features" >/dev/null 2>&1 && break
         sleep "$interval"
     done
-    PATH="$dir:$PATH" TICKERBOX_HOST="http://127.0.0.1:8765" vhs demo/tickerbox.tape
+    docker run --rm -v "$PWD":/vhs -v "$dir/tickerbox":/usr/local/bin/tickerbox:ro \
+        -e "TICKERBOX_HOST=http://tickerbox.local:$port" --add-host tickerbox.local:host-gateway \
+        ghcr.io/charmbracelet/vhs demo/tickerbox.tape
     ls -lh demo/tickerbox.gif
