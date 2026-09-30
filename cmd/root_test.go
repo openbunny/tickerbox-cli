@@ -53,8 +53,9 @@ func TestCommandTargetsDevice(t *testing.T) {
 	}{
 		{"a leaf under deviceCmd returns false", deviceUseCmd, false},
 		{"deviceCmd itself returns false", deviceCmd, false},
-		{"a leaf under tzCmd returns false", tzListCmd, false},
-		{"tzCmd itself returns false", tzCmd, false},
+		{"tz list returns false", tzListCmd, false},
+		{"tzCmd itself returns true, since tz set is a sibling that needs a device", tzCmd, true},
+		{"tz set returns true", tzSetCmd, true},
 		{"profile list returns false", profileListCmd, false},
 		{"profile show returns false", profileShowCmd, false},
 		{"profile rm returns false", profileRmCmd, false},
@@ -193,5 +194,25 @@ func TestPersistentPreRunEBannerAbsentForDeviceIndependentCommand(t *testing.T) 
 	}
 	if strings.Contains(stdout, "device: ") {
 		t.Errorf("stdout = %q; want no banner for a device-independent command", stdout)
+	}
+}
+
+func TestPersistentPreRunEResolvesHostForTzSet(t *testing.T) {
+	useTempDeviceConfigDir(t)
+
+	origHostFlag, origDeviceFlag, origJSON := hostFlag, deviceFlag, jsonFlag
+	origHost, origSource, origDeviceName := resolvedHost, resolvedSource, resolvedDeviceName
+	t.Cleanup(func() {
+		hostFlag, deviceFlag, jsonFlag = origHostFlag, origDeviceFlag, origJSON
+		resolvedHost, resolvedSource, resolvedDeviceName = origHost, origSource, origDeviceName
+	})
+	hostFlag, deviceFlag, jsonFlag = "http://1.2.3.4", "", false
+	resolvedHost = ""
+
+	if err := rootCmd.PersistentPreRunE(tzSetCmd, nil); err != nil {
+		t.Fatalf("PersistentPreRunE(tzSetCmd) = %v", err)
+	}
+	if resolvedHost != "http://1.2.3.4" {
+		t.Errorf("resolvedHost = %q; want %q, since tz set targets a device like any other device-needing command", resolvedHost, "http://1.2.3.4")
 	}
 }

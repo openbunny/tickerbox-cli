@@ -74,8 +74,9 @@ var rootCmd = &cobra.Command{
 // target device (no newClient() call, no read of resolvedHost/resolvedSource/
 // resolvedDeviceName anywhere in its RunE), found by auditing every cmd/*.go file.
 // Membership is by exact command, not just top-level groups: profileListCmd,
-// profileShowCmd, and profileRmCmd are excluded individually because their sibling
-// leaves profileSaveCmd/profileApplyCmd/profileDiffCmd do need a resolved device.
+// profileShowCmd, profileRmCmd, and tzListCmd are excluded individually because their
+// sibling leaves (profileSaveCmd/profileApplyCmd/profileDiffCmd, tzSetCmd) do need a
+// resolved device.
 var deviceIndependentCommands = map[*cobra.Command]bool{}
 
 func commandTargetsDevice(cmd *cobra.Command) bool {
@@ -97,7 +98,7 @@ func init() {
 	rootCmd.SilenceErrors = true
 
 	deviceIndependentCommands[deviceCmd] = true
-	deviceIndependentCommands[tzCmd] = true
+	deviceIndependentCommands[tzListCmd] = true
 	deviceIndependentCommands[profileListCmd] = true
 	deviceIndependentCommands[profileShowCmd] = true
 	deviceIndependentCommands[profileRmCmd] = true
