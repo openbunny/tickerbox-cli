@@ -409,6 +409,11 @@ func TestTickersAddBulkRejectsCommaInTicker(t *testing.T) {
 	}
 }
 
+// secretAPIKey is a distinctive value so a test can assert it never surfaces in
+// a formatted error, rather than asserting on a generic string that could
+// appear in error text incidentally.
+const secretAPIKey = "sk-do-not-leak-9f3a2b1c"
+
 func withFMPStub(t *testing.T, status int, body string) (*httptest.Server, *int) {
 	t.Helper()
 	var requests int
@@ -541,7 +546,7 @@ func TestTickersAddBulkVerifyUnreachable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			posted, cleanup := tickersAddBulkVerifyFixture(t)
 			defer cleanup()
-			t.Setenv(config.EnvFMPAPIKey, "test-key")
+			t.Setenv(config.EnvFMPAPIKey, secretAPIKey)
 			tt.setup(t)
 
 			err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"AAPL"})
@@ -553,6 +558,9 @@ func TestTickersAddBulkVerifyUnreachable(t *testing.T) {
 			}
 			if strings.Contains(err.Error(), "not found on Financial Modeling Prep") {
 				t.Errorf("error = %q; unreachable must never read as unknown-symbol", err.Error())
+			}
+			if strings.Contains(err.Error(), secretAPIKey) {
+				t.Errorf("error = %q; must not contain the API key", err.Error())
 			}
 			if len(*posted) != 0 {
 				t.Error("device was posted despite an unreachable FMP")
@@ -568,13 +576,20 @@ func TestTickersAddBulkVerifyMissingAPIKey(t *testing.T) {
 	t.Setenv(config.EnvFMPAPIKey, "")
 	withCmdTempHome(t)
 
-	err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"AAPL"})
+	// Multiple symbols: the missing-key error must name none of them, guarding
+	// against a regression to naming one symbol out of several.
+	err := tickersAddBulkCmd.RunE(tickersAddBulkCmd, []string{"AAPL", "BTC", "EURUSD"})
 	if err == nil {
 		t.Fatal("tickersAddBulkCmd.RunE() = nil error; want error for a missing API key")
 	}
-	want := `verify ticker "AAPL": no Financial Modeling Prep API key configured — set TICKERBOX_FMP_API_KEY, or pass --no-verify to add without verification`
+	want := `verify tickers: no Financial Modeling Prep API key configured — set TICKERBOX_FMP_API_KEY, or pass --no-verify to add without verification`
 	if err.Error() != want {
 		t.Errorf("error = %q; want %q", err.Error(), want)
+	}
+	for _, sym := range []string{"AAPL", "BTC", "EURUSD"} {
+		if strings.Contains(err.Error(), sym) {
+			t.Errorf("error = %q; must not name any specific ticker (found %q)", err.Error(), sym)
+		}
 	}
 	if *fmpRequests != 0 {
 		t.Errorf("FMP requests = %d, want 0 before any request is sent", *fmpRequests)

@@ -48,13 +48,21 @@ func TestFMPVerifyUnknownSymbol(t *testing.T) {
 	}
 }
 
+// secretAPIKey is a distinctive value so a test can assert it never surfaces in
+// a formatted error, rather than asserting on a generic string like "key" that
+// could appear in error text incidentally.
+const secretAPIKey = "sk-do-not-leak-9f3a2b1c"
+
 func TestFMPVerifyUnauthorized(t *testing.T) {
 	srv := withFMPServer(t, http.StatusUnauthorized, `{"error":"invalid key"}`)
 	f := &FMPClient{c: New(srv.URL+"/", time.Second)}
 
-	_, err := f.Verify(context.Background(), "AAPL", "bad-key")
+	_, err := f.Verify(context.Background(), "AAPL", secretAPIKey)
 	if err == nil {
 		t.Fatal("Verify() error = nil, want an error on HTTP 401")
+	}
+	if strings.Contains(err.Error(), secretAPIKey) {
+		t.Errorf("error = %q; must not contain the API key", err.Error())
 	}
 }
 
@@ -62,9 +70,12 @@ func TestFMPVerifyServerError(t *testing.T) {
 	srv := withFMPServer(t, http.StatusInternalServerError, `boom`)
 	f := &FMPClient{c: New(srv.URL+"/", time.Second)}
 
-	_, err := f.Verify(context.Background(), "AAPL", "key")
+	_, err := f.Verify(context.Background(), "AAPL", secretAPIKey)
 	if err == nil {
 		t.Fatal("Verify() error = nil, want an error on HTTP 500")
+	}
+	if strings.Contains(err.Error(), secretAPIKey) {
+		t.Errorf("error = %q; must not contain the API key", err.Error())
 	}
 }
 
@@ -77,9 +88,12 @@ func TestFMPVerifyTimeout(t *testing.T) {
 	t.Cleanup(srv.Close)
 	f := &FMPClient{c: New(srv.URL+"/", 20*time.Millisecond)}
 
-	_, err := f.Verify(context.Background(), "AAPL", "key")
+	_, err := f.Verify(context.Background(), "AAPL", secretAPIKey)
 	if err == nil {
 		t.Fatal("Verify() error = nil, want an error on timeout")
+	}
+	if strings.Contains(err.Error(), secretAPIKey) {
+		t.Errorf("error = %q; must not contain the API key", err.Error())
 	}
 }
 
@@ -89,9 +103,12 @@ func TestFMPVerifyConnectionRefused(t *testing.T) {
 	srv.Close()
 	f := &FMPClient{c: New(url+"/", time.Second)}
 
-	_, err := f.Verify(context.Background(), "AAPL", "key")
+	_, err := f.Verify(context.Background(), "AAPL", secretAPIKey)
 	if err == nil {
 		t.Fatal("Verify() error = nil, want an error on connection refused")
+	}
+	if strings.Contains(err.Error(), secretAPIKey) {
+		t.Errorf("error = %q; must not contain the API key", err.Error())
 	}
 }
 

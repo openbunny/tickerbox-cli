@@ -6,10 +6,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,27 +63,45 @@ func (c *Client) url(path string) string {
 }
 
 func (c *Client) Get(ctx context.Context, path string, out any) error {
-	body, status, err := c.GetRaw(ctx, path)
+	return c.get(ctx, path, path, out)
+}
+
+// GetLabeled behaves like Get, but reports label in any APIError instead of path —
+// for a path carrying a secret (e.g. an API key in a query string) that must never
+// reach a formatted or printed error.
+func (c *Client) GetLabeled(ctx context.Context, path, label string, out any) error {
+	return c.get(ctx, path, label, out)
+}
+
+func (c *Client) get(ctx context.Context, path, label string, out any) error {
+	body, status, err := c.getRaw(ctx, path, label)
 	if err != nil {
-		return &APIError{Path: path, Err: err}
+		return &APIError{Path: label, Err: err}
 	}
 	if status >= 400 {
-		return &APIError{Path: path, Status: status}
+		return &APIError{Path: label, Status: status}
 	}
 	if out != nil {
 		if err := json.Unmarshal(body, out); err != nil {
-			return &APIError{Path: path, Status: status, Err: fmt.Errorf("decode response: %w", err)}
+			return &APIError{Path: label, Status: status, Err: fmt.Errorf("decode response: %w", err)}
 		}
 	}
 	return nil
 }
 
 func (c *Client) GetRaw(ctx context.Context, path string) ([]byte, int, error) {
+	return c.getRaw(ctx, path, path)
+}
+
+// getRaw issues the request against path but names label, not path, in any
+// wrapped error — path is what a labeled caller (e.g. FMPClient) must keep out
+// of formatted or printed text, such as an API key carried in a query string.
+func (c *Client) getRaw(ctx context.Context, path, label string) ([]byte, int, error) {
 	var body []byte
 	var status int
 	var err error
 	for attempt := 0; attempt <= c.Retries; attempt++ {
-		body, status, err = c.getOnce(ctx, path)
+		body, status, err = c.getOnce(ctx, path, label)
 		if !shouldRetry(status, err) {
 			break
 		}
@@ -92,20 +112,36 @@ func (c *Client) GetRaw(ctx context.Context, path string) ([]byte, int, error) {
 	return body, status, err
 }
 
-func (c *Client) getOnce(ctx context.Context, path string) ([]byte, int, error) {
+// redactRequestError replaces a *url.Error's URL — net/http embeds the full
+// request URL, query string included, in both a request-build failure and a
+// Do failure (transport error, timeout, TLS failure) — with safeURL, so a
+// secret in the query string (e.g. an FMP API key) never reaches the error's
+// formatted text.
+func redactRequestError(err error, safeURL string) error {
+	var uerr *url.Error
+	if errors.As(err, &uerr) {
+		redacted := *uerr
+		redacted.URL = safeURL
+		return &redacted
+	}
+	return err
+}
+
+func (c *Client) getOnce(ctx context.Context, path, label string) ([]byte, int, error) {
+	safeURL := c.url(label)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url(path), nil)
 	if err != nil {
-		return nil, 0, fmt.Errorf("build request %s: %w", path, err)
+		return nil, 0, fmt.Errorf("build request %s: %w", label, redactRequestError(err, safeURL))
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, 0, fmt.Errorf("request %s: %w", path, err)
+		return nil, 0, fmt.Errorf("request %s: %w", label, redactRequestError(err, safeURL))
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("read response %s: %w", path, err)
+		return nil, resp.StatusCode, fmt.Errorf("read response %s: %w", label, err)
 	}
 	return body, resp.StatusCode, nil
 }

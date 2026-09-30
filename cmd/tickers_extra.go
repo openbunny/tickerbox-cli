@@ -136,8 +136,8 @@ func verifyNewTickers(ctx context.Context, entries []tickers.Entry) error {
 	}
 	apiKey, ok := cfg.ResolveFMPAPIKey()
 	if !ok {
-		return fmt.Errorf("verify ticker %q: no Financial Modeling Prep API key configured — set %s, or pass --no-verify to add without verification",
-			tickers.NormalizeTicker(entries[0].Ticker), config.EnvFMPAPIKey)
+		return fmt.Errorf("verify tickers: no Financial Modeling Prep API key configured — set %s, or pass --no-verify to add without verification",
+			config.EnvFMPAPIKey)
 	}
 
 	fmp := client.NewFMP(fmpVerifyTimeout)

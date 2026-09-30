@@ -28,7 +28,10 @@ type fmpQuote struct {
 // with a non-empty JSON array, false for a 200 with []. A non-nil error means
 // verification itself failed (401/429/5xx, a transport error, or a timeout) and
 // says nothing about whether the symbol exists — the caller must not treat it
-// as unknown.
+// as unknown. The request path carries apiKey in its query string, so it is
+// never used as the error label — GetLabeled reports a key-free label instead,
+// keeping the key out of every formatted or printed error, including a
+// transport failure or timeout that wraps the request path verbatim.
 //
 // The empty-array-on-miss convention this reads is inherited vendor/community
 // behavior, not confirmed against a live API key: FMP's public demo key returns
@@ -36,9 +39,10 @@ type fmpQuote struct {
 // untested against a real response and needs a smoke test with a provisioned
 // key before being trusted.
 func (f *FMPClient) Verify(ctx context.Context, symbol, apiKey string) (bool, error) {
-	path := "quote?symbol=" + url.QueryEscape(symbol) + "&apikey=" + url.QueryEscape(apiKey)
+	label := "quote?symbol=" + url.QueryEscape(symbol)
+	path := label + "&apikey=" + url.QueryEscape(apiKey)
 	var quotes []fmpQuote
-	if err := f.c.Get(ctx, path, &quotes); err != nil {
+	if err := f.c.GetLabeled(ctx, path, label, &quotes); err != nil {
 		return false, err
 	}
 	return len(quotes) > 0, nil
