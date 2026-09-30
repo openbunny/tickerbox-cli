@@ -5,7 +5,6 @@ Command-line client for a TickerBox device's `/rest/` API.
 [![CI](https://github.com/openbunny/tickerbox-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/openbunny/tickerbox-cli/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/openbunny/tickerbox-cli.svg)](https://pkg.go.dev/github.com/openbunny/tickerbox-cli)
-[![Go Report Card](https://goreportcard.com/badge/github.com/openbunny/tickerbox-cli)](https://goreportcard.com/report/github.com/openbunny/tickerbox-cli)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/openbunny/tickerbox-cli/badge)](https://securityscorecards.dev/viewer/?uri=github.com/openbunny/tickerbox-cli)
 
 ## Table of contents
