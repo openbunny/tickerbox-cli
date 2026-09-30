@@ -11,7 +11,7 @@ jobs:
   discover:
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
       targets: ${{ steps.list.outputs.targets }}
@@ -42,7 +42,7 @@ jobs:
     needs: discover
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       FUZZ_TIME: 60s
     strategy:

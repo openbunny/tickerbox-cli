@@ -65,6 +65,60 @@ func assertSameNames(t *testing.T, label string, schemaNames, structNames []stri
 	}
 }
 
+func schemaEnum(t *testing.T, field string, raw json.RawMessage) []string {
+	t.Helper()
+	var prop struct {
+		Enum []string `json:"enum"`
+	}
+	if err := json.Unmarshal(raw, &prop); err != nil {
+		t.Fatalf("%s: unmarshal enum: %v", field, err)
+	}
+	sort.Strings(prop.Enum)
+	return prop.Enum
+}
+
+func sortedCopy(s []string) []string {
+	out := append([]string(nil), s...)
+	sort.Strings(out)
+	return out
+}
+
+func TestSnapshotSchemaEnumsMatchTickersConstants(t *testing.T) {
+	schema := loadSnapshotSchema(t)
+	entryDef, ok := schema.Defs["tickerEntry"]
+	if !ok {
+		t.Fatal(`schema $defs["tickerEntry"] not found`)
+	}
+
+	cases := []struct {
+		field string
+		want  []string
+	}{
+		{"type", tickers.Types},
+		{"time", tickers.Times},
+		{"currency", tickers.Currencies},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.field, func(t *testing.T) {
+			raw, ok := entryDef.Properties[tc.field]
+			if !ok {
+				t.Fatalf("schema property %q not found", tc.field)
+			}
+			got := schemaEnum(t, tc.field, raw)
+			want := sortedCopy(tc.want)
+			if len(got) != len(want) {
+				t.Fatalf("tickerEntry.%s enum %v != tickers constants %v", tc.field, got, want)
+			}
+			for i := range got {
+				if got[i] != want[i] {
+					t.Fatalf("tickerEntry.%s enum %v != tickers constants %v", tc.field, got, want)
+				}
+			}
+		})
+	}
+}
+
 func TestSnapshotSchemaMatchesStruct(t *testing.T) {
 	schema := loadSnapshotSchema(t)
 
