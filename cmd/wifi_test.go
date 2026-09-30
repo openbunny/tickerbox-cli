@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -264,6 +265,36 @@ func TestRunWifiScanSortsByRSSIDescending(t *testing.T) {
 	}
 	if !scanned {
 		t.Error("runWifiScan() never triggered scanNetworks")
+	}
+}
+
+func TestRunWifiScanReportsMayStillBeScanning(t *testing.T) {
+	origInterval := wifiScanInterval
+	t.Cleanup(func() { wifiScanInterval = origInterval })
+	wifiScanInterval = time.Millisecond
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{})
+	}))
+	t.Cleanup(srv.Close)
+	withCmdTarget(t, srv.URL)
+
+	stdout := captureStdout(t, func() {
+		if err := runWifiScan(wifiScanCmd, nil); err != nil {
+			t.Fatalf("runWifiScan() = %v", err)
+		}
+	})
+
+	var got wifiScanResult
+	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
+		t.Fatalf("decode scan result: %v", err)
+	}
+	if !got.MayStillBeScanning {
+		t.Error("MayStillBeScanning = false; want true when every poll succeeds but finds nothing")
+	}
+	if len(got.Networks) != 0 {
+		t.Errorf("Networks = %v; want empty", got.Networks)
 	}
 }
 

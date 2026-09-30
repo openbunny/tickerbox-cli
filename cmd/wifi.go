@@ -21,10 +21,9 @@ import (
 	"github.com/openbunny/tickerbox-cli/internal/output"
 )
 
-const (
-	wifiScanAttempts = 10
-	wifiScanInterval = time.Second
-)
+const wifiScanAttempts = 10
+
+var wifiScanInterval = time.Second
 
 var secretStdin io.Reader = os.Stdin
 
@@ -126,6 +125,11 @@ type wifiNetwork struct {
 
 type wifiNetworksResp struct {
 	Networks []wifiNetwork `json:"networks"`
+}
+
+type wifiScanResult struct {
+	Networks           []wifiNetwork `json:"networks"`
+	MayStillBeScanning bool          `json:"may_still_be_scanning"`
 }
 
 func runWifiStatus(cmd *cobra.Command, args []string) error {
@@ -401,12 +405,23 @@ func runWifiScan(cmd *cobra.Command, args []string) error {
 		return resp.Networks[i].RSSI > resp.Networks[j].RSSI
 	})
 
+	result := wifiScanResult{Networks: resp.Networks, MayStillBeScanning: len(resp.Networks) == 0 && lastErr == nil}
+
 	if jsonOut() {
-		return output.EmitJSON(resp)
+		return output.EmitJSON(result)
 	}
 
-	rows := make([][]string, len(resp.Networks))
-	for i, n := range resp.Networks {
+	if len(result.Networks) == 0 {
+		if result.MayStillBeScanning {
+			fmt.Printf("no networks found after %d attempts; the device scan may still be in progress\n", wifiScanAttempts)
+			return nil
+		}
+		fmt.Println("no networks found")
+		return nil
+	}
+
+	rows := make([][]string, len(result.Networks))
+	for i, n := range result.Networks {
 		rows[i] = []string{n.SSID, strconv.Itoa(n.RSSI), n.BSSID, strconv.Itoa(n.Channel), strconv.Itoa(n.EncryptionType)}
 	}
 	return output.Table([]string{"SSID", "RSSI", "BSSID", "CHANNEL", "ENCRYPTION"}, rows)
