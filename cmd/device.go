@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image/color"
 	"io"
 	"net"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/openbunny/tickerbox-cli/internal/client"
@@ -476,6 +478,13 @@ func pingDevice(ctx context.Context, d config.Device) pingResult {
 	}
 }
 
+func reachableColor(v string) color.Color {
+	if v == "yes" {
+		return lipgloss.Color(severityColorOK)
+	}
+	return lipgloss.Color(severityColorCritical)
+}
+
 func runDevicePing(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -527,5 +536,5 @@ func runDevicePing(cmd *cobra.Command, args []string) error {
 		}
 		rows[i] = []string{r.Name, r.Host, reachable, rtt}
 	}
-	return output.Table([]string{"NAME", "HOST", "REACHABLE", "RTT"}, rows)
+	return output.ColoredTable([]string{"NAME", "HOST", "REACHABLE", "RTT"}, rows, 2, reachableColor)
 }

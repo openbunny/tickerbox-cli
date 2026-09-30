@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image/color"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/openbunny/tickerbox-cli/internal/client"
@@ -135,6 +137,25 @@ func evaluateApExposure(status int) doctorCheck {
 	}
 }
 
+const (
+	severityColorOK       = "2"
+	severityColorWarn     = "3"
+	severityColorCritical = "1"
+)
+
+func severityColor(v string) color.Color {
+	switch v {
+	case severityOK.String():
+		return lipgloss.Color(severityColorOK)
+	case severityWarn.String():
+		return lipgloss.Color(severityColorWarn)
+	case severityCritical.String():
+		return lipgloss.Color(severityColorCritical)
+	default:
+		return lipgloss.Color("")
+	}
+}
+
 func fetchFailureCheck(name string, err error) doctorCheck {
 	return doctorCheck{Name: name, Severity: severityCritical.String(), Detail: err.Error()}
 }
@@ -210,12 +231,15 @@ func runDoctor(ctx context.Context, c *client.Client) doctorReport {
 }
 
 func printDoctorReport(r doctorReport) error {
-	fmt.Printf("%s - %s\n", r.Device, strings.ToUpper(r.Verdict))
+	verdict := lipgloss.NewStyle().Bold(true).Foreground(severityColor(r.Verdict)).Render(strings.ToUpper(r.Verdict))
+	if _, err := lipgloss.Fprintf(os.Stdout, "%s - %s\n", r.Device, verdict); err != nil {
+		return fmt.Errorf("write output: %w", err)
+	}
 	rows := make([][]string, len(r.Checks))
 	for i, c := range r.Checks {
 		rows[i] = []string{c.Name, c.Severity, c.Detail}
 	}
-	return output.Table([]string{"CHECK", "SEVERITY", "DETAIL"}, rows)
+	return output.ColoredTable([]string{"CHECK", "SEVERITY", "DETAIL"}, rows, 1, severityColor)
 }
 
 var doctorAll bool
