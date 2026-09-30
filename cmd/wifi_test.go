@@ -71,16 +71,27 @@ func wifiSetCmdFixture() *cobra.Command {
 	return c
 }
 
+func resetWifiSetFlags(t *testing.T) {
+	t.Helper()
+	fs := wifiSetCmd.Flags()
+	for _, name := range []string{"password", "password-stdin", "static-ip", "no-static-ip"} {
+		if err := fs.Set(name, fs.Lookup(name).DefValue); err != nil {
+			t.Fatalf("reset %s: %v", name, err)
+		}
+	}
+}
+
 func TestRunWifiSetRejectsConflictingStaticIPFlags(t *testing.T) {
-	c := wifiSetCmdFixture()
-	if err := c.Flags().Set("static-ip", "true"); err != nil {
+	resetWifiSetFlags(t)
+	t.Cleanup(func() { resetWifiSetFlags(t) })
+	if err := wifiSetCmd.Flags().Set("static-ip", "true"); err != nil {
 		t.Fatalf("set static-ip: %v", err)
 	}
-	if err := c.Flags().Set("no-static-ip", "true"); err != nil {
+	if err := wifiSetCmd.Flags().Set("no-static-ip", "true"); err != nil {
 		t.Fatalf("set no-static-ip: %v", err)
 	}
 
-	if err := c.ValidateFlagGroups(); err == nil {
+	if err := wifiSetCmd.ValidateFlagGroups(); err == nil {
 		t.Fatal("ValidateFlagGroups() = nil error; want error for mutually exclusive --static-ip/--no-static-ip")
 	}
 }
@@ -331,15 +342,16 @@ func TestRunWifiSetPasswordStdin(t *testing.T) {
 }
 
 func TestRunWifiSetPasswordAndStdinMutuallyExclusive(t *testing.T) {
-	c := wifiSetCmdFixture()
-	if err := c.Flags().Set("password", "hunter22"); err != nil {
+	resetWifiSetFlags(t)
+	t.Cleanup(func() { resetWifiSetFlags(t) })
+	if err := wifiSetCmd.Flags().Set("password", "hunter22"); err != nil {
 		t.Fatalf("set password: %v", err)
 	}
-	if err := c.Flags().Set("password-stdin", "true"); err != nil {
+	if err := wifiSetCmd.Flags().Set("password-stdin", "true"); err != nil {
 		t.Fatalf("set password-stdin: %v", err)
 	}
 
-	if err := c.ValidateFlagGroups(); err == nil {
+	if err := wifiSetCmd.ValidateFlagGroups(); err == nil {
 		t.Fatal("ValidateFlagGroups() = nil error; want error for --password and --password-stdin together")
 	}
 }

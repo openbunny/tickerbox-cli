@@ -70,6 +70,26 @@ func clockSetCmdFixture() *cobra.Command {
 	return c
 }
 
+func resetDisplaySetFlags(t *testing.T) {
+	t.Helper()
+	fs := displaySetCmd.Flags()
+	for _, name := range []string{"sleep", "no-sleep"} {
+		if err := fs.Set(name, fs.Lookup(name).DefValue); err != nil {
+			t.Fatalf("reset %s: %v", name, err)
+		}
+	}
+}
+
+func resetClockSetFlags(t *testing.T) {
+	t.Helper()
+	fs := clockSetCmd.Flags()
+	for _, name := range []string{"enabled", "disabled", "12h", "24h"} {
+		if err := fs.Set(name, fs.Lookup(name).DefValue); err != nil {
+			t.Fatalf("reset %s: %v", name, err)
+		}
+	}
+}
+
 func TestDisplaySetRejectsInvalidInput(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -92,11 +112,12 @@ func TestDisplaySetRejectsInvalidInput(t *testing.T) {
 }
 
 func TestDisplaySetSleepAndNoSleepMutuallyExclusive(t *testing.T) {
-	c := displaySetCmdFixture()
-	mustSet(t, c, "sleep", "true")
-	mustSet(t, c, "no-sleep", "true")
+	resetDisplaySetFlags(t)
+	t.Cleanup(func() { resetDisplaySetFlags(t) })
+	mustSet(t, displaySetCmd, "sleep", "true")
+	mustSet(t, displaySetCmd, "no-sleep", "true")
 
-	if err := c.ValidateFlagGroups(); err == nil {
+	if err := displaySetCmd.ValidateFlagGroups(); err == nil {
 		t.Fatal("ValidateFlagGroups() = nil error; want error for --sleep and --no-sleep together")
 	}
 }
@@ -123,21 +144,23 @@ func TestClockSetRejectsInvalidInput(t *testing.T) {
 }
 
 func TestClockSetEnabledAndDisabledMutuallyExclusive(t *testing.T) {
-	c := clockSetCmdFixture()
-	mustSet(t, c, "enabled", "true")
-	mustSet(t, c, "disabled", "true")
+	resetClockSetFlags(t)
+	t.Cleanup(func() { resetClockSetFlags(t) })
+	mustSet(t, clockSetCmd, "enabled", "true")
+	mustSet(t, clockSetCmd, "disabled", "true")
 
-	if err := c.ValidateFlagGroups(); err == nil {
+	if err := clockSetCmd.ValidateFlagGroups(); err == nil {
 		t.Fatal("ValidateFlagGroups() = nil error; want error for --enabled and --disabled together")
 	}
 }
 
 func TestClockSet12hAnd24hMutuallyExclusive(t *testing.T) {
-	c := clockSetCmdFixture()
-	mustSet(t, c, "12h", "true")
-	mustSet(t, c, "24h", "true")
+	resetClockSetFlags(t)
+	t.Cleanup(func() { resetClockSetFlags(t) })
+	mustSet(t, clockSetCmd, "12h", "true")
+	mustSet(t, clockSetCmd, "24h", "true")
 
-	if err := c.ValidateFlagGroups(); err == nil {
+	if err := clockSetCmd.ValidateFlagGroups(); err == nil {
 		t.Fatal("ValidateFlagGroups() = nil error; want error for --12h and --24h together")
 	}
 }
