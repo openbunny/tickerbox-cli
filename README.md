@@ -4,11 +4,9 @@ Command-line client for a TickerBox device's `/rest/` API.
 
 [![CI](https://github.com/openbunny/tickerbox-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/openbunny/tickerbox-cli/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Go 1.27+](https://img.shields.io/badge/go-1.27%2B-00ADD8?logo=go&logoColor=white)](go.mod)
-
-> **Note**
-> This repository is private. The badges above render only for accounts with
-> repository access.
+[![Go Reference](https://pkg.go.dev/badge/github.com/openbunny/tickerbox-cli.svg)](https://pkg.go.dev/github.com/openbunny/tickerbox-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openbunny/tickerbox-cli)](https://goreportcard.com/report/github.com/openbunny/tickerbox-cli)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/openbunny/tickerbox-cli/badge)](https://securityscorecards.dev/viewer/?uri=github.com/openbunny/tickerbox-cli)
 
 ## Table of contents
 
@@ -86,14 +84,22 @@ tickerbox device use office
 ## Install
 
 ```console
-$ go build -o tickerbox .
-```
-
-```console
-$ go install .
+$ go install github.com/openbunny/tickerbox-cli@latest
 ```
 
 `go install` places the `tickerbox` binary in `$(go env GOPATH)/bin`.
+
+Homebrew:
+
+```console
+$ brew install openbunny/tap/tickerbox
+```
+
+From a clone:
+
+```console
+$ go build -o tickerbox .
+```
 
 ## Targeting a device
 
