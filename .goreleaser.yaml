@@ -99,7 +99,7 @@ nfpms:
       - src: completions/tickerbox.fish
         dst: /usr/share/fish/vendor_completions.d/tickerbox.fish
 release:
-  draft: true
+  draft: false
   prerelease: auto
 homebrew_casks:
   - repository:
