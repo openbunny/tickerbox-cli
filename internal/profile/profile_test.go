@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -19,7 +18,6 @@ func withTempHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", "")
-	t.Setenv("AppData", home)
 }
 
 func captureStderr(t *testing.T, f func()) string {
@@ -69,9 +67,6 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 }
 
 func TestSaveWritesOwnerOnlyPermissions(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Windows does not carry Unix permission bits")
-	}
 	withTempHome(t)
 
 	if err := Save("secure", testSnapshot()); err != nil {
@@ -91,9 +86,6 @@ func TestSaveWritesOwnerOnlyPermissions(t *testing.T) {
 }
 
 func TestLoadWarnsOnGroupOrWorldReadablePermissions(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Windows does not carry Unix permission bits")
-	}
 	tests := []struct {
 		name     string
 		perm     os.FileMode

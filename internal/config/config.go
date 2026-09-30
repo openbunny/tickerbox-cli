@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 
 	"github.com/pelletier/go-toml/v2"
@@ -80,9 +79,6 @@ func Load() (*Config, error) {
 }
 
 func warnIfGroupOrWorldReadable(path string) {
-	if runtime.GOOS == "windows" {
-		return
-	}
 	info, err := os.Stat(path)
 	if err != nil {
 		return

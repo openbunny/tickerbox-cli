@@ -23,7 +23,7 @@ builds:
       - -X github.com/openbunny/tickerbox-cli/cmd.version={{.Version}}
       - -X github.com/openbunny/tickerbox-cli/cmd.commit={{.Commit}}
       - -X github.com/openbunny/tickerbox-cli/cmd.date={{.Date}}
-    goos: [linux, darwin, windows]
+    goos: [linux, darwin]
     goarch: [amd64, arm64]
     # Pins the binary's embedded mtime to the source commit instead of build
     # wall-clock time, so two builds of the same commit produce identical
@@ -33,9 +33,6 @@ builds:
 archives:
   - formats: [tar.gz]
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
-    format_overrides:
-      - goos: windows
-        formats: [zip]
     files:
       - LICENSE
       - NOTICE

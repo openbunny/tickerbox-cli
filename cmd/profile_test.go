@@ -19,7 +19,6 @@ func withCmdTempHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", "")
-	t.Setenv("AppData", home)
 }
 
 func TestResolveInclude(t *testing.T) {
