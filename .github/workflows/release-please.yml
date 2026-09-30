@@ -16,8 +16,11 @@ jobs:
       issues: write
     runs-on: ubuntu-latest
     steps:
-      # Package name defaults to the repository name (tickerbox-cli); the
-      # action's simple mode (release-type only) takes no package-name input.
+      # Manifest mode: read release-please-config.json and the manifest, which
+      # carry release-as, bump-minor-pre-major, draft and the changelog path.
+      # Passing release-type here instead would switch to simple mode and ignore
+      # both files.
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          release-type: go
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
