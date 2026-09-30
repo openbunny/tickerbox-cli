@@ -1,38 +1,331 @@
 {
-  "mag7": [
-    {"type": "stocks", "ticker": "AAPL", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "MSFT", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "GOOGL", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "AMZN", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "NVDA", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "META", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "TSLA", "time": "15min", "currency": "USD"}
-  ],
-  "indices": [
-    {"type": "stocks", "ticker": "SPY", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "QQQ", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "DIA", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "IWM", "time": "15min", "currency": "USD"}
-  ],
-  "crypto-majors": [
-    {"type": "crypto", "ticker": "BTC", "time": "15min", "currency": "USD"},
-    {"type": "crypto", "ticker": "ETH", "time": "15min", "currency": "USD"},
-    {"type": "crypto", "ticker": "XRP", "time": "15min", "currency": "USD"},
-    {"type": "crypto", "ticker": "SOL", "time": "15min", "currency": "USD"},
-    {"type": "crypto", "ticker": "ADA", "time": "15min", "currency": "USD"}
-  ],
-  "fx-majors": [
-    {"type": "forex", "ticker": "EURUSD", "time": "15min", "currency": "USD"},
-    {"type": "forex", "ticker": "GBPUSD", "time": "15min", "currency": "USD"},
-    {"type": "forex", "ticker": "USDJPY", "time": "15min", "currency": "USD"},
-    {"type": "forex", "ticker": "USDCHF", "time": "15min", "currency": "USD"},
-    {"type": "forex", "ticker": "AUDUSD", "time": "15min", "currency": "USD"},
-    {"type": "forex", "ticker": "USDCAD", "time": "15min", "currency": "USD"}
-  ],
-  "treasuries": [
-    {"type": "stocks", "ticker": "SHY", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "IEF", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "TLT", "time": "15min", "currency": "USD"},
-    {"type": "stocks", "ticker": "SGOV", "time": "15min", "currency": "USD"}
-  ]
+  "mag7": {
+    "description": "The seven largest US technology companies by market capitalization",
+    "entries": [
+      {
+        "type": "stocks",
+        "ticker": "AAPL",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "MSFT",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "GOOGL",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "AMZN",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "NVDA",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "META",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "TSLA", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "indices": {
+    "description": "Major US broad-market and sector index ETFs",
+    "entries": [
+      { "type": "stocks", "ticker": "SPY", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "QQQ", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "DIA", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "IWM", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "crypto-majors": {
+    "description": "The largest cryptocurrencies by market capitalization",
+    "entries": [
+      { "type": "crypto", "ticker": "BTC", "time": "15min", "currency": "USD" },
+      { "type": "crypto", "ticker": "ETH", "time": "15min", "currency": "USD" },
+      { "type": "crypto", "ticker": "XRP", "time": "15min", "currency": "USD" },
+      { "type": "crypto", "ticker": "SOL", "time": "15min", "currency": "USD" },
+      { "type": "crypto", "ticker": "ADA", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "fx-majors": {
+    "description": "Major USD forex pairs",
+    "entries": [
+      {
+        "type": "forex",
+        "ticker": "EURUSD",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "forex",
+        "ticker": "GBPUSD",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "forex",
+        "ticker": "USDJPY",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "forex",
+        "ticker": "USDCHF",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "forex",
+        "ticker": "AUDUSD",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "forex",
+        "ticker": "USDCAD",
+        "time": "15min",
+        "currency": "USD"
+      }
+    ]
+  },
+  "treasuries": {
+    "description": "US Treasury bond ETFs across short, intermediate, and long duration",
+    "entries": [
+      { "type": "stocks", "ticker": "SHY", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "IEF", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "TLT", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "SGOV", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "semiconductors": {
+    "description": "Major semiconductor manufacturers and equipment makers",
+    "entries": [
+      {
+        "type": "stocks",
+        "ticker": "NVDA",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "AMD", "time": "15min", "currency": "USD" },
+      {
+        "type": "stocks",
+        "ticker": "INTC",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "TSM", "time": "15min", "currency": "USD" },
+      {
+        "type": "stocks",
+        "ticker": "AVGO",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "QCOM",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "MU", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "TXN", "time": "15min", "currency": "USD" },
+      {
+        "type": "stocks",
+        "ticker": "ASML",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "AMAT", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "ai-stocks": {
+    "description": "US companies with significant exposure to AI infrastructure and software",
+    "entries": [
+      {
+        "type": "stocks",
+        "ticker": "NVDA",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "MSFT",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "GOOGL",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "META",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "AMD", "time": "15min", "currency": "USD" },
+      {
+        "type": "stocks",
+        "ticker": "PLTR",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "AVGO",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "SMCI",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "CRM", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "ORCL", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "ev-makers": {
+    "description": "Electric vehicle manufacturers",
+    "entries": [
+      {
+        "type": "stocks",
+        "ticker": "TSLA",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "RIVN",
+        "time": "15min",
+        "currency": "USD"
+      },
+      {
+        "type": "stocks",
+        "ticker": "LCID",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "NIO", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "GM", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "F", "time": "15min", "currency": "USD" },
+      {
+        "type": "stocks",
+        "ticker": "XPEV",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "LI", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "big-banks": {
+    "description": "Major US money-center and investment banks",
+    "entries": [
+      { "type": "stocks", "ticker": "JPM", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "BAC", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "WFC", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "C", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "GS", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "MS", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "USB", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "PNC", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "dividend-stocks": {
+    "description": "Established US dividend-paying blue-chip stocks across sectors",
+    "entries": [
+      { "type": "stocks", "ticker": "JNJ", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "PG", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "KO", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "PEP", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "XOM", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "CVX", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "MMM", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "WMT", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "MCD", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "VZ", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "dow-industrials": {
+    "description": "Dow Jones Industrial Average blue-chip components",
+    "entries": [
+      { "type": "stocks", "ticker": "UNH", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "GS", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "HD", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "CAT", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "MCD", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "V", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "JPM", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "HON", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "JNJ", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "CVX", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "commodities-etfs": {
+    "description": "ETFs tracking gold, silver, energy, and agricultural commodities",
+    "entries": [
+      { "type": "stocks", "ticker": "GLD", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "SLV", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "USO", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "UNG", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "DBA", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "DBC", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "reits": {
+    "description": "Real estate investment trusts across property sectors",
+    "entries": [
+      { "type": "stocks", "ticker": "VNQ", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "O", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "PLD", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "AMT", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "SPG", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "PSA", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "EQIX", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "energy-majors": {
+    "description": "Major US integrated oil, gas, and energy services companies",
+    "entries": [
+      { "type": "stocks", "ticker": "XOM", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "CVX", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "COP", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "SLB", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "EOG", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "OXY", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "WMB", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "PSX", "time": "15min", "currency": "USD" }
+    ]
+  },
+  "airlines": {
+    "description": "Major US passenger airlines",
+    "entries": [
+      { "type": "stocks", "ticker": "DAL", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "UAL", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "AAL", "time": "15min", "currency": "USD" },
+      { "type": "stocks", "ticker": "LUV", "time": "15min", "currency": "USD" },
+      {
+        "type": "stocks",
+        "ticker": "JBLU",
+        "time": "15min",
+        "currency": "USD"
+      },
+      { "type": "stocks", "ticker": "ALK", "time": "15min", "currency": "USD" }
+    ]
+  }
 }

@@ -9,11 +9,33 @@ import (
 	"github.com/openbunny/tickerbox-cli/internal/tickers"
 )
 
-var wantPresetNames = []string{"crypto-majors", "fx-majors", "indices", "mag7", "treasuries"}
+var wantPresetNames = []string{
+	"ai-stocks",
+	"airlines",
+	"big-banks",
+	"commodities-etfs",
+	"crypto-majors",
+	"dividend-stocks",
+	"dow-industrials",
+	"energy-majors",
+	"ev-makers",
+	"fx-majors",
+	"indices",
+	"mag7",
+	"reits",
+	"semiconductors",
+	"treasuries",
+}
 
 func TestList(t *testing.T) {
 	if got := List(); !reflect.DeepEqual(got, wantPresetNames) {
 		t.Errorf("List() = %v; want %v", got, wantPresetNames)
+	}
+}
+
+func TestAtLeast15Presets(t *testing.T) {
+	if got := len(List()); got < 15 {
+		t.Errorf("len(List()) = %d; want at least 15", got)
 	}
 }
 
@@ -54,6 +76,27 @@ func TestGetReturnsIndependentCopy(t *testing.T) {
 	}
 }
 
+func TestDescribe(t *testing.T) {
+	for _, name := range wantPresetNames {
+		t.Run(name, func(t *testing.T) {
+			desc, ok := Describe(name)
+			if !ok {
+				t.Fatalf("Describe(%q): ok = false", name)
+			}
+			if desc == "" {
+				t.Errorf("Describe(%q): got empty description", name)
+			}
+		})
+	}
+
+	t.Run("unknown preset", func(t *testing.T) {
+		desc, ok := Describe("does-not-exist")
+		if ok || desc != "" {
+			t.Errorf("Describe(%q) = %q, %v; want \"\", false", "does-not-exist", desc, ok)
+		}
+	})
+}
+
 func TestEveryPresetEntryIsValid(t *testing.T) {
 	for _, name := range List() {
 		entries, ok := Get(name)
@@ -85,6 +128,16 @@ func TestPresetContents(t *testing.T) {
 		{"crypto-majors", []string{"BTC", "ETH", "XRP", "SOL", "ADA"}, tickers.TypeCrypto},
 		{"fx-majors", []string{"EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD"}, tickers.TypeForex},
 		{"treasuries", []string{"SHY", "IEF", "TLT", "SGOV"}, tickers.TypeStocks},
+		{"semiconductors", []string{"NVDA", "AMD", "INTC", "TSM", "AVGO", "QCOM", "MU", "TXN", "ASML", "AMAT"}, tickers.TypeStocks},
+		{"ai-stocks", []string{"NVDA", "MSFT", "GOOGL", "META", "AMD", "PLTR", "AVGO", "SMCI", "CRM", "ORCL"}, tickers.TypeStocks},
+		{"ev-makers", []string{"TSLA", "RIVN", "LCID", "NIO", "GM", "F", "XPEV", "LI"}, tickers.TypeStocks},
+		{"big-banks", []string{"JPM", "BAC", "WFC", "C", "GS", "MS", "USB", "PNC"}, tickers.TypeStocks},
+		{"dividend-stocks", []string{"JNJ", "PG", "KO", "PEP", "XOM", "CVX", "MMM", "WMT", "MCD", "VZ"}, tickers.TypeStocks},
+		{"dow-industrials", []string{"UNH", "GS", "HD", "CAT", "MCD", "V", "JPM", "HON", "JNJ", "CVX"}, tickers.TypeStocks},
+		{"commodities-etfs", []string{"GLD", "SLV", "USO", "UNG", "DBA", "DBC"}, tickers.TypeStocks},
+		{"reits", []string{"VNQ", "O", "PLD", "AMT", "SPG", "PSA", "EQIX"}, tickers.TypeStocks},
+		{"energy-majors", []string{"XOM", "CVX", "COP", "SLB", "EOG", "OXY", "WMB", "PSX"}, tickers.TypeStocks},
+		{"airlines", []string{"DAL", "UAL", "AAL", "LUV", "JBLU", "ALK"}, tickers.TypeStocks},
 	}
 
 	for _, tt := range tests {

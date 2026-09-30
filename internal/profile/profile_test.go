@@ -3,6 +3,7 @@
 package profile
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"reflect"
@@ -63,6 +64,85 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Load() = %+v; want %+v", got, want)
+	}
+}
+
+func TestSaveDescribedLoadDescribedRoundTrip(t *testing.T) {
+	withTempHome(t)
+
+	want := testSnapshot()
+	if err := SaveDescribed("office", want, "the upstairs office"); err != nil {
+		t.Fatalf("SaveDescribed: %v", err)
+	}
+
+	got, description, err := LoadDescribed("office")
+	if err != nil {
+		t.Fatalf("LoadDescribed: %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("LoadDescribed() snapshot = %+v; want %+v", got, want)
+	}
+	if description != "the upstairs office" {
+		t.Errorf("LoadDescribed() description = %q; want %q", description, "the upstairs office")
+	}
+}
+
+func TestSaveWithoutDescriptionLoadsAsEmpty(t *testing.T) {
+	withTempHome(t)
+
+	if err := Save("office", testSnapshot()); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	_, description, err := LoadDescribed("office")
+	if err != nil {
+		t.Fatalf("LoadDescribed: %v", err)
+	}
+	if description != "" {
+		t.Errorf("LoadDescribed() description = %q; want empty", description)
+	}
+}
+
+func TestLoadDescriptionlessProfileStillApplies(t *testing.T) {
+	withTempHome(t)
+
+	want := testSnapshot()
+	p, err := path("legacy")
+	if err != nil {
+		t.Fatalf("path: %v", err)
+	}
+	dir, err := Dir()
+	if err != nil {
+		t.Fatalf("Dir: %v", err)
+	}
+	if err := os.MkdirAll(dir, dirPerm); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	raw, err := json.Marshal(want)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if err := os.WriteFile(p, raw, filePerm); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	got, err := Load("legacy")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Load() = %+v; want %+v", got, want)
+	}
+
+	gotSnapshot, description, err := LoadDescribed("legacy")
+	if err != nil {
+		t.Fatalf("LoadDescribed: %v", err)
+	}
+	if !reflect.DeepEqual(gotSnapshot, want) {
+		t.Errorf("LoadDescribed() snapshot = %+v; want %+v", gotSnapshot, want)
+	}
+	if description != "" {
+		t.Errorf("LoadDescribed() description = %q; want empty", description)
 	}
 }
 

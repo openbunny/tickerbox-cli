@@ -14,10 +14,15 @@ import (
 //go:embed presets.json
 var presetsJSON []byte
 
+type Preset struct {
+	Description string          `json:"description"`
+	Entries     []tickers.Entry `json:"entries"`
+}
+
 var presets = mustLoadPresets()
 
-func mustLoadPresets() map[string][]tickers.Entry {
-	var m map[string][]tickers.Entry
+func mustLoadPresets() map[string]Preset {
+	var m map[string]Preset
 	if err := json.Unmarshal(presetsJSON, &m); err != nil {
 		panic(fmt.Sprintf("template: decode presets.json: %v", err))
 	}
@@ -34,11 +39,19 @@ func List() []string {
 }
 
 func Get(name string) ([]tickers.Entry, bool) {
-	entries, ok := presets[name]
+	p, ok := presets[name]
 	if !ok {
 		return nil, false
 	}
-	out := make([]tickers.Entry, len(entries))
-	copy(out, entries)
+	out := make([]tickers.Entry, len(p.Entries))
+	copy(out, p.Entries)
 	return out, true
+}
+
+func Describe(name string) (string, bool) {
+	p, ok := presets[name]
+	if !ok {
+		return "", false
+	}
+	return p.Description, true
 }

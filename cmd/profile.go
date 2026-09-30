@@ -23,8 +23,9 @@ var profileCmd = &cobra.Command{
 }
 
 var (
-	profileSaveInclude string
-	profileSaveAll     bool
+	profileSaveInclude     string
+	profileSaveAll         bool
+	profileSaveDescription string
 )
 
 var profileSaveCmd = &cobra.Command{
@@ -41,7 +42,7 @@ var profileSaveCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := profile.Save(args[0], s); err != nil {
+		if err := profile.SaveDescribed(args[0], s, profileSaveDescription); err != nil {
 			return err
 		}
 		if jsonOut() {
@@ -50,6 +51,11 @@ var profileSaveCmd = &cobra.Command{
 		fmt.Printf("Saved profile %s (%s)\n", args[0], strings.Join(include, ","))
 		return nil
 	},
+}
+
+type profileListEntry struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
 }
 
 var profileListCmd = &cobra.Command{
@@ -61,14 +67,28 @@ var profileListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if jsonOut() {
-			return output.EmitJSON(names)
-		}
+		entries := make([]profileListEntry, 0, len(names))
 		for _, name := range names {
-			fmt.Println(name)
+			description, err := profile.LoadDescription(name)
+			if err != nil {
+				return err
+			}
+			entries = append(entries, profileListEntry{Name: name, Description: description})
 		}
-		return nil
+		if jsonOut() {
+			return output.EmitJSON(entries)
+		}
+		rows := make([][]string, 0, len(entries))
+		for _, e := range entries {
+			rows = append(rows, []string{e.Name, e.Description})
+		}
+		return output.Table([]string{"NAME", "DESCRIPTION"}, rows)
 	},
+}
+
+type profileShowPayload struct {
+	Description string `json:"description,omitempty"`
+	*section.Snapshot
 }
 
 var profileShowCmd = &cobra.Command{
@@ -77,8 +97,18 @@ var profileShowCmd = &cobra.Command{
 	Example: "  tickerbox profile show home",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		s, err := profile.Load(args[0])
+		s, description, err := profile.LoadDescribed(args[0])
 		if err != nil {
+			return err
+		}
+		if jsonOut() {
+			return output.EmitJSON(profileShowPayload{Description: description, Snapshot: s})
+		}
+		descriptionLine := description
+		if descriptionLine == "" {
+			descriptionLine = "(none)"
+		}
+		if err := output.KV([][2]string{{"description", descriptionLine}}); err != nil {
 			return err
 		}
 		return output.EmitJSON(s)
@@ -159,6 +189,7 @@ var profileDiffCmd = &cobra.Command{
 func init() {
 	profileSaveCmd.Flags().StringVar(&profileSaveInclude, "include", "", "comma-separated sections to capture (default "+strings.Join(section.DefaultInclude, ",")+")")
 	profileSaveCmd.Flags().BoolVar(&profileSaveAll, "all", false, "also capture wifi and ap, including their secrets")
+	profileSaveCmd.Flags().StringVarP(&profileSaveDescription, "description", "D", "", "optional human-readable description to store with the profile")
 
 	profileRmCmd.Flags().BoolVarP(&profileRmYes, "yes", "y", false, "skip confirmation")
 

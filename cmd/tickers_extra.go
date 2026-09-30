@@ -278,20 +278,36 @@ var tickersTemplateCmd = &cobra.Command{
 	Short: "Built-in ticker list presets",
 }
 
+type presetSummary struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 var tickersTemplateListCmd = &cobra.Command{
 	Use:     "list",
 	Short:   "List built-in preset names",
 	Example: "  tickerbox tickers template list",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		names := template.List()
+		summaries := make([]presetSummary, len(names))
+		for i, n := range names {
+			desc, _ := template.Describe(n)
+			summaries[i] = presetSummary{Name: n, Description: desc}
+		}
 		if jsonOut() {
-			return output.EmitJSON(names)
+			return output.EmitJSON(summaries)
 		}
-		for _, n := range names {
-			fmt.Println(n)
+		rows := make([][]string, len(summaries))
+		for i, s := range summaries {
+			rows[i] = []string{s.Name, s.Description}
 		}
-		return nil
+		return output.Table([]string{"name", "description"}, rows)
 	},
+}
+
+type presetShow struct {
+	Description string          `json:"description"`
+	Entries     []tickers.Entry `json:"entries"`
 }
 
 var tickersTemplateShowCmd = &cobra.Command{
@@ -304,9 +320,11 @@ var tickersTemplateShowCmd = &cobra.Command{
 		if !ok {
 			return fmt.Errorf("no such template %q", args[0])
 		}
+		desc, _ := template.Describe(args[0])
 		if jsonOut() {
-			return output.EmitJSON(entries)
+			return output.EmitJSON(presetShow{Description: desc, Entries: entries})
 		}
+		fmt.Println(desc)
 		rows := make([][]string, len(entries))
 		for i, e := range entries {
 			rows[i] = []string{strconv.Itoa(i), e.Type, e.Ticker, e.Time, e.Currency}

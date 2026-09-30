@@ -24,6 +24,11 @@ const (
 	insecureReadBits = 0o044
 )
 
+type record struct {
+	Description string `json:"description,omitempty"`
+	section.Snapshot
+}
+
 func Dir() (string, error) {
 	base, err := os.UserConfigDir()
 	if err != nil {
@@ -67,25 +72,53 @@ func List() ([]string, error) {
 	return names, nil
 }
 
-func Load(name string) (*section.Snapshot, error) {
+func loadRecord(name string) (record, error) {
 	p, err := path(name)
 	if err != nil {
-		return nil, err
+		return record{}, err
 	}
 	raw, err := os.ReadFile(p)
 	if err != nil {
-		return nil, fmt.Errorf("read profile %s: %w", name, err)
+		return record{}, fmt.Errorf("read profile %s: %w", name, err)
 	}
 	warnIfGroupOrWorldReadable(p)
 
-	var s section.Snapshot
-	if err := json.Unmarshal(raw, &s); err != nil {
-		return nil, fmt.Errorf("decode profile %s: %w", name, err)
+	var r record
+	if err := json.Unmarshal(raw, &r); err != nil {
+		return record{}, fmt.Errorf("decode profile %s: %w", name, err)
 	}
-	return &s, nil
+	return r, nil
+}
+
+func Load(name string) (*section.Snapshot, error) {
+	r, err := loadRecord(name)
+	if err != nil {
+		return nil, err
+	}
+	return &r.Snapshot, nil
+}
+
+func LoadDescribed(name string) (*section.Snapshot, string, error) {
+	r, err := loadRecord(name)
+	if err != nil {
+		return nil, "", err
+	}
+	return &r.Snapshot, r.Description, nil
+}
+
+func LoadDescription(name string) (string, error) {
+	r, err := loadRecord(name)
+	if err != nil {
+		return "", err
+	}
+	return r.Description, nil
 }
 
 func Save(name string, s *section.Snapshot) error {
+	return SaveDescribed(name, s, "")
+}
+
+func SaveDescribed(name string, s *section.Snapshot, description string) error {
 	p, err := path(name)
 	if err != nil {
 		return err
@@ -97,7 +130,7 @@ func Save(name string, s *section.Snapshot) error {
 	if err := os.MkdirAll(dir, dirPerm); err != nil {
 		return fmt.Errorf("create profiles directory: %w", err)
 	}
-	encoded, err := json.MarshalIndent(s, "", "  ")
+	encoded, err := json.MarshalIndent(record{Description: description, Snapshot: *s}, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode profile %s: %w", name, err)
 	}
