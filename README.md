@@ -96,6 +96,12 @@ $ go install github.com/openbunny/tickerbox-cli@latest
 binaries, `.deb` and `.rpm` packages are attached to each
 [release](https://github.com/openbunny/tickerbox-cli/releases).
 
+Homebrew, on macOS and Linux:
+
+```console
+$ brew install openbunny/tap/tickerbox-cli
+```
+
 From a clone:
 
 ```console

@@ -106,6 +106,9 @@ homebrew_casks:
       owner: openbunny
       name: homebrew-tap
       token: '{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}'
+    name: tickerbox-cli
+    binaries:
+      - tickerbox
     homepage: https://github.com/openbunny/tickerbox-cli
     description: Command-line client for a TickerBox device's REST API.
     commit_author:
