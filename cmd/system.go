@@ -121,21 +121,42 @@ func humanizeBytes(n int64) string {
 	return fmt.Sprintf("%.1f %s", val, units[i])
 }
 
+const (
+	wifiStatusIdle            = 0
+	wifiStatusNoSSIDAvailable = 1
+	wifiStatusConnected       = 3
+	wifiStatusConnectFailed   = 4
+	wifiStatusConnectionLost  = 5
+	wifiStatusDisconnected    = 6
+	wifiStatusNoShield        = 255
+)
+
+const (
+	apStatusActive    = 0
+	apStatusInactive  = 1
+	apStatusLingering = 2
+)
+
+const (
+	ntpStatusInactive = 0
+	ntpStatusActive   = 1
+)
+
 func wifiStatusText(status int) string {
 	switch status {
-	case 0:
+	case wifiStatusIdle:
 		return "IDLE"
-	case 1:
+	case wifiStatusNoSSIDAvailable:
 		return "NO_SSID_AVAIL"
-	case 3:
+	case wifiStatusConnected:
 		return "CONNECTED"
-	case 4:
+	case wifiStatusConnectFailed:
 		return "CONNECT_FAILED"
-	case 5:
+	case wifiStatusConnectionLost:
 		return "CONNECTION_LOST"
-	case 6:
+	case wifiStatusDisconnected:
 		return "DISCONNECTED"
-	case 255:
+	case wifiStatusNoShield:
 		return "NO_SHIELD"
 	default:
 		return fmt.Sprintf("UNKNOWN(%d)", status)
@@ -144,11 +165,11 @@ func wifiStatusText(status int) string {
 
 func apStatusText(status int) string {
 	switch status {
-	case 0:
+	case apStatusActive:
 		return "ACTIVE"
-	case 1:
+	case apStatusInactive:
 		return "INACTIVE"
-	case 2:
+	case apStatusLingering:
 		return "LINGERING"
 	default:
 		return fmt.Sprintf("UNKNOWN(%d)", status)
@@ -157,9 +178,9 @@ func apStatusText(status int) string {
 
 func ntpStatusText(status int) string {
 	switch status {
-	case 0:
+	case ntpStatusInactive:
 		return "INACTIVE"
-	case 1:
+	case ntpStatusActive:
 		return "ACTIVE"
 	default:
 		return fmt.Sprintf("UNKNOWN(%d)", status)

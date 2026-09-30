@@ -60,10 +60,10 @@ const (
 	doctorFsHeadroomCriticalBytes = 8 * 1024
 	doctorFsHeadroomWarnBytes     = 32 * 1024
 
-	doctorWifiConnectedStatus = 3 // matches wifiStatusText's CONNECTED
-	doctorNtpActiveStatus     = 1 // matches ntpStatusText's ACTIVE
-	doctorApActiveStatus      = 0 // matches apStatusText's ACTIVE
-	doctorApLingeringStatus   = 2 // matches apStatusText's LINGERING
+	doctorWifiConnectedStatus = wifiStatusConnected
+	doctorNtpActiveStatus     = ntpStatusActive
+	doctorApActiveStatus      = apStatusActive
+	doctorApLingeringStatus   = apStatusLingering
 )
 
 const doctorSecretExposureDetail = "GET /rest/wifiSettings and GET /rest/apSettings return the WiFi and AP passwords in plaintext; the device REST API has no authentication, so any client on the LAN can read them"
@@ -388,6 +388,13 @@ const (
 	goosWindows = "windows"
 )
 
+const (
+	cmdExeName             = "cmd"
+	cmdExeRunArg           = "/c"
+	cmdExeStartBuiltin     = "start"
+	cmdExeStartWindowTitle = ""
+)
+
 func browserOpenCommand(goos string) (name string, args []string, ok bool) {
 	switch goos {
 	case goosDarwin:
@@ -395,9 +402,7 @@ func browserOpenCommand(goos string) (name string, args []string, ok bool) {
 	case goosLinux:
 		return "xdg-open", nil, true
 	case goosWindows:
-		// "start" is a cmd.exe builtin; the empty quoted arg is its window
-		// title parameter, required whenever the target itself is quoted.
-		return "cmd", []string{"/c", "start", ""}, true
+		return cmdExeName, []string{cmdExeRunArg, cmdExeStartBuiltin, cmdExeStartWindowTitle}, true
 	default:
 		return "", nil, false
 	}

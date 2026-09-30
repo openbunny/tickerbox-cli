@@ -203,9 +203,6 @@ func primaryIPv4() (net.IP, error) {
 	return ip4, nil
 }
 
-// subnetHosts enumerates every host address in ip's /24, from .1 to .254,
-// excluding ip itself. It assumes a /24 regardless of the interface's real
-// netmask, per the discover command's stated scan scope.
 func subnetHosts(ip net.IP) []string {
 	ip4 := ip.To4()
 	if ip4 == nil {
@@ -259,9 +256,6 @@ func scanSubnet(hosts []string, timeout time.Duration, workers int) []discovered
 	return found
 }
 
-// lookupHostname resolves host's PTR record, returning "" when host has
-// none or the lookup fails; a missing reverse record is expected on most
-// home networks and is not an error worth surfacing.
 func lookupHostname(host string) string {
 	names, err := net.LookupAddr(host)
 	if err != nil || len(names) == 0 {

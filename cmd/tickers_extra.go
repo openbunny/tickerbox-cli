@@ -353,8 +353,6 @@ func init() {
 
 	tickersTemplateCmd.AddCommand(tickersTemplateListCmd, tickersTemplateShowCmd, tickersTemplateApplyCmd)
 
-	// tickersAddCmd (tickers.go) takes one ticker via --ticker; this bulk,
-	// positional-args form replaces it under the same "add" name.
 	tickersCmd.RemoveCommand(tickersAddCmd)
 	tickersCmd.AddCommand(tickersAddBulkCmd, tickersEditCmd, tickersMoveCmd, tickersValidateCmd, tickersTemplateCmd)
 }
