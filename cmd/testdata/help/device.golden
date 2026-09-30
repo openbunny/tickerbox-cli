@@ -1,10 +1,11 @@
-Manage configured devices
+Manages named devices this CLI can target: add one with `device add <name> <host>`, pick which is used by default with `device use <name>`, or point a single call at any device with --host or --device without changing the default. See `tickerbox profile` for named, device-agnostic setting bundles, and `tickerbox config` for a raw export/import/diff of one device's live snapshot.
 
 Usage:
   tickerbox device [command]
 
 Available Commands:
   add         Add or replace a configured device
+  current     Show the device the CLI currently targets
   discover    Find TickerBoxes on the local network
   list        List configured devices
   ping        Check reachability of one or all configured devices

@@ -1,7 +1,7 @@
 Flashes FILE, which must end in .bin, replacing the running firmware. Cannot be undone. Prompts for confirmation unless --yes.
 
 Usage:
-  tickerbox system firmware-upload FILE [flags]
+  tickerbox system firmware-upload <file> [flags]
 
 Examples:
   tickerbox system firmware-upload firmware.bin --yes

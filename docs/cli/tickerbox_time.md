@@ -4,10 +4,10 @@ Device wall-clock time
 
 ### Synopsis
 
-Sets the device wall clock. With no VALUE, or VALUE `now`, uses the current UTC time. Otherwise VALUE must be RFC3339 or 2006-01-02T15:04:05, and is sent to the device as UTC.
+Sets the device wall clock. With no value, or value `now`, uses the current UTC time. Otherwise value must be RFC3339 or 2006-01-02T15:04:05, and is sent to the device as UTC.
 
 ```
-tickerbox time [VALUE] [flags]
+tickerbox time [value] [flags]
 ```
 
 ### Examples

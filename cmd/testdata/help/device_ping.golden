@@ -1,7 +1,7 @@
 Checks whether a configured device answers. Requires exactly one of NAME or --all.
 
 Usage:
-  tickerbox device ping [NAME] [flags]
+  tickerbox device ping [name] [flags]
 
 Examples:
   tickerbox device ping desk

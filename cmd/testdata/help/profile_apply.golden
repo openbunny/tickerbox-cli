@@ -8,6 +8,7 @@ Examples:
 
 Flags:
   -h, --help   help for apply
+  -y, --yes    skip the source-device confirmation prompt
 
 Global Flags:
   -d, --device string      named device from the config file

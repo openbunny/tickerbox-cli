@@ -2,6 +2,10 @@
 
 Named, device-agnostic device configurations
 
+### Synopsis
+
+Named, device-agnostic bundles of ticker/display/clock/ntp settings (and, with --all, wifi/ap secrets), applied to whichever device currently resolves — see `tickerbox device current`. Distinct from `tickerbox config`, which exports and diffs one device's full live snapshot rather than a saved, reusable bundle.
+
 ### Options
 
 ```

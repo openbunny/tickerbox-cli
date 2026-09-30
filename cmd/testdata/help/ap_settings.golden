@@ -1,4 +1,4 @@
-The AP password is always shown in the clear; there is no masking flag.
+Password is masked as ******** unless --show-secrets is given.
 
 Usage:
   tickerbox ap settings [flags]
@@ -7,7 +7,8 @@ Examples:
   tickerbox ap settings
 
 Flags:
-  -h, --help   help for settings
+  -h, --help           help for settings
+      --show-secrets   reveal the AP password instead of masking it
 
 Global Flags:
   -d, --device string      named device from the config file

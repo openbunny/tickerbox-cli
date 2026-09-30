@@ -4,7 +4,7 @@ Show access point settings
 
 ### Synopsis
 
-The AP password is always shown in the clear; there is no masking flag.
+Password is masked as ******** unless --show-secrets is given.
 
 ```
 tickerbox ap settings [flags]
@@ -19,7 +19,8 @@ tickerbox ap settings [flags]
 ### Options
 
 ```
-  -h, --help   help for settings
+  -h, --help           help for settings
+      --show-secrets   reveal the AP password instead of masking it
 ```
 
 ### Options inherited from parent commands

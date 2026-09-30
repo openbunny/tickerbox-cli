@@ -3,7 +3,7 @@
 Remove a configured device
 
 ```
-tickerbox device rm NAME [flags]
+tickerbox device rm <name> [flags]
 ```
 
 ### Examples

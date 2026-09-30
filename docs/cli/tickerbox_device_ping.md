@@ -7,7 +7,7 @@ Check reachability of one or all configured devices
 Checks whether a configured device answers. Requires exactly one of NAME or --all.
 
 ```
-tickerbox device ping [NAME] [flags]
+tickerbox device ping [name] [flags]
 ```
 
 ### Examples

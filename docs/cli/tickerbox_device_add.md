@@ -4,10 +4,10 @@ Add or replace a configured device
 
 ### Synopsis
 
-Adds NAME as a device, or replaces it if the name already exists. HOST must include a scheme, e.g. http://tickerbox.local or http://192.168.1.42.
+Adds name as a device, or replaces it if the name already exists. host must include a scheme, e.g. http://tickerbox.local or http://192.168.1.42.
 
 ```
-tickerbox device add NAME HOST [flags]
+tickerbox device add <name> <host> [flags]
 ```
 
 ### Examples

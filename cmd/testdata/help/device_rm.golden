@@ -1,7 +1,7 @@
 Remove a configured device
 
 Usage:
-  tickerbox device rm NAME [flags]
+  tickerbox device rm <name> [flags]
 
 Examples:
   tickerbox device rm desk

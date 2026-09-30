@@ -2,6 +2,10 @@
 
 Device configuration snapshot: export, import, diff
 
+### Synopsis
+
+Raw export, import, and diff of one device's live config snapshot as a JSON file. Distinct from `tickerbox profile`, which stores named, reusable bundles rather than a one-off file, and unrelated to `tickerbox device`, which manages which device this CLI targets.
+
 ### Options
 
 ```

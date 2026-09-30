@@ -7,7 +7,7 @@ Upload and flash new firmware
 Flashes FILE, which must end in .bin, replacing the running firmware. Cannot be undone. Prompts for confirmation unless --yes.
 
 ```
-tickerbox system firmware-upload FILE [flags]
+tickerbox system firmware-upload <file> [flags]
 ```
 
 ### Examples

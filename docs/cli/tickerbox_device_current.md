@@ -1,26 +1,25 @@
-## tickerbox profile apply
+## tickerbox device current
 
-Apply a saved profile to the device
+Show the device the CLI currently targets
 
 ### Synopsis
 
-Applies only the sections present in the saved profile; sections it doesn't contain are left untouched on the device.
+Shows the host that resolves from --host, --device, $TICKERBOX_HOST, or the config default, in that order, and whether it matches the stored default device.
 
 ```
-tickerbox profile apply <name> [flags]
+tickerbox device current [flags]
 ```
 
 ### Examples
 
 ```
-  tickerbox profile apply home
+  tickerbox device current
 ```
 
 ### Options
 
 ```
-  -h, --help   help for apply
-  -y, --yes    skip the source-device confirmation prompt
+  -h, --help   help for current
 ```
 
 ### Options inherited from parent commands
@@ -35,5 +34,5 @@ tickerbox profile apply <name> [flags]
 
 ### SEE ALSO
 
-* [tickerbox profile](tickerbox_profile.md)	 - Named, device-agnostic device configurations
+* [tickerbox device](tickerbox_device.md)	 - Manage configured devices
 

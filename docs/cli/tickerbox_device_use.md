@@ -7,7 +7,7 @@ Set the default device
 Sets NAME as the device used when neither --host, --device, nor $TICKERBOX_HOST is given.
 
 ```
-tickerbox device use NAME [flags]
+tickerbox device use <name> [flags]
 ```
 
 ### Examples
