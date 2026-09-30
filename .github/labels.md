@@ -27,9 +27,10 @@ label; `area/*` and `status/*` are added during triage.
 | `area/wifi`        | `wifi`, `ap`                                             |
 | `area/network`     | `ntp`, `time`, `tz`                                      |
 | `area/display`     | `display`, `clock`, `brightness`                         |
-| `area/tickers`     | `tickers`                                                |
+| `area/tickers`     | `ticker`                                                 |
 | `area/system`      | `system` (including firmware upload), `reboot`           |
 | `area/config`      | `config`, `profile`                                      |
+| `area/fmp`         | `fmp`                                                    |
 | `area/device`      | `device` (local device registry)                         |
 | `area/diagnostics` | `status`, `doctor`, `watch`, `uptime`, `version`, `open` |
 | `area/ci`          | GitHub Actions workflows, `.goreleaser.yaml`             |

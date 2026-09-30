@@ -20,9 +20,10 @@ body:
         - brightness
         - uptime
         - reboot
-        - tickers
+        - ticker
         - system
         - config
+        - fmp
         - profile
         - device
         - doctor
