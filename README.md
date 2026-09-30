@@ -21,6 +21,7 @@ Command-line client for a TickerBox device's `/rest/` API.
 - [Shell completion](#shell-completion)
 - [Network behaviour](#network-behaviour)
 - [Tests](#tests)
+- [Documentation](#documentation)
 
 ## Quickstart
 
@@ -268,3 +269,9 @@ ok  	github.com/openbunny/tickerbox-cli/internal/config	0.021s
 ```
 
 Tests use `net/http/httptest`; they never contact a device.
+
+## Documentation
+
+- [CLI reference](docs/cli/tickerbox.md) — every command and flag, generated from the cobra command tree.
+- [Configuration schema](docs/config-schema.md) — the on-disk device config and profile store: location, permissions, field reference.
+- [docs/README.md](docs/README.md) — index of the above plus the profile-snapshot JSON schema and the timezone-data provenance record.

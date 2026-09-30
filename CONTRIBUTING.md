@@ -13,6 +13,8 @@ How to build, test, and submit a change to `tickerbox-cli`.
 ## Development
 
 - Use the Go toolchain declared in `go.mod`.
+- Install git hooks once per clone: `lefthook install`. `lefthook.yml` runs
+  `gofumpt` and `go vet` on commit, `staticcheck` and `golangci-lint` on push.
 - Build and test: `go build ./...`, `go test -race ./...`.
 - Format with `gofumpt`. Lint with `go vet`, `staticcheck`, and
   `golangci-lint run`. CI runs all four; a change lands only when they pass.
