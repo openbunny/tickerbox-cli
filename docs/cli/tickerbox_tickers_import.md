@@ -2,8 +2,18 @@
 
 Replace tickers from a JSON file
 
+### Synopsis
+
+Replaces the entire ticker list with the contents of the file; existing entries not present in the file are dropped. Prompts for confirmation unless --yes.
+
 ```
 tickerbox tickers import [flags]
+```
+
+### Examples
+
+```
+  tickerbox tickers import --input tickers.json --yes
 ```
 
 ### Options

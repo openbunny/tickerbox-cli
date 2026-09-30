@@ -1,7 +1,10 @@
-Scan for nearby Wi-Fi networks
+Triggers a scan and polls for results, retrying briefly if none are ready yet. Results are sorted by signal strength, strongest first.
 
 Usage:
   tickerbox wifi scan [flags]
+
+Examples:
+  tickerbox wifi scan
 
 Flags:
   -h, --help   help for scan

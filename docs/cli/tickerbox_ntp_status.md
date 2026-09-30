@@ -6,6 +6,12 @@ Show NTP sync status
 tickerbox ntp status [flags]
 ```
 
+### Examples
+
+```
+  tickerbox ntp status
+```
+
 ### Options
 
 ```

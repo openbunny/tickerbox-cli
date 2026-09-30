@@ -6,6 +6,12 @@ Show access point status
 tickerbox ap status [flags]
 ```
 
+### Examples
+
+```
+  tickerbox ap status
+```
+
 ### Options
 
 ```

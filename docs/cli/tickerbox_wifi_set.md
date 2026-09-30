@@ -2,8 +2,19 @@
 
 Update Wi-Fi station settings
 
+### Synopsis
+
+Updates only the fields given as flags; every other field keeps its current device value. --password prompts on a terminal, reads from --password-stdin, or is passed directly; setting a password over a plain http:// host prints a warning unless --yes. --static-ip and --no-static-ip are mutually exclusive.
+
 ```
 tickerbox wifi set [flags]
+```
+
+### Examples
+
+```
+  tickerbox wifi set --ssid HomeNet --password-stdin < wifi.secret
+  tickerbox wifi set --static-ip --local-ip 192.168.1.50 --gateway-ip 192.168.1.1 --subnet-mask 255.255.255.0
 ```
 
 ### Options

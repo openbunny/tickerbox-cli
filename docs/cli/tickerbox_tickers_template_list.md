@@ -6,6 +6,12 @@ List built-in preset names
 tickerbox tickers template list [flags]
 ```
 
+### Examples
+
+```
+  tickerbox tickers template list
+```
+
 ### Options
 
 ```

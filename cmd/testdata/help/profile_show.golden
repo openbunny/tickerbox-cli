@@ -3,6 +3,9 @@ Show a saved profile
 Usage:
   tickerbox profile show <name> [flags]
 
+Examples:
+  tickerbox profile show home
+
 Flags:
   -h, --help   help for show
 

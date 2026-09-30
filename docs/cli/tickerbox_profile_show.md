@@ -6,6 +6,12 @@ Show a saved profile
 tickerbox profile show <name> [flags]
 ```
 
+### Examples
+
+```
+  tickerbox profile show home
+```
+
 ### Options
 
 ```

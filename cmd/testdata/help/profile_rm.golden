@@ -1,7 +1,10 @@
-Delete a saved profile
+Prompts for confirmation unless --yes.
 
 Usage:
   tickerbox profile rm <name> [flags]
+
+Examples:
+  tickerbox profile rm home --yes
 
 Flags:
   -h, --help   help for rm

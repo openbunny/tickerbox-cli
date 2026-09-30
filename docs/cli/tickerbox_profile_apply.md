@@ -2,8 +2,18 @@
 
 Apply a saved profile to the device
 
+### Synopsis
+
+Applies only the sections present in the saved profile; sections it doesn't contain are left untouched on the device.
+
 ```
 tickerbox profile apply <name> [flags]
+```
+
+### Examples
+
+```
+  tickerbox profile apply home
 ```
 
 ### Options

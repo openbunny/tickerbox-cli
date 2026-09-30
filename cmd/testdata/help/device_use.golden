@@ -1,7 +1,10 @@
-Set the default device
+Sets NAME as the device used when neither --host, --device, nor $TICKERBOX_HOST is given.
 
 Usage:
   tickerbox device use NAME [flags]
+
+Examples:
+  tickerbox device use desk
 
 Flags:
   -h, --help   help for use

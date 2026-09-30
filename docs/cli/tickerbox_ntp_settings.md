@@ -6,6 +6,12 @@ Show NTP settings
 tickerbox ntp settings [flags]
 ```
 
+### Examples
+
+```
+  tickerbox ntp settings
+```
+
 ### Options
 
 ```

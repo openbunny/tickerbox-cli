@@ -2,8 +2,18 @@
 
 Capture every device config section as a JSON snapshot
 
+### Synopsis
+
+Captures every config section, including wifi and ap. --show-secrets includes their passwords; otherwise they're omitted from the file.
+
 ```
 tickerbox config export [flags]
+```
+
+### Examples
+
+```
+  tickerbox config export --file backup.json
 ```
 
 ### Options

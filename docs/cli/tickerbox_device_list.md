@@ -6,6 +6,12 @@ List configured devices
 tickerbox device list [flags]
 ```
 
+### Examples
+
+```
+  tickerbox device list
+```
+
 ### Options
 
 ```

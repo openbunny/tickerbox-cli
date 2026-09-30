@@ -2,8 +2,18 @@
 
 Show per-section field differences between the device and a saved snapshot
 
+### Synopsis
+
+Compares every section. By default wifi/ap secret fields are omitted from both sides and show as (unset); --show-secrets compares their real values instead.
+
 ```
 tickerbox config diff <file> [flags]
+```
+
+### Examples
+
+```
+  tickerbox config diff backup.json
 ```
 
 ### Options

@@ -6,6 +6,12 @@ Show current Wi-Fi station status
 tickerbox wifi status [flags]
 ```
 
+### Examples
+
+```
+  tickerbox wifi status
+```
+
 ### Options
 
 ```

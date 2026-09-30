@@ -3,6 +3,9 @@ List configured devices
 Usage:
   tickerbox device list [flags]
 
+Examples:
+  tickerbox device list
+
 Flags:
   -h, --help   help for list
 

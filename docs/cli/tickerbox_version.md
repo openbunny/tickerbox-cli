@@ -6,6 +6,12 @@ Print the CLI version
 tickerbox version [flags]
 ```
 
+### Examples
+
+```
+  tickerbox version
+```
+
 ### Options
 
 ```

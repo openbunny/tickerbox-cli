@@ -2,8 +2,18 @@
 
 Apply a preset to the current ticker list
 
+### Synopsis
+
+By default appends the preset's entries, skipping any ticker already in the list. --replace discards the current list and uses the preset's entries only.
+
 ```
 tickerbox tickers template apply <name> [flags]
+```
+
+### Examples
+
+```
+  tickerbox tickers template apply crypto-top10 --replace
 ```
 
 ### Options

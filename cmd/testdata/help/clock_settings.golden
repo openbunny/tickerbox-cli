@@ -3,6 +3,9 @@ Show clock settings
 Usage:
   tickerbox clock settings [flags]
 
+Examples:
+  tickerbox clock settings
+
 Flags:
   -h, --help   help for settings
 

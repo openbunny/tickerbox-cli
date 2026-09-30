@@ -2,8 +2,19 @@
 
 Remove a ticker
 
+### Synopsis
+
+Accepts either the 0-based index shown by `tickers list`, or a ticker symbol.
+
 ```
 tickerbox tickers remove <index|ticker> [flags]
+```
+
+### Examples
+
+```
+  tickerbox tickers remove BTC
+  tickerbox tickers remove 0
 ```
 
 ### Options

@@ -6,6 +6,12 @@ Show enabled device features
 tickerbox system features [flags]
 ```
 
+### Examples
+
+```
+  tickerbox system features
+```
+
 ### Options
 
 ```

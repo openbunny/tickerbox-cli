@@ -2,8 +2,18 @@
 
 Scan for nearby Wi-Fi networks
 
+### Synopsis
+
+Triggers a scan and polls for results, retrying briefly if none are ready yet. Results are sorted by signal strength, strongest first.
+
 ```
 tickerbox wifi scan [flags]
+```
+
+### Examples
+
+```
+  tickerbox wifi scan
 ```
 
 ### Options

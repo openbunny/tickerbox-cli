@@ -6,6 +6,12 @@ Show display settings
 tickerbox display settings [flags]
 ```
 
+### Examples
+
+```
+  tickerbox display settings
+```
+
 ### Options
 
 ```

@@ -1,7 +1,10 @@
-Apply a saved profile to the device
+Applies only the sections present in the saved profile; sections it doesn't contain are left untouched on the device.
 
 Usage:
   tickerbox profile apply <name> [flags]
+
+Examples:
+  tickerbox profile apply home
 
 Flags:
   -h, --help   help for apply

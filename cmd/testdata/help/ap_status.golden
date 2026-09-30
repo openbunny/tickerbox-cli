@@ -3,6 +3,9 @@ Show access point status
 Usage:
   tickerbox ap status [flags]
 
+Examples:
+  tickerbox ap status
+
 Flags:
   -h, --help   help for status
 

@@ -2,8 +2,18 @@
 
 Delete a saved profile
 
+### Synopsis
+
+Prompts for confirmation unless --yes.
+
 ```
 tickerbox profile rm <name> [flags]
+```
+
+### Examples
+
+```
+  tickerbox profile rm home --yes
 ```
 
 ### Options

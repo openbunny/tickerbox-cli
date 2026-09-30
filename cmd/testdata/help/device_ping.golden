@@ -1,7 +1,11 @@
-Check reachability of one or all configured devices
+Checks whether a configured device answers. Requires exactly one of NAME or --all.
 
 Usage:
   tickerbox device ping [NAME] [flags]
+
+Examples:
+  tickerbox device ping desk
+  tickerbox device ping --all
 
 Flags:
       --all    ping every configured device

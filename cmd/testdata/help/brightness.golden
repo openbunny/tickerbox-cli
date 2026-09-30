@@ -1,8 +1,11 @@
-Set display brightness
+Sets brightness directly to a value from 10-255. Use the up/down subcommands to step relative to the current value instead.
 
 Usage:
   tickerbox brightness [10-255] [flags]
   tickerbox brightness [command]
+
+Examples:
+  tickerbox brightness 180
 
 Available Commands:
   down        Decrease display brightness, clamped to 10-255

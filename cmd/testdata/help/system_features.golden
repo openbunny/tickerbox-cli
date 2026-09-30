@@ -3,6 +3,9 @@ Show enabled device features
 Usage:
   tickerbox system features [flags]
 
+Examples:
+  tickerbox system features
+
 Flags:
   -h, --help   help for features
 

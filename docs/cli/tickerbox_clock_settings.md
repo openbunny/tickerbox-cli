@@ -6,6 +6,12 @@ Show clock settings
 tickerbox clock settings [flags]
 ```
 
+### Examples
+
+```
+  tickerbox clock settings
+```
+
 ### Options
 
 ```

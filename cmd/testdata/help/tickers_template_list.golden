@@ -3,6 +3,9 @@ List built-in preset names
 Usage:
   tickerbox tickers template list [flags]
 
+Examples:
+  tickerbox tickers template list
+
 Flags:
   -h, --help   help for list
 

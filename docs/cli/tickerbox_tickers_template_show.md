@@ -6,6 +6,12 @@ Show a preset's entries
 tickerbox tickers template show <name> [flags]
 ```
 
+### Examples
+
+```
+  tickerbox tickers template show crypto-top10
+```
+
 ### Options
 
 ```

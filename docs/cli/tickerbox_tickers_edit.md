@@ -6,6 +6,12 @@ Change fields of one ticker entry in place
 tickerbox tickers edit <index|sym> [flags]
 ```
 
+### Examples
+
+```
+  tickerbox tickers edit BTC --time 1min
+```
+
 ### Options
 
 ```

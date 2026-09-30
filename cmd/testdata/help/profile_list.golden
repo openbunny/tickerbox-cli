@@ -3,6 +3,9 @@ List saved profiles
 Usage:
   tickerbox profile list [flags]
 
+Examples:
+  tickerbox profile list
+
 Flags:
   -h, --help   help for list
 

@@ -2,8 +2,19 @@
 
 Change access point settings
 
+### Synopsis
+
+Updates only the fields given as flags, merging into the current AP settings. --mode is one of always, disconnected, or never. --ssid is at most 32 characters, --password 8-64, --channel 1-14, --max-clients 1-9. --hidden/--no-hidden are mutually exclusive, as are --password and --password-stdin. Setting a password over plain http:// warns unless --yes.
+
 ```
 tickerbox ap set [flags]
+```
+
+### Examples
+
+```
+  tickerbox ap set --mode disconnected --ssid TickerBox-Setup --password-stdin < ap.secret
+  tickerbox ap set --channel 6 --max-clients 4
 ```
 
 ### Options

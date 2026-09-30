@@ -6,6 +6,12 @@ Open the device's web UI in the default browser
 tickerbox open [flags]
 ```
 
+### Examples
+
+```
+  tickerbox open
+```
+
 ### Options
 
 ```

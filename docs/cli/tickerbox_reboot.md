@@ -2,8 +2,18 @@
 
 Restart the device (alias for system restart)
 
+### Synopsis
+
+Alias for `system restart`. Prompts for confirmation unless --yes.
+
 ```
 tickerbox reboot [flags]
+```
+
+### Examples
+
+```
+  tickerbox reboot --yes
 ```
 
 ### Options

@@ -2,8 +2,18 @@
 
 Reorder the ticker list; the display cycles in this order
 
+### Synopsis
+
+FROM and TO are 0-based positions in the order the display cycles through, as shown by `tickers list`.
+
 ```
 tickerbox tickers move <from> <to> [flags]
+```
+
+### Examples
+
+```
+  tickerbox tickers move 3 0
 ```
 
 ### Options

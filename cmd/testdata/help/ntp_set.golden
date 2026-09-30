@@ -1,7 +1,10 @@
-Change NTP settings
+Updates only the fields given as flags. --enabled and --disabled are mutually exclusive. --tz must be a label from `tickerbox tz list`.
 
 Usage:
   tickerbox ntp set [flags]
+
+Examples:
+  tickerbox ntp set --enabled --server pool.ntp.org --tz America/New_York
 
 Flags:
       --disabled        disable NTP sync

@@ -2,8 +2,18 @@
 
 Restart the device
 
+### Synopsis
+
+Prompts for confirmation unless --yes.
+
 ```
 tickerbox system restart [flags]
+```
+
+### Examples
+
+```
+  tickerbox system restart --yes
 ```
 
 ### Options

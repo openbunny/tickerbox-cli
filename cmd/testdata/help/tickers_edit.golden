@@ -3,6 +3,9 @@ Change fields of one ticker entry in place
 Usage:
   tickerbox tickers edit <index|sym> [flags]
 
+Examples:
+  tickerbox tickers edit BTC --time 1min
+
 Flags:
       --currency string   USD|EUR|GBP|CAD|AUD|JPY
   -h, --help              help for edit

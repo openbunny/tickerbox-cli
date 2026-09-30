@@ -3,6 +3,9 @@ Show device uptime since last boot
 Usage:
   tickerbox uptime [flags]
 
+Examples:
+  tickerbox uptime
+
 Flags:
   -h, --help   help for uptime
 

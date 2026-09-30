@@ -2,8 +2,18 @@
 
 Show Wi-Fi station settings
 
+### Synopsis
+
+Password is masked as ******** unless --show-secrets is given.
+
 ```
 tickerbox wifi settings [flags]
+```
+
+### Examples
+
+```
+  tickerbox wifi settings --show-secrets
 ```
 
 ### Options

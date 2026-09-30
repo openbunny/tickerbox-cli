@@ -2,8 +2,18 @@
 
 Change display settings
 
+### Synopsis
+
+Updates only the fields given as flags. --brightness is 10-255, --interval is 10-60 seconds between screens. --sleep and --no-sleep are mutually exclusive. --sleep-start and --sleep-end accept RFC3339, 2006-01-02T15:04:05, or 2006-01-02.
+
 ```
 tickerbox display set [flags]
+```
+
+### Examples
+
+```
+  tickerbox display set --brightness 180 --interval 20 --sleep --sleep-start 2026-01-01T22:00:00 --sleep-end 2026-01-02T07:00:00
 ```
 
 ### Options

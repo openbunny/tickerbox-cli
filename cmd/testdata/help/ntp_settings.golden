@@ -3,6 +3,9 @@ Show NTP settings
 Usage:
   tickerbox ntp settings [flags]
 
+Examples:
+  tickerbox ntp settings
+
 Flags:
   -h, --help   help for settings
 

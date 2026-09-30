@@ -1,7 +1,10 @@
-Show access point settings
+The AP password is always shown in the clear; there is no masking flag.
 
 Usage:
   tickerbox ap settings [flags]
+
+Examples:
+  tickerbox ap settings
 
 Flags:
   -h, --help   help for settings

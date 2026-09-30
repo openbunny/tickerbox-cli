@@ -2,8 +2,18 @@
 
 Apply a saved config snapshot to the device
 
+### Synopsis
+
+Applies only the sections present in the file. Prompts for confirmation unless --yes.
+
 ```
 tickerbox config import <file> [flags]
+```
+
+### Examples
+
+```
+  tickerbox config import backup.json --yes
 ```
 
 ### Options

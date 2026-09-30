@@ -3,6 +3,9 @@ Show current Wi-Fi station status
 Usage:
   tickerbox wifi status [flags]
 
+Examples:
+  tickerbox wifi status
+
 Flags:
   -h, --help   help for status
 

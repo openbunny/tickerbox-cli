@@ -2,8 +2,18 @@
 
 Remove all tickers
 
+### Synopsis
+
+Removes every ticker. Prompts for confirmation unless --yes.
+
 ```
 tickerbox tickers clear [flags]
+```
+
+### Examples
+
+```
+  tickerbox tickers clear --yes
 ```
 
 ### Options

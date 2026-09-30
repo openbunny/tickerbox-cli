@@ -2,8 +2,18 @@
 
 Set the device timezone
 
+### Synopsis
+
+label must be one shown by `tickerbox tz list`. Sets both the ntp and clock timezone fields on the device.
+
 ```
 tickerbox tz set <label> [flags]
+```
+
+### Examples
+
+```
+  tickerbox tz set America/New_York
 ```
 
 ### Options

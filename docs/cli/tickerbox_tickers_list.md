@@ -6,6 +6,12 @@ List configured tickers
 tickerbox tickers list [flags]
 ```
 
+### Examples
+
+```
+  tickerbox tickers list
+```
+
 ### Options
 
 ```

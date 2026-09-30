@@ -1,7 +1,10 @@
-Restart the device
+Prompts for confirmation unless --yes.
 
 Usage:
   tickerbox system restart [flags]
+
+Examples:
+  tickerbox system restart --yes
 
 Flags:
   -h, --help   help for restart

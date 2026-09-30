@@ -3,6 +3,9 @@ Print the CLI version
 Usage:
   tickerbox version [flags]
 
+Examples:
+  tickerbox version
+
 Flags:
   -h, --help   help for version
 

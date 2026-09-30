@@ -6,6 +6,12 @@ Export tickers as JSON
 tickerbox tickers export [flags]
 ```
 
+### Examples
+
+```
+  tickerbox tickers export --output tickers.json
+```
+
 ### Options
 
 ```

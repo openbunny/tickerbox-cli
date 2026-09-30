@@ -6,6 +6,12 @@ Remove a configured device
 tickerbox device rm NAME [flags]
 ```
 
+### Examples
+
+```
+  tickerbox device rm desk
+```
+
 ### Options
 
 ```

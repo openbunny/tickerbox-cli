@@ -3,6 +3,9 @@ Remove a configured device
 Usage:
   tickerbox device rm NAME [flags]
 
+Examples:
+  tickerbox device rm desk
+
 Flags:
   -h, --help   help for rm
 

@@ -1,7 +1,10 @@
-Find TickerBoxes on the local network
+Probes tickerbox.local, then scans every host on the local /24 subnet for a TickerBox. For each one found, prompts interactively to add it as a named device.
 
 Usage:
   tickerbox device discover [flags]
+
+Examples:
+  tickerbox device discover
 
 Flags:
   -h, --help   help for discover

@@ -3,6 +3,9 @@ Show NTP sync status
 Usage:
   tickerbox ntp status [flags]
 
+Examples:
+  tickerbox ntp status
+
 Flags:
   -h, --help   help for status
 

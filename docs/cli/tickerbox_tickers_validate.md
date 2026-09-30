@@ -6,6 +6,12 @@ Report illegal fields and duplicate symbols in the ticker list
 tickerbox tickers validate [flags]
 ```
 
+### Examples
+
+```
+  tickerbox tickers validate
+```
+
 ### Options
 
 ```

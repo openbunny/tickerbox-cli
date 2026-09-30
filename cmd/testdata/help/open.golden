@@ -6,6 +6,9 @@ Usage:
 Aliases:
   open, ui
 
+Examples:
+  tickerbox open
+
 Flags:
   -h, --help   help for open
 

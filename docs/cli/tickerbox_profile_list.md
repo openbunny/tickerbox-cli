@@ -6,6 +6,12 @@ List saved profiles
 tickerbox profile list [flags]
 ```
 
+### Examples
+
+```
+  tickerbox profile list
+```
+
 ### Options
 
 ```

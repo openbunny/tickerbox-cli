@@ -2,8 +2,18 @@
 
 Add one or more tickers, sharing --type/--time/--currency
 
+### Synopsis
+
+Adds one entry per SYM, all sharing the same --type, --time, and --currency. --type and --time are required; --currency defaults to USD.
+
 ```
 tickerbox tickers add SYM... [flags]
+```
+
+### Examples
+
+```
+  tickerbox tickers add BTC ETH --type crypto --time 5min --currency USD
 ```
 
 ### Options

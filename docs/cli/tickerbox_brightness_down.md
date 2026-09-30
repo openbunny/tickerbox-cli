@@ -2,8 +2,18 @@
 
 Decrease display brightness, clamped to 10-255
 
+### Synopsis
+
+Lowers brightness by step, or by 25 if step is omitted, clamped to 10-255.
+
 ```
 tickerbox brightness down [step] [flags]
+```
+
+### Examples
+
+```
+  tickerbox brightness down
 ```
 
 ### Options

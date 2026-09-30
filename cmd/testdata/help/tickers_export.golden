@@ -3,6 +3,9 @@ Export tickers as JSON
 Usage:
   tickerbox tickers export [flags]
 
+Examples:
+  tickerbox tickers export --output tickers.json
+
 Flags:
   -h, --help            help for export
       --output string   file to write; defaults to stdout

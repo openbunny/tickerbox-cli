@@ -1,7 +1,10 @@
-Restart the device (alias for system restart)
+Alias for `system restart`. Prompts for confirmation unless --yes.
 
 Usage:
   tickerbox reboot [flags]
+
+Examples:
+  tickerbox reboot --yes
 
 Flags:
   -h, --help   help for reboot

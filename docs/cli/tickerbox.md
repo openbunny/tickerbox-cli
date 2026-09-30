@@ -2,6 +2,18 @@
 
 Control a TickerBox device over its REST API
 
+### Synopsis
+
+tickerbox talks to a TickerBox ESP32 device's REST API over HTTP. Target a device with --host, or register named devices with `tickerbox device add` and select one with --device or `tickerbox device use`. The device's REST API has no authentication; anything on its network can reach it.
+
+### Examples
+
+```
+  tickerbox device add desk http://tickerbox.local
+  tickerbox status --device desk
+  tickerbox --host http://192.168.1.42 wifi status
+```
+
 ### Options
 
 ```
@@ -18,6 +30,7 @@ Control a TickerBox device over its REST API
 * [tickerbox ap](tickerbox_ap.md)	 - Access point
 * [tickerbox brightness](tickerbox_brightness.md)	 - Set display brightness
 * [tickerbox clock](tickerbox_clock.md)	 - Clock screen settings
+* [tickerbox completion](tickerbox_completion.md)	 - Generate the autocompletion script for the specified shell
 * [tickerbox config](tickerbox_config.md)	 - Device configuration snapshot: export, import, diff
 * [tickerbox device](tickerbox_device.md)	 - Manage configured devices
 * [tickerbox display](tickerbox_display.md)	 - Display brightness / rotation / sleep

@@ -3,6 +3,9 @@ Report illegal fields and duplicate symbols in the ticker list
 Usage:
   tickerbox tickers validate [flags]
 
+Examples:
+  tickerbox tickers validate
+
 Flags:
   -h, --help   help for validate
 

@@ -2,8 +2,19 @@
 
 Read-only health check
 
+### Synopsis
+
+Runs read-only checks: free heap, filesystem headroom, wifi connectivity, ntp sync, and ap exposure, plus a standing note that the device's REST API has no authentication. Exits non-zero if any check is critical. --all runs against every configured device.
+
 ```
 tickerbox doctor [flags]
+```
+
+### Examples
+
+```
+  tickerbox doctor
+  tickerbox doctor --all --json
 ```
 
 ### Options

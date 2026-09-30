@@ -1,7 +1,10 @@
-Remove all tickers
+Removes every ticker. Prompts for confirmation unless --yes.
 
 Usage:
   tickerbox tickers clear [flags]
+
+Examples:
+  tickerbox tickers clear --yes
 
 Flags:
   -h, --help   help for clear

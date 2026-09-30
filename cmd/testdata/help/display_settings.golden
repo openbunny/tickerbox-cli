@@ -3,6 +3,9 @@ Show display settings
 Usage:
   tickerbox display settings [flags]
 
+Examples:
+  tickerbox display settings
+
 Flags:
   -h, --help   help for settings
 

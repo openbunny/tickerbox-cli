@@ -6,6 +6,12 @@ List known time zone labels and their POSIX strings
 tickerbox tz list [flags]
 ```
 
+### Examples
+
+```
+  tickerbox tz list --grep chicago
+```
+
 ### Options
 
 ```

@@ -3,6 +3,9 @@ Show device system status
 Usage:
   tickerbox system info [flags]
 
+Examples:
+  tickerbox system info
+
 Flags:
   -h, --help   help for info
 

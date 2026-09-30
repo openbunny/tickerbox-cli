@@ -2,8 +2,18 @@
 
 Compare a saved profile against the device's current config
 
+### Synopsis
+
+Compares only the sections the profile contains. --show-secrets reveals wifi/ap password fields instead of masking them.
+
 ```
 tickerbox profile diff <name> [flags]
+```
+
+### Examples
+
+```
+  tickerbox profile diff home
 ```
 
 ### Options

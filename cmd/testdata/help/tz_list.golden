@@ -3,6 +3,9 @@ List known time zone labels and their POSIX strings
 Usage:
   tickerbox tz list [flags]
 
+Examples:
+  tickerbox tz list --grep chicago
+
 Flags:
       --grep string   case-insensitive filter on label
   -h, --help          help for list

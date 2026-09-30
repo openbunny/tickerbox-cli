@@ -6,6 +6,12 @@ Show device system status
 tickerbox system info [flags]
 ```
 
+### Examples
+
+```
+  tickerbox system info
+```
+
 ### Options
 
 ```

@@ -2,8 +2,18 @@
 
 Change clock settings
 
+### Synopsis
+
+Updates only the fields given as flags. --enabled/--disabled and --12h/--24h are each mutually exclusive. --tz must be a label from `tickerbox tz list`.
+
 ```
 tickerbox clock set [flags]
+```
+
+### Examples
+
+```
+  tickerbox clock set --enabled --12h --tz America/Chicago
 ```
 
 ### Options

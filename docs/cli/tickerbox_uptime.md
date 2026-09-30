@@ -6,6 +6,12 @@ Show device uptime since last boot
 tickerbox uptime [flags]
 ```
 
+### Examples
+
+```
+  tickerbox uptime
+```
+
 ### Options
 
 ```

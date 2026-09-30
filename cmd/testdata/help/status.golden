@@ -1,7 +1,10 @@
-Aggregate dashboard
+Shows features, system, Wi-Fi, AP, NTP, display, and clock state in one report. --all runs this against every device in the config file instead of the resolved target.
 
 Usage:
   tickerbox status [flags]
+
+Examples:
+  tickerbox status --all --json
 
 Flags:
       --all    show status for every device in the config file instead of the resolved target

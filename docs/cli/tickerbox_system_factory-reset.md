@@ -2,8 +2,18 @@
 
 Erase all device settings and restore factory defaults
 
+### Synopsis
+
+Erases all device settings and cannot be undone. Prompts for confirmation unless --yes. --backup-first writes the current config to tickerbox-backup-<UTC timestamp>.json before wiping.
+
 ```
 tickerbox system factory-reset [flags]
+```
+
+### Examples
+
+```
+  tickerbox system factory-reset --backup-first --yes
 ```
 
 ### Options

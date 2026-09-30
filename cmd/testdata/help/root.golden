@@ -1,7 +1,12 @@
-Control a TickerBox device over its REST API
+tickerbox talks to a TickerBox ESP32 device's REST API over HTTP. Target a device with --host, or register named devices with `tickerbox device add` and select one with --device or `tickerbox device use`. The device's REST API has no authentication; anything on its network can reach it.
 
 Usage:
   tickerbox [command]
+
+Examples:
+  tickerbox device add desk http://tickerbox.local
+  tickerbox status --device desk
+  tickerbox --host http://192.168.1.42 wifi status
 
 Available Commands:
   ap          Access point

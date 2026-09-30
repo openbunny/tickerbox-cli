@@ -2,8 +2,18 @@
 
 Increase display brightness, clamped to 10-255
 
+### Synopsis
+
+Raises brightness by step, or by 25 if step is omitted, clamped to 10-255.
+
 ```
 tickerbox brightness up [step] [flags]
+```
+
+### Examples
+
+```
+  tickerbox brightness up 15
 ```
 
 ### Options

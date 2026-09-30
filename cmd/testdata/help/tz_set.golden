@@ -1,7 +1,10 @@
-Set the device timezone
+label must be one shown by `tickerbox tz list`. Sets both the ntp and clock timezone fields on the device.
 
 Usage:
   tickerbox tz set <label> [flags]
+
+Examples:
+  tickerbox tz set America/New_York
 
 Flags:
   -h, --help   help for set
