@@ -6,10 +6,10 @@ on:
   workflow_call:
 permissions: {}
 concurrency:
-  # workflow_ref (not workflow) so a tag-push release run that calls this
-  # workflow alongside security.yml, gitleaks.yml and reuse.yml gets its own
-  # group per called file instead of one shared group that cancels the others.
-  group: ${{ github.workflow_ref }}-${{ github.ref }}
+  # Static per-file group: a tag-push release run calls ci, security,
+  # gitleaks and reuse together; a shared group with cancel-in-progress
+  # made the siblings cancel each other, so each names its own group.
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   test:
