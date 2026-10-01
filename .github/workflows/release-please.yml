@@ -26,8 +26,8 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           signoff: 'Robot <bot@fiona.sm>'
-          # A real-user PAT makes the release PR and tag come from a user, not from
-          # real user instead of github-actions[bot], so the PR's CI runs without
+          # A real-user PAT makes the release PR and tag come from a user instead of
+          # github-actions[bot], so the PR's CI runs without
           # manual approval and the pushed tag triggers the release workflow (a
           # GITHUB_TOKEN-created tag does not). Uses the preconfigured
           # HOMEBREW_TAP_GITHUB_TOKEN PAT unless RELEASE_PLEASE_TOKEN overrides it,
