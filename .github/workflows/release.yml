@@ -34,7 +34,7 @@ jobs:
         with:
           # renovate: datasource=github-releases depName=goreleaser/goreleaser
           version: v2.18.2
-          args: release --snapshot --clean
+          args: release --snapshot --clean --skip=sign
 
   # A tagged commit is released only if it passes the same gates as any other
   # commit: a tag push does not re-run the CI workflows that graded the merge
