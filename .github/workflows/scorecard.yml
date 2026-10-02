@@ -6,28 +6,12 @@ on:
     - cron: '0 6 * * 1'
   workflow_dispatch:
 permissions: {}
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   scorecard:
     name: Scorecard
     permissions:
       contents: read
-      id-token: write # mints the OIDC token scorecard-action uses to sign published results
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          persist-credentials: false
-      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
-        with:
-          results_file: results.json
-          results_format: json
-          publish_results: true
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: scorecard-results
-          path: results.json
-          retention-days: 30
+      id-token: write # signs published Scorecard results
+    uses: openbunny/.github/.github/workflows/reusable-scorecard.yml@2383033519e5dd89bfd4e832659933a145e7acde # v0.2.0
+    with:
+      publish: true

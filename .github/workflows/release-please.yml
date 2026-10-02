@@ -4,32 +4,15 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions: {}
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   release-please:
     name: Release Please
     permissions:
       contents: write # pushes the release commit and tag
       pull-requests: write # opens and updates the release PR
-      issues: write # comments release links on issues the release closes
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      # Manifest mode: read release-please-config.json and the manifest, which
-      # carry release-as, bump-minor-pre-major, draft and the changelog path.
-      # Passing release-type here instead would switch to simple mode and ignore
-      # both files.
-      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-          signoff: 'Robot <bot@fiona.sm>'
-          # A real-user PAT makes the release PR and tag come from a user instead of
-          # github-actions[bot], so the PR's CI runs without
-          # manual approval and the pushed tag triggers the release workflow (a
-          # GITHUB_TOKEN-created tag does not). Uses the preconfigured
-          # HOMEBREW_TAP_GITHUB_TOKEN PAT unless RELEASE_PLEASE_TOKEN overrides it,
-          # falling back to GITHUB_TOKEN (which needs those steps done by hand).
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.HOMEBREW_TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+      issues: write # comments on issues closed by the release
+    uses: openbunny/.github/.github/workflows/reusable-release-please.yml@2383033519e5dd89bfd4e832659933a145e7acde # v0.2.0
+    with:
+      signoff: 'Robot <bot@fiona.sm>'
+    secrets:
+      token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

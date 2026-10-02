@@ -1,41 +1,10 @@
-# Verifies every commit in a pull request carries a Signed-off-by trailer, per
-# CONTRIBUTING.md. The DCO GitHub App (github.com/apps/dco) is an alternative
-# that needs an org-level app install rather than a workflow.
 name: DCO
 on:
   pull_request:
 permissions: {}
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   dco:
     name: DCO
-    timeout-minutes: 15
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: verify sign-off on every commit
-        env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          missing=0
-          for sha in $(git rev-list "$BASE".."$HEAD"); do
-            # release-please's automated release commits are authored by
-            # github-actions[bot]: generated version bumps, not human
-            # contributions, so they are exempt from the sign-off requirement.
-            if [ "$(git show -s --format=%an "$sha")" = "github-actions[bot]" ]; then
-              continue
-            fi
-            if ! git show -s --format=%B "$sha" | grep -qiE '^Signed-off-by: .+ <.+@.+>'; then
-              echo "missing Signed-off-by: $sha $(git show -s --format=%s "$sha")"
-              missing=1
-            fi
-          done
-          exit $missing
+    uses: openbunny/.github/.github/workflows/reusable-dco.yml@2383033519e5dd89bfd4e832659933a145e7acde # v0.2.0
