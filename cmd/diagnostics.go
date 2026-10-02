@@ -420,10 +420,20 @@ func buildSetting(info *debug.BuildInfo, key string) (string, bool) {
 	return info.Settings[idx].Value, true
 }
 
-func assembleVersion(v, c, d string, info *debug.BuildInfo, ok bool) string {
+func buildVersion(v string, info *debug.BuildInfo, ok bool) string {
 	if v == unsetVersion && ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		v = info.Main.Version
 	}
+	return v
+}
+
+func Version() string {
+	info, ok := debug.ReadBuildInfo()
+	return buildVersion(version, info, ok)
+}
+
+func assembleVersion(v, c, d string, info *debug.BuildInfo, ok bool) string {
+	v = buildVersion(v, info, ok)
 	if c == unsetCommit && ok {
 		if rev, found := buildSetting(info, "vcs.revision"); found {
 			c = rev
