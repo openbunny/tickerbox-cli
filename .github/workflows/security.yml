@@ -19,7 +19,7 @@ jobs:
     name: Gosec
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       # renovate: datasource=go depName=github.com/securego/gosec/v2
       GOSEC_VERSION: v2.29.0
@@ -47,7 +47,7 @@ jobs:
     name: Govulncheck
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       # renovate: datasource=go depName=golang.org/x/vuln
       GOVULNCHECK_VERSION: v1.8.0
@@ -74,7 +74,7 @@ jobs:
     name: Go Licenses
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       # renovate: datasource=go depName=github.com/google/go-licenses/v2
       GO_LICENSES_VERSION: v2.0.1
