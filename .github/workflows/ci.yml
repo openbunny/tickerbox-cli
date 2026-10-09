@@ -38,7 +38,7 @@ jobs:
     name: Lint
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       # renovate: datasource=go depName=mvdan.cc/gofumpt
       GOFUMPT_VERSION: v0.12.0
@@ -75,7 +75,7 @@ jobs:
     name: Coverage
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -95,7 +95,7 @@ jobs:
     name: Actions
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       # renovate: datasource=go depName=github.com/rhysd/actionlint
       ACTIONLINT_VERSION: v1.7.12

@@ -19,7 +19,7 @@ jobs:
     name: Zizmor
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       # renovate: datasource=pypi depName=zizmor
       ZIZMOR_VERSION: 1.30.1
