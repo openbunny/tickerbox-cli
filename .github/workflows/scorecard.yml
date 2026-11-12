@@ -12,6 +12,6 @@ jobs:
     permissions:
       contents: read
       id-token: write # signs published Scorecard results
-    uses: openbunny/.github/.github/workflows/reusable-scorecard.yml@2383033519e5dd89bfd4e832659933a145e7acde # v0.2.0
+    uses: openbunny/.github/.github/workflows/reusable-scorecard.yml@2050692900f7dcd883e416ebee37a1b97b119203 # v0.3.0
     with:
       publish: true
