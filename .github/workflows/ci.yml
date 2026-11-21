@@ -69,7 +69,7 @@ jobs:
         uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7.0.1
         with:
           # renovate: datasource=go depName=github.com/golangci/golangci-lint/v2
-          version: v2.14.0
+          version: v2.15.0
 
   coverage:
     name: Coverage
